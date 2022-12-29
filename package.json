@@ -1,6 +1,6 @@
 {
   "name": "@hopdrive/hasura-event-detector",
-  "version": "1.0.0",
+  "version": "0.0.2",
   "description": "Detect events by name by interogating Hasura Event Trigger Payloads using a modular approach.",
   "main": "index.js",
   "scripts": {
@@ -17,8 +17,7 @@
     "url": "https://github.com/hopdrive/hasura-event-detector/issues"
   },
   "homepage": "https://github.com/hopdrive/hasura-event-detector#readme",
-  "dependencies": {
-  },
+  "dependencies": {},
   "publishConfig": {
     "cache": "~/.npm",
     "registry": "https://npm.pkg.github.com/hopdrive"
