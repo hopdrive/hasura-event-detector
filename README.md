@@ -1,5 +1,6 @@
 # Hasura-Event-Detector
-System for dynamically identifying business events by name by evaluating database event payloads from Hasura Event Trigger invocations. Asynchronously run 0 or more jobs defined in separate modules when an event is detected. 
+
+System for dynamically identifying business events by name by evaluating database event payloads from Hasura Event Trigger invocations. Asynchronously run 0 or more jobs defined in separate modules when an event is detected.
 
 Detect events by name by interogating Hasura Event Trigger Payloads using a modular approach. The system works like this...
 
@@ -28,6 +29,39 @@ Create each netlify function with a naming convention of "event-detector-" follo
    /events
       some.event.status.js
    netlify-function-name.js
+```
+
+### Sharing Job Functions
+
+It's common to have a bit of code that needs to be invoked from multiple event detectors. For instance, if we are writing audit log records whenever various changes are detected then a single job for writing the log could be reused across multiple event detectors.
+
+Because of the way Netlify packages up the Netlify Function into an AWS Lambda,
+we must include a reference to all shared job modules in the core Netlify Function
+otherwise they will not be bundled into the Lambda at build time.
+
+You can accomplish this pretty easily by creating a shared jobs directory somewhere
+outside of the Netlify Function directory such as a lib folder. In that folder you
+will place a module for each shared job as well as an index.js file that exports
+each one of them.
+
+Then in the Netlify Function file simply require the shared jobs
+directory and because the index.js file exports everything, it will tell Netlify
+to build the Function with all shared jobs.
+
+Here's an example folder structure...
+
+```
+/functions
+  /lib
+    /jobs
+      index.js (exports all shared jobs in the directory)
+      sharedJob.js
+      sharedJob2.js
+  /netlify-function-name
+    /events
+      some.event.status.js (requires '../lib/jobs/sharedJob')
+      some.other.status.js (requires '../lib/jobs/sharedJob2')
+    netlify-function-name.js (requires '../lib/jobs')
 ```
 
 ### Event Detector Netlify Function
