@@ -27,8 +27,11 @@ Create each netlify function with a naming convention of "event-detector-" follo
 ```
 /netlify-function-name
    /events
-      some.event.status.js
-   netlify-function-name.js
+      some.event.status.js (requires various job modules)
+   /jobs
+      index.js (exports all local jobs in the directory)
+      localJob.js
+   netlify-function-name.js (requires shared and local jobs directories)
 ```
 
 ### Sharing Job Functions
@@ -59,9 +62,13 @@ Here's an example folder structure...
       sharedJob2.js
   /netlify-function-name
     /events
-      some.event.status.js (requires '../lib/jobs/sharedJob')
-      some.other.status.js (requires '../lib/jobs/sharedJob2')
-    netlify-function-name.js (requires '../lib/jobs')
+      some.event.status.js (requires '../../lib/jobs/sharedJob')
+      some.other.status.js (requires '../../lib/jobs/sharedJob2')
+      yet.another.status.js (requires '../jobs/localJob')
+    /jobs
+      index.js (exports all local jobs in the directory)
+      localJob.js
+    netlify-function-name.js (requires '../lib/jobs' and './jobs')
 ```
 
 ### Event Detector Netlify Function
