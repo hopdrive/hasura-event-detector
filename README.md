@@ -34,6 +34,10 @@ Create each netlify function with a naming convention of "event-detector-" follo
    netlify-function-name.js (requires shared and local jobs directories)
 ```
 
+### Avoid Event Module Dependencies
+
+Netlify will not be able to track down the dependencies from within any event modules since they are dynamically loaded. So avoid requiring external packages from within these files. Instead put all dependencies into the job modules themselves. 
+
 ### Sharing Job Functions
 
 It's common to have a bit of code that needs to be invoked from multiple event detectors. For instance, if we are writing audit log records whenever various changes are detected then a single job for writing the log could be reused across multiple event detectors.
