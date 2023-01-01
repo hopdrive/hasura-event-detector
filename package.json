@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "jest --coverage ",
-    "deploy": "node deploy.js"
+    "deploy": "node node_modules/@hopdrive/package-deploy-scripts/deploy.js"
   },
   "repository": {
     "type": "git",
@@ -23,6 +23,7 @@
     "registry": "https://npm.pkg.github.com/hopdrive"
   },
   "devDependencies": {
+    "@hopdrive/package-deploy-scripts": "^0.0.3",
     "@types/node": "^14.14.14",
     "dotenv": "^8.2.0",
     "genversion": "^3.0.2",
