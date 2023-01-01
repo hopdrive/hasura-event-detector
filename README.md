@@ -34,9 +34,9 @@ Create each netlify function with a naming convention of "event-detector-" follo
    netlify-function-name.js (requires shared and local jobs directories)
 ```
 
-### Avoid Event Module Dependencies
+### Event Module Dependencies
 
-Netlify will not be able to track down the dependencies from within any event modules since they are dynamically loaded. So avoid requiring external packages from within these files. Instead put all dependencies into the job modules themselves. 
+Netlify will not be able to track down the dependencies from within any event modules since they are dynamically loaded. So to get around this, we create an index.js file in the events folder that exports every event module from the events folder. We import all of these exported modules from the events folder into the netlify function with a single import but then we don't use it. Just requiring it is enough to ensure all of the event modules and their dependencies are included in the netlify function build. 
 
 ### Sharing Job Functions
 
@@ -66,6 +66,7 @@ Here's an example folder structure...
       sharedJob2.js
   /netlify-function-name
     /events
+      index.js (exports all events in the directory)
       some.event.status.js (requires '../../lib/jobs/sharedJob')
       some.other.status.js (requires '../../lib/jobs/sharedJob2')
       yet.another.status.js (requires '../jobs/localJob')
@@ -81,8 +82,10 @@ Use the following code for the Netlify function.
 
 ```javascript title="netlify-function-name.js"
 const auth = require('../lib/functionAuth');
-const { handleSuccess, handleFailure } = require('../lib/EventDetector/helpers');
-const { listenTo } = require('../lib/EventDetector/detector');
+const { listenTo, handleSuccess, handleFailure } = require(`@hopdrive/hasura-event-detector`);
+const sharedJobs = require('../~lib/jobs');
+const localJobs = require('./jobs');
+const events = require('./events');
 
 exports.handler = async (event, context) => {
   try {

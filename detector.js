@@ -142,6 +142,21 @@ const detectEventModules = modulesDir => {
  *    only returned if event is detected
  */
 const detect = async (event, hasuraEvent, eventModulesDirectory) => {
+
+  // TODO: We could implement specific functions for each type of hasura
+  // event (insert, update, delete, or manual). We would run the correct
+  // event module function based on the event. If the event is update and
+  // there is a "checkUpdate" function exported from the event module
+  // then it would be called here.
+  //
+  // It could look like this on the client side:
+  //
+  //    module.exports.checkUpdate = async (event, hasuraEvent) => {
+  //      const { dbEvent } = parseHasuraEvent(hasuraEvent);
+  //      const wasJustActivated = dbEvent?.old?.active != dbEvent?.new?.active && dbEvent?.new?.active;
+  //      return wasJustActivated;
+  //    }
+  //
   const { detector, handler } = loadEventModule(event, eventModulesDirectory);
 
   //log(event, 'Detector and handler loaded: ', detector, handler);
