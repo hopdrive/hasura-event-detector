@@ -27,6 +27,7 @@ Create each netlify function with a naming convention of "event-detector-" follo
 ```
 /netlify-function-name
    /events
+      index.js (exports all event modules in the directory)
       some.event.status.js (requires various job modules)
    /jobs
       index.js (exports all local jobs in the directory)
