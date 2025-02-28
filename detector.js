@@ -23,15 +23,19 @@ const path = require('path');
  *    ignored and overwritten by the auto loader.
  * @param {String[]} listenedEvents List of event names to listen
  *    for and load modules for
+ * @param {Object} [context={}] Context object passed to each event handler
  * @returns {Promise.AllSettledResult} For each outcome object, a status
  * string is present. If the status is fulfilled, then a value is present.
  * If the status is rejected, then a reason is present. The value (or reason)
  * reflects what value each promise was fulfilled (or rejected) with.
  */
-const listenTo = async (hasuraEvent, optionsOverride = {}) => {
+const listenTo = async (hasuraEvent, optionsOverride = {}, context = {}) => {
   // Use the urnary (+) to get starting time as milliseconds
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Unary_plus
   let start = +new Date();
+
+  // Inject context into hasuraEvent object
+  hasuraEvent.__context = context;
 
   let options = {
     autoLoadEventModules: true,
@@ -81,11 +85,9 @@ const listenTo = async (hasuraEvent, optionsOverride = {}) => {
     }
   }
 
-  console.log('eventHandlersToRun', eventHandlersToRun)
+  console.log('eventHandlersToRun', eventHandlersToRun);
   const response = await Promise.allSettled(eventHandlersToRun);
   const preppedRes = preparedResponse(detectedEvents, response);
-
-  
 
   preppedRes.duration = +new Date() - start;
 
@@ -142,7 +144,6 @@ const detectEventModules = modulesDir => {
  *    only returned if event is detected
  */
 const detect = async (event, hasuraEvent, eventModulesDirectory) => {
-
   // TODO: We could implement specific functions for each type of hasura
   // event (insert, update, delete, or manual). We would run the correct
   // event module function based on the event. If the event is update and
@@ -195,7 +196,7 @@ const consoleLogResponse = (detectedEvents, response) => {
   console.log(`\n🔔  Detected ${detectedEvents.length} events from the database event in ${response?.duration} ms:\n`);
 
   //console.log('response', response, 'response.events', response.events)
-  
+
   if (!Array.isArray(response?.events) || response?.events.length < 1) return;
 
   for (const eventIndex in response?.events) {
