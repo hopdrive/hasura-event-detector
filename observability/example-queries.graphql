@@ -1,0 +1,319 @@
+# Example GraphQL Queries for Event Detector Observability
+# These queries demonstrate how to fetch data for dashboard components
+
+# Overview Dashboard - Recent invocations with aggregated stats
+query OverviewDashboard($timeRange: timestamptz!) {
+  # Recent invocations
+  invocations(
+    where: { created_at: { _gte: $timeRange } }
+    order_by: { created_at: desc }
+    limit: 10
+  ) {
+    id
+    source_function
+    created_at
+    total_duration_ms
+    status
+    events_detected_count
+    total_jobs_run
+    success_rate
+    avg_job_duration
+  }
+  
+  # Aggregated stats
+  invocations_aggregate(where: { created_at: { _gte: $timeRange } }) {
+    aggregate {
+      count
+      avg { total_duration_ms }
+      sum { 
+        total_jobs_run
+        total_jobs_succeeded
+        total_jobs_failed
+      }
+    }
+  }
+  
+  # Top event types
+  event_executions_aggregate(
+    where: { detected: { _eq: true }, created_at: { _gte: $timeRange } }
+    group_by: event_name
+  ) {
+    aggregate {
+      count
+    }
+    nodes {
+      event_name
+    }
+  }
+  
+  # Performance trends
+  dashboard_stats(
+    where: { hour_bucket: { _gte: $timeRange } }
+    order_by: { hour_bucket: asc }
+  ) {
+    hour_bucket
+    source_function
+    total_invocations
+    avg_duration_ms
+    successful_invocations
+    failed_invocations
+  }
+}
+
+# Detailed invocation view with all related data
+query InvocationDetail($invocationId: uuid!) {
+  invocations_by_pk(id: $invocationId) {
+    id
+    created_at
+    updated_at
+    source_function
+    source_table
+    source_operation
+    hasura_event_id
+    hasura_event_payload
+    hasura_event_time
+    hasura_user_email
+    hasura_user_role
+    total_duration_ms
+    events_detected_count
+    total_jobs_run
+    total_jobs_succeeded
+    total_jobs_failed
+    status
+    error_message
+    success_rate
+    avg_job_duration
+    
+    # Related event executions
+    event_executions {
+      id
+      event_name
+      event_module_path
+      detected
+      detection_duration_ms
+      detection_error
+      handler_duration_ms
+      handler_error
+      jobs_count
+      jobs_succeeded
+      jobs_failed
+      status
+      job_success_rate
+      
+      # Related job executions
+      job_executions {
+        id
+        job_name
+        job_function_name
+        job_options
+        duration_ms
+        status
+        result
+        error_message
+        console_logs
+        
+        # Job logs
+        logs {
+          id
+          created_at
+          level
+          message
+          data
+          source
+          line_number
+        }
+      }
+    }
+  }
+}
+
+# Invocations list with filtering and pagination
+query InvocationsList(
+  $limit: Int = 20
+  $offset: Int = 0
+  $where: invocations_bool_exp = {}
+  $orderBy: [invocations_order_by!] = { created_at: desc }
+) {
+  invocations(
+    limit: $limit
+    offset: $offset
+    where: $where
+    order_by: $orderBy
+  ) {
+    id
+    created_at
+    source_function
+    source_table
+    source_operation
+    total_duration_ms
+    events_detected_count
+    total_jobs_run
+    total_jobs_succeeded
+    total_jobs_failed
+    status
+    success_rate
+  }
+  
+  invocations_aggregate(where: $where) {
+    aggregate {
+      count
+    }
+  }
+}
+
+# Event flow visualization data
+query EventFlowData($invocationId: uuid!) {
+  invocations_by_pk(id: $invocationId) {
+    id
+    source_function
+    status
+    total_duration_ms
+    events_detected_count
+    
+    event_executions {
+      id
+      event_name
+      detected
+      status
+      detection_duration_ms
+      handler_duration_ms
+      jobs_count
+      
+      job_executions {
+        id
+        job_name
+        job_function_name
+        status
+        duration_ms
+        result
+        error_message
+      }
+    }
+  }
+}
+
+# Performance analytics
+query PerformanceAnalytics($timeRange: timestamptz!) {
+  # Performance trends by function
+  dashboard_stats(
+    where: { hour_bucket: { _gte: $timeRange } }
+    order_by: { hour_bucket: asc }
+  ) {
+    hour_bucket
+    source_function
+    total_invocations
+    successful_invocations
+    failed_invocations
+    avg_duration_ms
+    min_duration_ms
+    max_duration_ms
+    p95_duration_ms
+  }
+  
+  # Job failure analysis
+  job_executions_aggregate(
+    where: { 
+      created_at: { _gte: $timeRange }
+      status: { _eq: "failed" }
+    }
+    group_by: [job_name, source_function: { invocation: { source_function } }]
+  ) {
+    aggregate {
+      count
+    }
+    nodes {
+      job_name
+      invocation {
+        source_function
+      }
+    }
+  }
+  
+  # Event detection success rates
+  event_executions_aggregate(
+    where: { created_at: { _gte: $timeRange } }
+    group_by: event_name
+  ) {
+    aggregate {
+      count
+      count(where: { detected: { _eq: true } })
+    }
+    nodes {
+      event_name
+    }
+  }
+}
+
+# Real-time monitoring query (use subscription in production)
+subscription RealtimeMonitor {
+  invocations(
+    limit: 20
+    order_by: { created_at: desc }
+    where: { status: { _in: ["running", "completed", "failed"] } }
+  ) {
+    id
+    created_at
+    source_function
+    status
+    total_duration_ms
+    events_detected_count
+    total_jobs_run
+    success_rate
+  }
+  
+  # Currently running jobs
+  job_executions(
+    where: { status: { _eq: "running" } }
+    order_by: { created_at: desc }
+  ) {
+    id
+    job_name
+    created_at
+    invocation {
+      source_function
+    }
+    event_execution {
+      event_name
+    }
+  }
+}
+
+# System health metrics
+query SystemHealth($timeRange: timestamptz!) {
+  # Overall system stats
+  invocations_aggregate(where: { created_at: { _gte: $timeRange } }) {
+    aggregate {
+      count
+      count(where: { status: { _eq: "completed" } })
+      count(where: { status: { _eq: "failed" } })
+      avg { total_duration_ms }
+    }
+  }
+  
+  # Jobs stats
+  job_executions_aggregate(where: { created_at: { _gte: $timeRange } }) {
+    aggregate {
+      count
+      count(where: { status: { _eq: "completed" } })
+      count(where: { status: { _eq: "failed" } })
+      avg { duration_ms }
+    }
+  }
+  
+  # Error patterns
+  job_executions(
+    where: { 
+      created_at: { _gte: $timeRange }
+      status: { _eq: "failed" }
+    }
+    limit: 10
+    order_by: { created_at: desc }
+  ) {
+    job_name
+    error_message
+    created_at
+    invocation {
+      source_function
+    }
+  }
+}

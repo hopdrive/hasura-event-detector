@@ -40,6 +40,12 @@ const safeJobWrapper = async (func, event, hasuraEvent, options) => {
   // Use the urnary (+) to get starting time as milliseconds
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Unary_plus
   let start = +new Date();
+  
+  // Get observability context from hasuraEvent
+  const observabilityContext = hasuraEvent?.__observability;
+  const plugin = observabilityContext?.plugin;
+  const invocationId = observabilityContext?.invocationId;
+  const eventExecutionId = observabilityContext?.eventExecutionId;
 
   let output = {
     event,
@@ -48,9 +54,34 @@ const safeJobWrapper = async (func, event, hasuraEvent, options) => {
     result: null,
   };
 
+  // Record job execution start
+  const jobExecutionId = await plugin?.recordJobExecution(invocationId, eventExecutionId, {
+    jobName: func?.name || 'anonymous',
+    jobFunctionName: func?.name,
+    jobOptions: options,
+    status: 'running'
+  });
+
+  // Create console interceptor for capturing logs
+  const consoleInterceptor = plugin?.createLogInterceptor(jobExecutionId);
+  const originalConsole = {
+    log: console.log,
+    error: console.error,
+    warn: console.warn,
+    info: console.info
+  };
+
   try {
     if (!func) throw Error('Job func not defined');
     if (typeof func !== 'function') throw Error('Job func not a function');
+
+    // Replace console methods with interceptor if available
+    if (consoleInterceptor) {
+      console.log = consoleInterceptor.log;
+      console.error = consoleInterceptor.error;
+      console.warn = consoleInterceptor.warn;
+      console.info = consoleInterceptor.info;
+    }
 
     // Call the job function
     const funcRes = await func(event, hasuraEvent, options);
@@ -58,14 +89,44 @@ const safeJobWrapper = async (func, event, hasuraEvent, options) => {
     output.duration = +new Date() - start;
     output.result = funcRes;
 
+    // Record successful job execution
+    await plugin?.recordJobExecution(invocationId, eventExecutionId, {
+      jobName: func?.name || 'anonymous',
+      jobFunctionName: func?.name,
+      jobOptions: options,
+      duration: output.duration,
+      status: 'completed',
+      result: funcRes
+    });
+
     return output;
   } catch (error) {
     output.result = error.message;
     output.duration = +new Date() - start;
+    
+    // Record failed job execution
+    await plugin?.recordJobExecution(invocationId, eventExecutionId, {
+      jobName: func?.name || 'anonymous',
+      jobFunctionName: func?.name,
+      jobOptions: options,
+      duration: output.duration,
+      status: 'failed',
+      errorMessage: error.message,
+      errorStack: error.stack
+    });
+
     log(event, `Job func crashed: ${error.message}`);
     let newError = new Error(`Job func crashed: ${error.message}`);
     newError.stack = output;
     throw newError;
+  } finally {
+    // Restore original console methods
+    if (consoleInterceptor) {
+      console.log = originalConsole.log;
+      console.error = originalConsole.error;
+      console.warn = originalConsole.warn;
+      console.info = originalConsole.info;
+    }
   }
 };
 

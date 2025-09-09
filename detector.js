@@ -1,7 +1,12 @@
 const { log } = require('./helpers/log');
 const { getObjectSafely } = require('./helpers/object');
+const { parseHasuraEvent } = require('./helpers/hasura');
+const { ObservabilityPlugin } = require('./observability-plugin');
 const fs = require('fs');
 const path = require('path');
+
+// Global plugin instance
+let observabilityPlugin = null;
 
 /**
  * Main entry point for all automated event detection based on event
@@ -34,6 +39,17 @@ const listenTo = async (hasuraEvent, optionsOverride = {}, context = {}) => {
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Unary_plus
   let start = +new Date();
 
+  // Initialize observability plugin if configured
+  if (optionsOverride.observability && !observabilityPlugin) {
+    observabilityPlugin = new ObservabilityPlugin(optionsOverride.observability);
+    try {
+      await observabilityPlugin.initialize();
+    } catch (error) {
+      console.warn('[ObservabilityPlugin] Failed to initialize, continuing without observability:', error.message);
+      observabilityPlugin = null;
+    }
+  }
+
   // Inject context into hasuraEvent object
   hasuraEvent.__context = context;
 
@@ -46,6 +62,24 @@ const listenTo = async (hasuraEvent, optionsOverride = {}, context = {}) => {
   // Start with default options then apply any overrides passed in
   Object.assign(options, optionsOverride);
 
+  // Parse Hasura event for observability
+  const parsedEvent = parseHasuraEvent(hasuraEvent);
+  
+  // Record invocation start
+  const invocationId = await observabilityPlugin?.recordInvocationStart({
+    sourceFunction: options.sourceFunction || 'unknown',
+    sourceTable: parsedEvent.dbEvent?.table?.name || hasuraEvent?.table?.name,
+    sourceOperation: parsedEvent.operation || hasuraEvent?.event?.op,
+    hasuraEventId: hasuraEvent?.id,
+    hasuraEventPayload: hasuraEvent,
+    hasuraEventTime: parsedEvent.hasuraEventTime || hasuraEvent?.created_at,
+    hasuraUserEmail: parsedEvent.user,
+    hasuraUserRole: parsedEvent.role,
+    autoLoadModules: options.autoLoadEventModules,
+    eventModulesDirectory: options.eventModulesDirectory,
+    contextData: context
+  });
+
   // If configured to do so, load the events from the file system
   if (options.autoLoadEventModules) {
     options.listenedEvents = detectEventModules(options.eventModulesDirectory);
@@ -53,34 +87,110 @@ const listenTo = async (hasuraEvent, optionsOverride = {}, context = {}) => {
 
   let detectedEvents = [];
   let eventHandlersToRun = [];
+  let eventExecutionRecords = new Map();
+  
   for (let eventKey in options.listenedEvents) {
     const event = options.listenedEvents[eventKey];
+    const detectionStart = +new Date();
+    let eventExecutionId = null;
+    
     try {
-      const eventHandler = await detect(event, hasuraEvent, options.eventModulesDirectory);
+      const eventHandler = await detectWithObservability(
+        event, 
+        hasuraEvent, 
+        options.eventModulesDirectory,
+        invocationId
+      );
 
-      //log('listenTo', `Processing event ${event}`, eventHandler);
+      const detectionDuration = +new Date() - detectionStart;
+      const detected = eventHandler !== null;
 
-      if (!eventHandler) continue;
-      if (typeof eventHandler !== 'function') continue;
+      // Record event execution
+      eventExecutionId = await observabilityPlugin?.recordEventExecution(invocationId, {
+        eventName: event,
+        eventModulePath: path.join(options.eventModulesDirectory, `${event}.js`),
+        detected,
+        detectionDuration,
+        status: detected ? 'handling' : 'not_detected'
+      });
 
-      if (eventHandler) {
-        detectedEvents.push(event);
-        //eventHandlersToRun.push(handler(event, hasuraEvent));
-        eventHandlersToRun.push(
-          (async () => {
-            try {
-              if (!eventHandler) throw Error('Handler not defined');
-              if (typeof eventHandler !== 'function') throw Error('Handler not a function');
-              const res = await eventHandler(event, hasuraEvent);
-              return res;
-            } catch (error) {
-              log(event, `Handler crashed: ${error.stack}`);
-              throw Error(`Handler crashed: ${error.stack}`);
-            }
-          })()
-        );
+      if (detected) {
+        eventExecutionRecords.set(event, eventExecutionId);
       }
+
+      if (!eventHandler || typeof eventHandler !== 'function') continue;
+
+      detectedEvents.push(event);
+      eventHandlersToRun.push(
+        (async () => {
+          const handlerStart = +new Date();
+          try {
+            if (!eventHandler) throw Error('Handler not defined');
+            if (typeof eventHandler !== 'function') throw Error('Handler not a function');
+            
+            // Pass observability context to handler
+            hasuraEvent.__observability = {
+              invocationId,
+              eventExecutionId,
+              plugin: observabilityPlugin
+            };
+            
+            const res = await eventHandler(event, hasuraEvent);
+            const handlerDuration = +new Date() - handlerStart;
+
+            // Count job results for metrics
+            const jobsCount = res?.length || 0;
+            const jobsSucceeded = res?.filter(job => job?.completed)?.length || 0;
+            const jobsFailed = jobsCount - jobsSucceeded;
+
+            // Update event execution with handler results
+            await observabilityPlugin?.recordEventExecution(invocationId, {
+              eventName: event,
+              eventModulePath: path.join(options.eventModulesDirectory, `${event}.js`),
+              detected: true,
+              detectionDuration,
+              handlerDuration,
+              jobsCount,
+              jobsSucceeded,
+              jobsFailed,
+              status: 'completed'
+            });
+
+            return res;
+          } catch (error) {
+            const handlerDuration = +new Date() - handlerStart;
+            
+            // Update event execution with error
+            await observabilityPlugin?.recordEventExecution(invocationId, {
+              eventName: event,
+              eventModulePath: path.join(options.eventModulesDirectory, `${event}.js`),
+              detected: true,
+              detectionDuration,
+              handlerDuration,
+              handlerError: error.message,
+              handlerErrorStack: error.stack,
+              status: 'failed'
+            });
+
+            log(event, `Handler crashed: ${error.stack}`);
+            throw Error(`Handler crashed: ${error.stack}`);
+          }
+        })()
+      );
     } catch (error) {
+      const detectionDuration = +new Date() - detectionStart;
+      
+      // Record failed event execution
+      await observabilityPlugin?.recordEventExecution(invocationId, {
+        eventName: event,
+        eventModulePath: path.join(options.eventModulesDirectory, `${event}.js`),
+        detected: false,
+        detectionDuration,
+        detectionError: error.message,
+        detectionErrorStack: error.stack,
+        status: 'failed'
+      });
+
       console.error(`Error detecting events for ${event}`, error.message);
     }
   }
@@ -90,6 +200,22 @@ const listenTo = async (hasuraEvent, optionsOverride = {}, context = {}) => {
   const preppedRes = preparedResponse(detectedEvents, response);
 
   preppedRes.duration = +new Date() - start;
+
+  // Calculate final metrics for observability
+  const totalJobsRun = preppedRes.events?.reduce((sum, event) => sum + (event.jobs?.length || 0), 0) || 0;
+  const totalJobsSucceeded = preppedRes.events?.reduce((sum, event) => 
+    sum + (event.jobs?.filter(job => job?.completed)?.length || 0), 0) || 0;
+  const totalJobsFailed = totalJobsRun - totalJobsSucceeded;
+
+  // Record invocation completion
+  await observabilityPlugin?.recordInvocationEnd(invocationId, {
+    duration: preppedRes.duration,
+    eventsDetectedCount: detectedEvents.length,
+    totalJobsRun,
+    totalJobsSucceeded,
+    totalJobsFailed,
+    status: 'completed'
+  });
 
   consoleLogResponse(detectedEvents, preppedRes);
 
@@ -129,6 +255,13 @@ const detectEventModules = modulesDir => {
     console.error(`[ListModules] Failed to list modules`, error.message);
     return [];
   }
+};
+
+/**
+ * Enhanced detect function with observability hooks
+ */
+const detectWithObservability = async (event, hasuraEvent, eventModulesDirectory, invocationId) => {
+  return await detect(event, hasuraEvent, eventModulesDirectory);
 };
 
 /**
