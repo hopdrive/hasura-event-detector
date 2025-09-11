@@ -1,0 +1,137 @@
+#!/usr/bin/env node
+
+/**
+ * Hasura Event Detector CLI
+ * 
+ * Command-line interface for managing and testing event detection.
+ */
+
+const { program } = require('commander');
+const path = require('path');
+const fs = require('fs');
+
+// Import CLI commands
+const { createEventCommand } = require('../dist/cjs/cli/create-event.js');
+const { testEventCommand } = require('../dist/cjs/cli/test-event.js');
+const { listEventsCommand } = require('../dist/cjs/cli/list-events.js');
+const { validateConfigCommand } = require('../dist/cjs/cli/validate-config.js');
+
+// Set up the CLI program
+program
+  .name('hasura-event-detector')
+  .description('CLI for Hasura Event Detector system')
+  .version(getVersion());
+
+// Add commands
+program
+  .command('create <eventName>')
+  .description('Create a new event module from template')
+  .option('-t, --template <template>', 'Template to use (basic, user-activation)', 'basic')
+  .option('-d, --directory <dir>', 'Events directory', './events')
+  .action(createEventCommand);
+
+program
+  .command('test <eventName>')
+  .description('Test an event module with sample data')
+  .option('-f, --file <file>', 'JSON file with test Hasura event')
+  .option('-d, --directory <dir>', 'Events directory', './events')
+  .option('--dry-run', 'Run detection only, skip job execution')
+  .action(testEventCommand);
+
+program
+  .command('list')
+  .description('List all available event modules')
+  .option('-d, --directory <dir>', 'Events directory', './events')
+  .option('--detailed', 'Show detailed information about each event')
+  .action(listEventsCommand);
+
+program
+  .command('validate')
+  .description('Validate event detector configuration')
+  .option('-c, --config <file>', 'Configuration file', './hasura-event-detector.config.js')
+  .action(validateConfigCommand);
+
+program
+  .command('init')
+  .description('Initialize a new Hasura Event Detector project')
+  .option('--typescript', 'Initialize with TypeScript support')
+  .action(async (options) => {
+    console.log('🚀 Initializing Hasura Event Detector project...');
+    
+    // Create events directory
+    const eventsDir = './events';
+    if (!fs.existsSync(eventsDir)) {
+      fs.mkdirSync(eventsDir, { recursive: true });
+      console.log(`✅ Created events directory: ${eventsDir}`);
+    }
+    
+    // Create sample event
+    const templateSource = options.typescript 
+      ? path.join(__dirname, '../templates/user-activation-event.ts')
+      : path.join(__dirname, '../templates/user-activation-event.js');
+    
+    const targetFile = options.typescript 
+      ? './events/user-activation.ts'
+      : './events/user-activation.js';
+      
+    if (fs.existsSync(templateSource)) {
+      fs.copyFileSync(templateSource, targetFile);
+      console.log(`✅ Created sample event: ${targetFile}`);
+    }
+    
+    // Create config file
+    const configTemplate = options.typescript 
+      ? 'hasura-event-detector.config.ts'
+      : 'hasura-event-detector.config.js';
+      
+    if (!fs.existsSync(configTemplate)) {
+      const configContent = options.typescript ? `
+import type { ListenToOptions } from '@hopdrive/hasura-event-detector';
+
+export const config: Partial<ListenToOptions> = {
+  autoLoadEventModules: true,
+  eventModulesDirectory: './events',
+  observability: {
+    enabled: process.env.NODE_ENV === 'production',
+    // Add your database configuration here
+  }
+};
+
+export default config;
+` : `
+module.exports = {
+  autoLoadEventModules: true,
+  eventModulesDirectory: './events',
+  observability: {
+    enabled: process.env.NODE_ENV === 'production',
+    // Add your database configuration here
+  }
+};
+`;
+      
+      fs.writeFileSync(configTemplate, configContent.trim());
+      console.log(`✅ Created config file: ${configTemplate}`);
+    }
+    
+    console.log('\n🎉 Project initialized successfully!');
+    console.log('\nNext steps:');
+    console.log('1. Configure your database connection in the config file');
+    console.log('2. Create your first event module: hasura-event-detector create my-event');
+    console.log('3. Test your event: hasura-event-detector test my-event');
+  });
+
+// Parse command line arguments
+program.parse();
+
+/**
+ * Get package version
+ */
+function getVersion() {
+  try {
+    const packagePath = path.join(__dirname, '../package.json');
+    const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+    return packageJson.version || '1.0.0';
+  } catch (error) {
+    return '1.0.0';
+  }
+}
