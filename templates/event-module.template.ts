@@ -1,8 +1,19 @@
 /**
- * Event Module Template
+ * Event Module Template - Example Event
  * 
  * This template shows how to create a new event module for the Hasura Event Detector.
- * Copy this file to the events directory and customize for your specific business event.
+ * 
+ * IMPORTANT: Event Name Configuration
+ * ====================================
+ * The event name is automatically derived from your filename:
+ * - user-activation.js  → event name: 'user-activation'
+ * - order-completed.ts  → event name: 'order-completed'
+ * - product-updated.js  → event name: 'product-updated'
+ * 
+ * The derived event name is passed as the first parameter to both your 
+ * detector and handler functions, so you can access it via the 'event' parameter.
+ * 
+ * No manual configuration is needed - just name your file appropriately!
  */
 
 import type { 
@@ -14,15 +25,12 @@ import type {
 } from '@hopdrive/hasura-event-detector';
 import { parseHasuraEvent, columnHasChanged, job, run } from '@hopdrive/hasura-event-detector';
 
-// Define your event name
-const EVENT_NAME: EventName = 'example-event' as EventName;
-
 /**
  * Detector function - determines if this event occurred
  * 
- * @param event - The event name being detected
- * @param hasuraEvent - The Hasura event trigger payload
- * @returns Promise<boolean> - true if the event was detected
+ * @param event - The event name automatically derived from your filename (e.g., 'example-event')
+ * @param hasuraEvent - The Hasura event trigger payload from Hasura
+ * @returns Promise<boolean> - true if the event was detected, false otherwise
  */
 export const detector: DetectorFunction = async (
   event: EventName, 
@@ -30,6 +38,10 @@ export const detector: DetectorFunction = async (
 ): Promise<boolean> => {
   // Parse the Hasura event for easier access to data
   const { dbEvent, operation, user } = parseHasuraEvent(hasuraEvent);
+  
+  // The 'event' parameter contains the name derived from your filename
+  // For example, if this file is named 'user-activation.js', then event = 'user-activation'
+  console.log(`🔍 Detecting event: ${event}`);
   
   // Example detection logic - customize based on your business rules
   
@@ -56,8 +68,8 @@ export const detector: DetectorFunction = async (
 /**
  * Handler function - executes jobs when the event is detected
  * 
- * @param event - The event name that was detected
- * @param hasuraEvent - The Hasura event trigger payload
+ * @param event - The event name that was detected (same as filename without extension)
+ * @param hasuraEvent - The Hasura event trigger payload from Hasura
  * @returns Promise<JobResult[]> - Results from all executed jobs
  */
 export const handler: HandlerFunction = async (
@@ -66,6 +78,10 @@ export const handler: HandlerFunction = async (
 ): Promise<JobResult[]> => {
   // Parse event data for use in jobs
   const { dbEvent, user, hasuraEventId } = parseHasuraEvent(hasuraEvent);
+  
+  // The 'event' parameter contains the name derived from your filename
+  // You can use this in your job logic, logging, analytics, etc.
+  console.log(`⚡ Handling event: ${event}`);
   
   // Define jobs to execute when this event is detected
   const jobs = [
