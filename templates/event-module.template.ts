@@ -84,13 +84,22 @@ export const handler: HandlerFunction = async (
   console.log(`⚡ Handling event: ${event}`);
   
   // Define jobs to execute when this event is detected
+  // 
+  // IMPORTANT: Job Name Access
+  // ==========================
+  // Each job function can access its own name via options.jobName
+  // The job name is derived from the function name:
+  // - function sendNotification() → jobName: 'sendNotification'
+  // - async function recordAnalytics() → jobName: 'recordAnalytics'
+  // - Anonymous functions → jobName: 'anonymous'
   const jobs = [
     // Example job: Send notification
-    job(async (event, hasuraEvent, options) => {
+    job(async function sendNotification(event, hasuraEvent, options) {
       const recordId = dbEvent?.new?.id;
       
-      // Simulate sending a notification
-      console.log(`Sending notification for record ${recordId} activated by ${user}`);
+      // Access the job name from options (derived from function name)
+      const jobName = options?.jobName || 'unknown';
+      console.log(`🔧 Job '${jobName}' processing event '${event}' for record ${recordId}`);
       
       // Your notification logic here
       // Examples:
@@ -101,6 +110,7 @@ export const handler: HandlerFunction = async (
       
       return {
         action: 'notification_sent',
+        jobName,  // Include job name in result
         recordId,
         user,
         timestamp: new Date().toISOString()
@@ -110,12 +120,12 @@ export const handler: HandlerFunction = async (
       retries: 3
     }),
     
-    // Example job: Update analytics
-    job(async (event, hasuraEvent, options) => {
+    // Example job: Update analytics  
+    job(async function recordAnalytics(event, hasuraEvent, options) {
       const recordId = dbEvent?.new?.id;
+      const jobName = options?.jobName || 'unknown';
       
-      // Simulate analytics update
-      console.log(`Recording analytics event for ${recordId}`);
+      console.log(`📊 Job '${jobName}' recording analytics for event '${event}'`);
       
       // Your analytics logic here
       // Examples:
@@ -126,6 +136,7 @@ export const handler: HandlerFunction = async (
       
       return {
         action: 'analytics_recorded',
+        jobName,
         recordId,
         event_name: event,
         correlation_id: options?.correlationId
@@ -133,11 +144,11 @@ export const handler: HandlerFunction = async (
     }),
     
     // Example job: Sync with external service
-    job(async (event, hasuraEvent, options) => {
+    job(async function syncWithExternal(event, hasuraEvent, options) {
       const record = dbEvent?.new;
+      const jobName = options?.jobName || 'unknown';
       
-      // Simulate external API call
-      console.log(`Syncing record ${record?.id} with external service`);
+      console.log(`🔄 Job '${jobName}' syncing record ${record?.id} with external service`);
       
       // Your sync logic here
       // Examples:
@@ -148,6 +159,7 @@ export const handler: HandlerFunction = async (
       
       return {
         action: 'external_sync',
+        jobName,
         recordId: record?.id,
         syncTimestamp: new Date().toISOString()
       };

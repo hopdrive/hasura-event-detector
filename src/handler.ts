@@ -81,11 +81,12 @@ const safeJobWrapper = async <T = any>(
     if (!func) throw new Error('Job func not defined');
     if (typeof func !== 'function') throw new Error('Job func not a function');
 
-    // Add correlation ID to options for job functions to use
-    const enhancedOptions: JobOptions = correlationId ? {
+    // Add correlation ID and job name to options for job functions to use
+    const enhancedOptions: JobOptions = {
       ...options,
-      correlationId
-    } : options;
+      jobName: output.name,
+      ...(correlationId && { correlationId })
+    };
 
     // Call the job function with enhanced options
     const funcRes = await func(event, hasuraEvent, enhancedOptions);

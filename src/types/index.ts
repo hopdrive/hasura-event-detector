@@ -96,6 +96,7 @@ export interface CorrelationIdUtils {
 
 export interface JobOptions {
   correlationId?: CorrelationId;
+  jobName?: JobName;
   timeout?: number;
   retries?: number;
   [key: string]: any;
