@@ -130,6 +130,13 @@ function generateSampleEvent(eventName: string): HasuraEventPayload {
       name: 'users',
       schema: 'public'
     },
+    delivery_info: {
+      max_retries: 0,
+      current_retry: 0
+    },
+    trigger: {
+      name: `${eventName}_trigger`
+    },
     event: {
       op: 'UPDATE',
       data: {
