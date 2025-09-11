@@ -18,24 +18,218 @@ Main entry point for event detection and processing.
 **Parameters:**
 - `hasuraEvent: HasuraEventPayload` - The Hasura event trigger payload
 - `options?: Partial<ListenToOptions>` - Configuration options
-- `context?: Record<string, any>` - Additional context passed to handlers
+- `context?: Record<string, any>` - Additional context metadata injected into the event
 
 **Returns:** `Promise<ListenToResponse>`
 
-**Example:**
+#### Understanding the Context Parameter
+
+The `context` parameter is a powerful metadata injection mechanism that allows you to pass runtime information through the entire event processing pipeline. It gets injected into the `hasuraEvent` as `__context` and is accessible to all detectors, handlers, and jobs.
+
+**Why Use Context?**
+- Pass environment-specific information (dev/staging/prod)
+- Track the original request that triggered the event
+- Enable test modes and dry runs
+- Provide feature flags and dynamic configuration
+- Add audit and compliance information
+
+**Basic Example:**
 ```typescript
 import { listenTo } from '@hopdrive/hasura-event-detector';
 
 const result = await listenTo(hasuraEvent, {
   autoLoadEventModules: true,
-  eventModulesDirectory: './events',
-  observability: {
-    enabled: true,
-    database: { /* DB config */ }
-  }
+  eventModulesDirectory: './events'
 });
 
 console.log(`Detected ${result.events.length} events`);
+```
+
+**Example with Context:**
+```typescript
+const result = await listenTo(hasuraEvent, {
+  autoLoadEventModules: true,
+  eventModulesDirectory: './events'
+}, {
+  // Context metadata
+  environment: process.env.NODE_ENV,
+  requestId: req.headers['x-request-id'],
+  userId: req.user?.id,
+  testMode: false
+});
+```
+
+#### Context Use Cases
+
+**1. Testing and Development:**
+```typescript
+// CLI test command usage
+await listenTo(testEvent, config, {
+  testMode: true,
+  dryRun: true,  // Don't actually execute jobs
+  mockServices: true,
+  logLevel: 'debug'
+});
+```
+
+**2. Lambda/Serverless Functions:**
+```typescript
+exports.handler = async (event, context) => {
+  const hasuraEvent = JSON.parse(event.body);
+  
+  const result = await listenTo(hasuraEvent, config, {
+    // AWS Lambda context
+    lambdaRequestId: context.requestId,
+    functionName: context.functionName,
+    functionVersion: context.functionVersion,
+    remainingTime: context.getRemainingTimeInMillis(),
+    coldStart: !warmContainer,
+    memoryLimit: context.memoryLimitInMB
+  });
+  
+  return { statusCode: 200, body: JSON.stringify(result) };
+};
+```
+
+**3. Express/HTTP Webhook:**
+```typescript
+app.post('/hasura-webhook', async (req, res) => {
+  const result = await listenTo(req.body, config, {
+    // HTTP request context
+    requestId: req.id || uuid(),
+    method: req.method,
+    path: req.path,
+    query: req.query,
+    headers: {
+      userAgent: req.headers['user-agent'],
+      contentType: req.headers['content-type'],
+      xForwardedFor: req.headers['x-forwarded-for']
+    },
+    ip: req.ip,
+    sessionId: req.session?.id,
+    userId: req.user?.id,
+    tenantId: req.user?.tenantId
+  });
+  
+  res.json(result);
+});
+```
+
+**4. Feature Flags and Configuration:**
+```typescript
+await listenTo(hasuraEvent, config, {
+  featureFlags: {
+    enableEmailNotifications: await getFeatureFlag('email_notifications'),
+    enableSlackIntegration: await getFeatureFlag('slack_integration'),
+    enableAnalytics: await getFeatureFlag('analytics'),
+    useNewPaymentProcessor: await getFeatureFlag('new_payment_processor')
+  },
+  rateLimits: {
+    emailsPerHour: 100,
+    webhooksPerMinute: 10
+  },
+  apiKeys: {
+    sendgrid: process.env.SENDGRID_KEY,
+    stripe: process.env.STRIPE_KEY,
+    slack: process.env.SLACK_TOKEN
+  }
+});
+```
+
+**5. Audit and Compliance:**
+```typescript
+await listenTo(hasuraEvent, config, {
+  audit: {
+    triggeredBy: 'webhook',
+    sourceSystem: 'payment-processor',
+    timestamp: new Date().toISOString(),
+    ipAddress: req.ip,
+    userAgent: req.headers['user-agent']
+  },
+  compliance: {
+    dataClassification: 'PII',
+    retentionDays: 90,
+    encryptionRequired: true,
+    gdprApplies: isEuropeanUser(req.ip)
+  },
+  tracking: {
+    correlationId: req.headers['x-correlation-id'] || uuid(),
+    spanId: req.headers['x-span-id'],
+    traceId: req.headers['x-trace-id']
+  }
+});
+```
+
+**6. Multi-Environment Deployment:**
+```typescript
+await listenTo(hasuraEvent, config, {
+  deployment: {
+    environment: process.env.ENVIRONMENT, // 'dev', 'staging', 'prod'
+    region: process.env.AWS_REGION,
+    instanceId: process.env.INSTANCE_ID,
+    version: process.env.APP_VERSION,
+    buildNumber: process.env.BUILD_NUMBER
+  },
+  database: {
+    replica: process.env.USE_READ_REPLICA === 'true',
+    connectionPool: process.env.DB_POOL_SIZE
+  }
+});
+```
+
+#### Accessing Context in Event Modules
+
+**In Detector Functions:**
+```typescript
+export const detector = async (event, hasuraEvent) => {
+  const context = hasuraEvent.__context;
+  
+  // Skip detection in test mode
+  if (context?.testMode && !context?.forceDetection) {
+    console.log('Skipping detection in test mode');
+    return false;
+  }
+  
+  // Different logic for different environments
+  if (context?.deployment?.environment === 'production') {
+    // Stricter validation in production
+    return hasStrictValidation(hasuraEvent);
+  }
+  
+  // Standard detection logic
+  return true;
+};
+```
+
+**In Handler Functions:**
+```typescript
+export const handler = async (event, hasuraEvent) => {
+  const context = hasuraEvent.__context;
+  const { dbEvent } = parseHasuraEvent(hasuraEvent);
+  
+  const jobs = [];
+  
+  // Conditionally add jobs based on context
+  if (context?.featureFlags?.enableEmailNotifications) {
+    jobs.push(job(async function sendEmail() {
+      // Use API key from context
+      const apiKey = context.apiKeys?.sendgrid;
+      return await sendGridClient(apiKey).send(email);
+    }));
+  }
+  
+  if (context?.audit) {
+    jobs.push(job(async function auditLog() {
+      return await logAuditEvent({
+        ...context.audit,
+        eventName: event,
+        recordId: dbEvent?.new?.id
+      });
+    }));
+  }
+  
+  return await run(event, hasuraEvent, jobs);
+};
 ```
 
 ### `run(event, hasuraEvent, jobs)`

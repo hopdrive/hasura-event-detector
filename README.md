@@ -151,6 +151,73 @@ const jobs = [
 ];
 ```
 
+## 🎯 Context System
+
+The context system allows you to pass metadata through the entire event processing pipeline:
+
+### Basic Usage
+
+```typescript
+const result = await listenTo(hasuraEvent, config, {
+  // Environment information
+  environment: process.env.NODE_ENV,
+  requestId: req.headers['x-request-id'],
+  
+  // Feature flags
+  featureFlags: {
+    enableNotifications: true,
+    useNewAlgorithm: false
+  },
+  
+  // Testing
+  testMode: false,
+  dryRun: false
+});
+```
+
+### Accessing Context in Event Modules
+
+```typescript
+export const detector = async (event, hasuraEvent) => {
+  const context = hasuraEvent.__context;
+  
+  // Skip detection in test mode
+  if (context?.testMode && !context?.forceDetection) {
+    return false;
+  }
+  
+  // Environment-specific logic
+  if (context?.environment === 'production') {
+    // Stricter validation in production
+  }
+  
+  return true;
+};
+
+export const handler = async (event, hasuraEvent) => {
+  const context = hasuraEvent.__context;
+  
+  const jobs = [];
+  
+  // Conditionally add jobs based on context
+  if (context?.featureFlags?.enableNotifications) {
+    jobs.push(job(sendEmailJob));
+  }
+  
+  return await run(event, hasuraEvent, jobs);
+};
+```
+
+### Common Context Patterns
+
+- **Testing**: `testMode`, `dryRun`, `mockServices`
+- **Request Tracking**: `requestId`, `correlationId`, `traceId`
+- **Environment**: `environment`, `region`, `version`
+- **Feature Flags**: `featureFlags`, `experiments`
+- **Audit**: `userId`, `tenantId`, `auditTrail`
+
+See the [Context System Guide](./docs/CONTEXT_EXAMPLES.md) for comprehensive examples.
+
 ## 🔧 Configuration
 
 ### Basic Configuration
@@ -221,6 +288,7 @@ hasura-event-detector test user-activation --dry-run
 
 - [API Reference](./docs/API.md) - Complete API documentation
 - [Event Modules Guide](./docs/EVENT_MODULES.md) - How to create event modules
+- [Context System Guide](./docs/CONTEXT_EXAMPLES.md) - Using context for metadata injection
 - [Templates](./templates/) - Ready-to-use templates
 
 ## 🎨 Templates

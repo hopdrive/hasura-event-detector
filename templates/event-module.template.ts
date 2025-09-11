@@ -39,9 +39,24 @@ export const detector: DetectorFunction = async (
   // Parse the Hasura event for easier access to data
   const { dbEvent, operation, user } = parseHasuraEvent(hasuraEvent);
   
+  // Access context metadata (passed as 3rd param to listenTo)
+  const context = hasuraEvent.__context;
+  
   // The 'event' parameter contains the name derived from your filename
   // For example, if this file is named 'user-activation.js', then event = 'user-activation'
-  console.log(`🔍 Detecting event: ${event}`);
+  console.log(`🔍 Detecting event: ${event} in ${context?.environment || 'unknown'} environment`);
+  
+  // Example: Skip detection in test mode unless forced
+  if (context?.testMode && !context?.forceDetection) {
+    console.log('⏭️  Skipping detection in test mode');
+    return false;
+  }
+  
+  // Example: Different behavior per environment
+  if (context?.environment === 'development') {
+    // More lenient detection in development
+    console.log('🔧 Development mode - using relaxed detection');
+  }
   
   // Example detection logic - customize based on your business rules
   
@@ -77,11 +92,14 @@ export const handler: HandlerFunction = async (
   hasuraEvent: HasuraEventPayload
 ): Promise<JobResult[]> => {
   // Parse event data for use in jobs
-  const { dbEvent, user, hasuraEventId } = parseHasuraEvent(hasuraEvent);
+  const { dbEvent, user, hasuraEventId, operation } = parseHasuraEvent(hasuraEvent);
+  
+  // Access context metadata
+  const context = hasuraEvent.__context;
   
   // The 'event' parameter contains the name derived from your filename
   // You can use this in your job logic, logging, analytics, etc.
-  console.log(`⚡ Handling event: ${event}`);
+  console.log(`⚡ Handling event: ${event} (Request ID: ${context?.requestId || 'none'})`);
   
   // Define jobs to execute when this event is detected
   // 
@@ -93,39 +111,67 @@ export const handler: HandlerFunction = async (
   // - async function recordAnalytics() → jobName: 'recordAnalytics'
   // - Anonymous functions → jobName: 'anonymous'
   const jobs = [
-    // Example job: Send notification
-    job(async function sendNotification(event, hasuraEvent, options) {
-      const recordId = dbEvent?.new?.id;
-      
-      // Access the job name from options (derived from function name)
-      const jobName = options?.jobName || 'unknown';
-      console.log(`🔧 Job '${jobName}' processing event '${event}' for record ${recordId}`);
-      
-      // Your notification logic here
-      // Examples:
-      // - Send email via SendGrid/SES
-      // - Post to Slack/Discord
-      // - Send push notification
-      // - Update external systems
-      
-      return {
-        action: 'notification_sent',
-        jobName,  // Include job name in result
-        recordId,
-        user,
-        timestamp: new Date().toISOString()
-      };
-    }, {
-      timeout: 5000,
-      retries: 3
-    }),
+    // Example job: Send notification (conditionally based on context)
+    ...(context?.featureFlags?.enableNotifications !== false ? [
+      job(async function sendNotification(event, hasuraEvent, options) {
+        const recordId = dbEvent?.new?.id;
+        
+        // Access the job name from options (derived from function name)
+        const jobName = options?.jobName || 'unknown';
+        console.log(`🔧 Job '${jobName}' processing event '${event}' for record ${recordId}`);
+        
+        // Skip in test mode unless explicitly enabled
+        if (context?.testMode && !context?.enableTestNotifications) {
+          console.log('📧 Skipping email in test mode');
+          return {
+            action: 'skipped',
+            reason: 'test_mode',
+            jobName
+          };
+        }
+        
+        // Use API keys from context
+        const apiKey = context?.apiKeys?.sendgrid || process.env.SENDGRID_KEY;
+        
+        // Your notification logic here
+        // Examples:
+        // - Send email via SendGrid/SES
+        // - Post to Slack/Discord
+        // - Send push notification
+        // - Update external systems
+        
+        return {
+          action: 'notification_sent',
+          jobName,  // Include job name in result
+          recordId,
+          user,
+          environment: context?.environment,
+          timestamp: new Date().toISOString()
+        };
+      }, {
+        timeout: context?.timeouts?.notification || 5000,
+        retries: context?.retries?.notification || 3
+      })
+    ] : []),
     
-    // Example job: Update analytics  
+    // Example job: Update analytics (always runs for tracking)
     job(async function recordAnalytics(event, hasuraEvent, options) {
       const recordId = dbEvent?.new?.id;
       const jobName = options?.jobName || 'unknown';
       
       console.log(`📊 Job '${jobName}' recording analytics for event '${event}'`);
+      
+      // Include context metadata in analytics
+      const analyticsData = {
+        eventName: event,
+        recordId,
+        userId: user,
+        environment: context?.environment || 'unknown',
+        deployment: context?.deployment,
+        requestId: context?.requestId,
+        correlationId: options?.correlationId,
+        timestamp: new Date().toISOString()
+      };
       
       // Your analytics logic here
       // Examples:
@@ -137,9 +183,7 @@ export const handler: HandlerFunction = async (
       return {
         action: 'analytics_recorded',
         jobName,
-        recordId,
-        event_name: event,
-        correlation_id: options?.correlationId
+        ...analyticsData
       };
     }),
     
@@ -166,7 +210,49 @@ export const handler: HandlerFunction = async (
     }, {
       timeout: 10000,
       retries: 2
-    })
+    }),
+    
+    // Example job: Audit logging (if context includes audit info)
+    ...(context?.audit ? [
+      job(async function auditLog(event, hasuraEvent, options) {
+        const jobName = options?.jobName || 'unknown';
+        
+        console.log(`📝 Job '${jobName}' creating audit log`);
+        
+        // Create comprehensive audit trail
+        const auditEntry = {
+          // From context
+          ...context.audit,
+          
+          // Event information
+          eventName: event,
+          eventId: hasuraEventId,
+          operation,
+          tableName: hasuraEvent.table?.name,
+          
+          // Record changes
+          recordId: dbEvent?.new?.id || dbEvent?.old?.id,
+          changes: operation === 'UPDATE' ? {
+            before: dbEvent?.old,
+            after: dbEvent?.new
+          } : null,
+          
+          // Execution metadata
+          correlationId: options?.correlationId,
+          jobName,
+          timestamp: new Date().toISOString()
+        };
+        
+        // Log to audit system
+        console.log('📋 Audit Entry:', JSON.stringify(auditEntry, null, 2));
+        
+        return {
+          action: 'audit_logged',
+          jobName,
+          auditId: `audit_${Date.now()}`
+        };
+      })
+    ] : [])
   ];
   
   // Execute all jobs in parallel
