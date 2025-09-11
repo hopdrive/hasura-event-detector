@@ -647,4 +647,40 @@ async onJobStart(jobName) {
 }
 ```
 
+## 📊 System Architecture Diagrams
+
+### Plugin System Sequence Flow
+The complete lifecycle showing how plugins interact during event processing:
+
+👉 **[View Plugin System Sequence Diagram](./diagrams/plugin-system-sequence.md)**
+
+Key highlights:
+- **Pre-Configure Phase**: Payload enrichment and correlation ID extraction
+- **Event Detection**: Business event detection with plugin observability  
+- **Job Execution**: Parallel job execution with enriched data access
+- **Error Handling**: Centralized error tracking across all plugins
+
+### Payload Enrichment Data Flow  
+How payload enrichment prevents N+1 database queries:
+
+👉 **[View Payload Enrichment Flow Diagram](./diagrams/payload-enrichment-flow.md)**
+
+Key benefits:
+- **Single Query**: Replace N×M queries with 1 optimized query
+- **Shared Data**: Enriched payload available to all jobs
+- **Performance**: 89% query reduction in typical scenarios
+
+### Plugin Hook Execution Order
+Detailed timing and order of all 14 plugin hooks:
+
+👉 **[View Plugin Hook Execution Order](./diagrams/plugin-hook-execution-order.md)**
+
+Hook categories:
+- **System Lifecycle**: `initialize()`, `shutdown()`
+- **Configuration**: `onPreConfigure()` (most critical)
+- **Processing**: `onInvocationStart/End()`, event detection, job execution
+- **Cross-Cutting**: `onError()`, `onLog()`
+
+## Summary
+
 The plugin system provides powerful extensibility while maintaining clean separation of concerns. Use plugins to add observability, customize behavior, and integrate with external systems without modifying core event processing logic.
