@@ -278,19 +278,63 @@ See the [Correlation ID Guide](./docs/CORRELATION_ID_GUIDE.md) for advanced patt
 
 Extend functionality with a powerful plugin system:
 
+### Payload Enrichment Plugin
+
 ```typescript
 import { BasePluginInterface } from '@hopdrive/hasura-event-detector';
 
-class MyObservabilityPlugin implements BasePluginInterface {
-  readonly name = 'my-observability' as PluginName;
+class OrderEnrichmentPlugin implements BasePluginInterface {
+  readonly name = 'order-enrichment' as PluginName;
   
-  // Called before processing starts - perfect for correlation ID extraction
+  // Called before processing starts - perfect for payload enrichment and correlation ID extraction
   async onPreConfigure(hasuraEvent, options) {
+    // Step 1: Enrich payload with related data (by reference)
+    if (hasuraEvent.table?.name === 'orders') {
+      const orderId = hasuraEvent.event.data.new?.id;
+      const relatedData = await this.fetchOrderRelatedData(orderId);
+      
+      // Modify payload directly - all event detectors and jobs will see enriched data
+      hasuraEvent.event.data.new = {
+        ...hasuraEvent.event.data.new,
+        lanes: relatedData.lanes,     // Child lanes
+        driver: relatedData.driver,   // Assigned driver  
+        vehicle: relatedData.vehicle, // Vehicle details
+        customer: relatedData.customer // Customer info
+      };
+    }
+    
+    // Step 2: Extract correlation ID from enriched payload
     const updatedBy = parseHasuraEvent(hasuraEvent).dbEvent?.new?.updated_by;
     const match = updatedBy?.match(/^user\.([0-9a-f-]{36})$/i);
     
     return match ? { ...options, correlationId: match[1] } : options;
   }
+  
+  private async fetchOrderRelatedData(orderId) {
+    // Single optimized database query to prevent N+1 queries later
+    return await db.query(`
+      SELECT 
+        json_agg(DISTINCT l.*) as lanes,
+        row_to_json(d.*) as driver,
+        row_to_json(v.*) as vehicle,
+        row_to_json(c.*) as customer
+      FROM orders o
+      LEFT JOIN lanes l ON l.order_id = o.id
+      LEFT JOIN drivers d ON d.id = o.driver_id  
+      LEFT JOIN vehicles v ON v.id = o.vehicle_id
+      LEFT JOIN customers c ON c.id = o.customer_id
+      WHERE o.id = $1
+      GROUP BY d.id, v.id, c.id
+    `, [orderId]);
+  }
+}
+```
+
+### Observability Plugin
+
+```typescript
+class MyObservabilityPlugin implements BasePluginInterface {
+  readonly name = 'my-observability' as PluginName;
 
   // Called when jobs complete
   async onJobEnd(jobName, result, eventName, hasuraEvent, correlationId) {
@@ -300,7 +344,7 @@ class MyObservabilityPlugin implements BasePluginInterface {
 ```
 
 **Available Hooks:**
-- `onPreConfigure` - Modify options before processing (correlation ID extraction)
+- `onPreConfigure` - Enrich payloads and extract correlation IDs before processing
 - `onInvocationStart/End` - Track processing lifecycle
 - `onEventDetectionStart/End` - Monitor event detection
 - `onJobStart/End` - Track individual job execution

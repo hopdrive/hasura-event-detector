@@ -65,16 +65,20 @@ async initialize(): Promise<void> {
 
 ### 2. `onPreConfigure(hasuraEvent, options)`
 
-Called **before** any event processing begins. Allows plugins to modify the options object, including setting correlation IDs extracted from the payload.
+Called **before** any event processing begins. This powerful hook allows plugins to:
 
-**Perfect for correlation ID extraction from database payloads.**
+1. **Enrich/modify the Hasura payload** (by reference) - Add related records, inject data, etc.
+2. **Configure options** (by return value) - Set correlation IDs, modify configuration
 
+**Perfect for payload enrichment and correlation ID extraction.**
+
+#### **Basic Correlation ID Extraction:**
 ```typescript
 async onPreConfigure(
   hasuraEvent: HasuraEventPayload,
   options: Partial<ListenToOptions>
 ): Promise<Partial<ListenToOptions>> {
-  // Example: Extract correlation ID from updated_by field
+  // Extract correlation ID from updated_by field
   const parsedEvent = parseHasuraEvent(hasuraEvent);
   const updatedBy = parsedEvent.dbEvent?.new?.updated_by;
   
@@ -90,6 +94,49 @@ async onPreConfigure(
   }
   
   return options;
+}
+```
+
+#### **Payload Enrichment Example:**
+```typescript
+async onPreConfigure(
+  hasuraEvent: HasuraEventPayload,
+  options: Partial<ListenToOptions>
+): Promise<Partial<ListenToOptions>> {
+  // 1. ENRICH PAYLOAD FIRST - Modify hasuraEvent directly (by reference)
+  if (hasuraEvent.table.name === 'orders' && hasuraEvent.event.op === 'UPDATE') {
+    await this.enrichOrderWithRelatedData(hasuraEvent);
+  }
+  
+  // 2. THEN CONFIGURE OPTIONS - Extract correlation ID from enriched data
+  const correlationId = this.extractCorrelationId(hasuraEvent);
+  
+  return correlationId ? { ...options, correlationId } : options;
+}
+
+private async enrichOrderWithRelatedData(hasuraEvent: HasuraEventPayload) {
+  const orderId = hasuraEvent.event.data.new?.id;
+  if (!orderId) return;
+
+  // Fetch all related data in one optimized database query
+  const relatedData = await this.fetchOrderRelatedData(orderId);
+  
+  // Modify the payload directly - all event detectors and jobs will see this enriched data
+  hasuraEvent.event.data.new = {
+    ...hasuraEvent.event.data.new,
+    // Inject related records to prevent N+1 queries later
+    lanes: relatedData.lanes,           // Child lanes for this order  
+    driver: relatedData.driver,         // Assigned driver details
+    vehicle: relatedData.vehicle,       // Vehicle information
+    customer: relatedData.customer,     // Customer details
+    metadata: {
+      ...hasuraEvent.event.data.new.metadata,
+      enriched_at: new Date().toISOString(),
+      enriched_by: this.name
+    }
+  };
+  
+  console.log(`✅ Enriched order ${orderId} with ${relatedData.lanes.length} lanes and related data`);
 }
 ```
 
@@ -293,6 +340,77 @@ async shutdown(): Promise<void> {
 
 ## Real-World Plugin Examples
 
+### Order Enrichment Plugin
+
+```typescript
+export class OrderEnrichmentPlugin implements BasePluginInterface {
+  readonly name = 'order-enrichment' as PluginName;
+  
+  async onPreConfigure(hasuraEvent, options) {
+    const tableName = hasuraEvent.table?.name;
+    
+    // Only enrich order-related tables
+    if (!['orders', 'shipments', 'bookings'].includes(tableName)) {
+      return options;
+    }
+
+    const recordId = hasuraEvent.event.data.new?.id;
+    if (!recordId) return options;
+
+    try {
+      // Fetch all related data in one optimized database query
+      const relatedData = await this.fetchOrderRelatedData(recordId);
+      
+      // Modify the payload directly by reference
+      // All event detectors and jobs will see this enriched data
+      hasuraEvent.event.data.new = {
+        ...hasuraEvent.event.data.new,
+        // Inject related records to prevent N+1 queries later
+        lanes: relatedData.lanes,           // Child lanes for this order  
+        driver: relatedData.driver,         // Assigned driver details
+        vehicle: relatedData.vehicle,       // Vehicle information
+        customer: relatedData.customer,     // Customer details
+        __enriched: {
+          enriched_at: new Date().toISOString(),
+          enriched_by: this.name
+        }
+      };
+      
+      console.log(`✅ Enriched order ${recordId} with ${relatedData.lanes.length} lanes and related data`);
+      
+      // Extract correlation ID from enriched data
+      const correlationId = this.extractCorrelationId(hasuraEvent);
+      
+      return correlationId ? { ...options, correlationId } : options;
+      
+    } catch (error) {
+      console.warn('Failed to enrich payload:', error);
+      return options; // Continue processing even if enrichment fails
+    }
+  }
+
+  private async fetchOrderRelatedData(orderId) {
+    // Single database query joining multiple tables
+    // Returns: { lanes: [], driver: {}, vehicle: {}, customer: {} }
+    return await db.query(`
+      SELECT 
+        o.*,
+        json_agg(DISTINCT l.*) as lanes,
+        row_to_json(d.*) as driver,
+        row_to_json(v.*) as vehicle,
+        row_to_json(c.*) as customer
+      FROM orders o
+      LEFT JOIN lanes l ON l.order_id = o.id
+      LEFT JOIN drivers d ON d.id = o.driver_id
+      LEFT JOIN vehicles v ON v.id = o.vehicle_id
+      LEFT JOIN customers c ON c.id = o.customer_id
+      WHERE o.id = $1
+      GROUP BY o.id, d.id, v.id, c.id
+    `, [orderId]);
+  }
+}
+```
+
 ### Observability Plugin
 
 ```typescript
@@ -409,7 +527,7 @@ pluginManager.register(myPlugin);
 ## Best Practices
 
 ### 1. Keep Plugins Focused
-Each plugin should have a single responsibility (observability, correlation ID extraction, error handling, etc.).
+Each plugin should have a single responsibility (observability, correlation ID extraction, payload enrichment, error handling, etc.).
 
 ### 2. Handle Errors Gracefully
 Plugin errors shouldn't break event processing:
@@ -448,7 +566,32 @@ export interface MyPluginConfig extends PluginConfig {
 }
 ```
 
-### 5. Clean Up Resources
+### 5. Payload Enrichment Best Practices
+When enriching payloads in `onPreConfigure`:
+
+```typescript
+async onPreConfigure(hasuraEvent, options) {
+  // 1. Check if enrichment is needed first
+  if (!this.shouldEnrich(hasuraEvent.table?.name)) {
+    return options;
+  }
+  
+  // 2. Enrich payload by reference BEFORE extracting correlation ID
+  try {
+    await this.enrichPayload(hasuraEvent);
+  } catch (error) {
+    console.warn('Enrichment failed, continuing without it:', error);
+    // Don't throw - let processing continue
+  }
+  
+  // 3. Extract correlation ID from enriched data
+  const correlationId = this.extractCorrelationId(hasuraEvent);
+  
+  return correlationId ? { ...options, correlationId } : options;
+}
+```
+
+### 6. Clean Up Resources
 Always implement `shutdown()` for proper cleanup:
 
 ```typescript
