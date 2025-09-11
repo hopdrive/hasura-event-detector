@@ -1,5 +1,7 @@
 const { Pool } = require('pg');
 const { v4: uuidv4 } = require('uuid');
+const { BasePlugin } = require('./plugin-system');
+const { log, logError } = require('./helpers/log');
 
 /**
  * ObservabilityPlugin for Hasura Event Detector
@@ -7,10 +9,12 @@ const { v4: uuidv4 } = require('uuid');
  * This plugin captures detailed execution metadata for event detection and job processing
  * to provide comprehensive observability and debugging capabilities. It uses buffered
  * writes to minimize performance impact while providing rich monitoring data.
+ * 
+ * Extends BasePlugin to integrate with the plugin system and support correlation ID tracking.
  */
-class ObservabilityPlugin {
+class ObservabilityPlugin extends BasePlugin {
   constructor(config = {}) {
-    this.config = {
+    const defaultConfig = {
       enabled: false,
       database: {
         connectionString: process.env.OBSERVABILITY_DB_URL,
@@ -22,7 +26,6 @@ class ObservabilityPlugin {
         ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
       },
       schema: 'event_detector_observability',
-      captureConsoleLog: true,
       captureJobOptions: true,
       captureHasuraPayload: true,
       captureErrorStacks: true,
@@ -32,13 +35,15 @@ class ObservabilityPlugin {
       retryDelay: 1000, // ms
       ...config
     };
+
+    super(defaultConfig);
+    this.config = defaultConfig;
     
     this.pool = null;
     this.buffer = {
       invocations: new Map(),
       eventExecutions: new Map(), 
-      jobExecutions: new Map(),
-      jobLogs: []
+      jobExecutions: new Map()
     };
     
     this.flushTimer = null;
@@ -47,7 +52,7 @@ class ObservabilityPlugin {
     // Auto-initialize if enabled
     if (this.config.enabled) {
       this.initialize().catch(error => {
-        console.error('[ObservabilityPlugin] Auto-initialization failed:', error.message);
+        logError('ObservabilityPlugin', 'Auto-initialization failed', error);
       });
     }
   }
@@ -73,7 +78,7 @@ class ObservabilityPlugin {
       // Setup periodic flush
       this.flushTimer = setInterval(() => {
         this.flush().catch(error => {
-          console.error('[ObservabilityPlugin] Flush error:', error.message);
+          logError('ObservabilityPlugin', 'Flush error', error);
         });
       }, this.config.flushInterval);
       
@@ -82,9 +87,9 @@ class ObservabilityPlugin {
       process.on('SIGTERM', () => this.shutdown());
       
       this.isInitialized = true;
-      console.log('[ObservabilityPlugin] Initialized successfully');
+      log('ObservabilityPlugin', 'Initialized successfully');
     } catch (error) {
-      console.error('[ObservabilityPlugin] Failed to initialize:', error.message);
+      logError('ObservabilityPlugin', 'Failed to initialize', error);
       this.config.enabled = false;
       throw error;
     }
@@ -104,7 +109,7 @@ class ObservabilityPlugin {
       this.pool = null;
     }
     
-    console.log('[ObservabilityPlugin] Shutdown complete');
+    log('ObservabilityPlugin', 'Shutdown complete');
   }
 
   /**
@@ -116,6 +121,7 @@ class ObservabilityPlugin {
     const id = uuidv4();
     const record = {
       id,
+      correlation_id: data.correlationId,
       source_function: data.sourceFunction,
       source_table: data.sourceTable,
       source_operation: data.sourceOperation,
@@ -177,6 +183,7 @@ class ObservabilityPlugin {
     const record = {
       id,
       invocation_id: invocationId,
+      correlation_id: data.correlationId,
       event_name: data.eventName,
       event_module_path: data.eventModulePath,
       detected: data.detected || false,
@@ -209,6 +216,7 @@ class ObservabilityPlugin {
       id,
       invocation_id: invocationId,
       event_execution_id: eventExecutionId,
+      correlation_id: data.correlationId,
       job_name: data.jobName,
       job_function_name: data.jobFunctionName,
       job_options: this.config.captureJobOptions ? data.jobOptions : null,
@@ -217,7 +225,6 @@ class ObservabilityPlugin {
       result: data.result,
       error_message: data.errorMessage,
       error_stack: this.config.captureErrorStacks ? data.errorStack : null,
-      console_logs: data.consoleLogs || [],
       created_at: new Date(),
       updated_at: new Date()
     };
@@ -226,56 +233,6 @@ class ObservabilityPlugin {
     return id;
   }
 
-  /**
-   * Record a log entry for a specific job execution
-   */
-  async recordJobLog(jobExecutionId, level, message, data = null, source = null) {
-    if (!this.config.enabled || !this.config.captureConsoleLog || !jobExecutionId) return;
-    
-    const record = {
-      job_execution_id: jobExecutionId,
-      level,
-      message,
-      data,
-      source,
-      created_at: new Date()
-    };
-    
-    this.buffer.jobLogs.push(record);
-  }
-
-  /**
-   * Console log interceptor for capturing job logs
-   */
-  createLogInterceptor(jobExecutionId) {
-    if (!this.config.enabled || !this.config.captureConsoleLog) {
-      return {
-        log: console.log.bind(console),
-        error: console.error.bind(console),
-        warn: console.warn.bind(console),
-        info: console.info.bind(console)
-      };
-    }
-
-    return {
-      log: (...args) => {
-        console.log(...args);
-        this.recordJobLog(jobExecutionId, 'info', args.join(' '), args.length > 1 ? args : null);
-      },
-      error: (...args) => {
-        console.error(...args);
-        this.recordJobLog(jobExecutionId, 'error', args.join(' '), args.length > 1 ? args : null);
-      },
-      warn: (...args) => {
-        console.warn(...args);
-        this.recordJobLog(jobExecutionId, 'warn', args.join(' '), args.length > 1 ? args : null);
-      },
-      info: (...args) => {
-        console.info(...args);
-        this.recordJobLog(jobExecutionId, 'info', args.join(' '), args.length > 1 ? args : null);
-      }
-    };
-  }
 
   /**
    * Flush buffered data to database
@@ -285,8 +242,7 @@ class ObservabilityPlugin {
     
     const hasData = this.buffer.invocations.size > 0 || 
                    this.buffer.eventExecutions.size > 0 || 
-                   this.buffer.jobExecutions.size > 0 || 
-                   this.buffer.jobLogs.length > 0;
+                   this.buffer.jobExecutions.size > 0;
     
     if (!hasData) return;
 
@@ -313,17 +269,12 @@ class ObservabilityPlugin {
         this.buffer.jobExecutions.clear();
       }
       
-      // Insert job logs
-      if (this.buffer.jobLogs.length > 0) {
-        await this.bulkInsertJobLogs(client, this.buffer.jobLogs);
-        this.buffer.jobLogs = [];
-      }
       
       await client.query('COMMIT');
       
     } catch (error) {
       if (client) await client.query('ROLLBACK');
-      console.error('[ObservabilityPlugin] Flush failed:', error.message);
+      logError('ObservabilityPlugin', 'Flush failed', error);
       
       // Retry logic could be added here
       throw error;
@@ -339,7 +290,7 @@ class ObservabilityPlugin {
     if (records.length === 0) return;
 
     const columns = [
-      'id', 'source_function', 'source_table', 'source_operation',
+      'id', 'correlation_id', 'source_function', 'source_table', 'source_operation',
       'hasura_event_id', 'hasura_event_payload', 'hasura_event_time',
       'hasura_user_email', 'hasura_user_role', 'total_duration_ms',
       'events_detected_count', 'total_jobs_run', 'total_jobs_succeeded',
@@ -377,7 +328,7 @@ class ObservabilityPlugin {
     if (records.length === 0) return;
 
     const columns = [
-      'id', 'invocation_id', 'event_name', 'event_module_path',
+      'id', 'invocation_id', 'correlation_id', 'event_name', 'event_module_path',
       'detected', 'detection_duration_ms', 'detection_error', 'detection_error_stack',
       'handler_duration_ms', 'handler_error', 'handler_error_stack',
       'jobs_count', 'jobs_succeeded', 'jobs_failed', 'status',
@@ -408,9 +359,9 @@ class ObservabilityPlugin {
     if (records.length === 0) return;
 
     const columns = [
-      'id', 'invocation_id', 'event_execution_id', 'job_name',
+      'id', 'invocation_id', 'event_execution_id', 'correlation_id', 'job_name',
       'job_function_name', 'job_options', 'duration_ms', 'status',
-      'result', 'error_message', 'error_stack', 'console_logs',
+      'result', 'error_message', 'error_stack',
       'created_at', 'updated_at'
     ];
     
@@ -431,31 +382,6 @@ class ObservabilityPlugin {
     await client.query(query, values.flat());
   }
 
-  /**
-   * Bulk insert job logs
-   */
-  async bulkInsertJobLogs(client, records) {
-    if (records.length === 0) return;
-
-    const columns = [
-      'job_execution_id', 'level', 'message', 'data', 'source', 'created_at'
-    ];
-    
-    const values = records.map(record => 
-      columns.map(col => this.serializeValue(record[col]))
-    );
-    
-    const placeholders = values.map((_, i) => 
-      `(${columns.map((_, j) => `$${i * columns.length + j + 1}`).join(', ')})`
-    ).join(', ');
-    
-    const query = `
-      INSERT INTO ${this.config.schema}.job_logs (${columns.join(', ')})
-      VALUES ${placeholders}
-    `;
-    
-    await client.query(query, values.flat());
-  }
 
   /**
    * Serialize values for database insertion
@@ -478,14 +404,12 @@ class ObservabilityPlugin {
       buffered: {
         invocations: this.buffer.invocations.size,
         eventExecutions: this.buffer.eventExecutions.size,
-        jobExecutions: this.buffer.jobExecutions.size,
-        jobLogs: this.buffer.jobLogs.length
+        jobExecutions: this.buffer.jobExecutions.size
       },
       config: {
         schema: this.config.schema,
         batchSize: this.config.batchSize,
         flushInterval: this.config.flushInterval,
-        captureConsoleLog: this.config.captureConsoleLog,
         captureJobOptions: this.config.captureJobOptions,
         captureHasuraPayload: this.config.captureHasuraPayload
       }

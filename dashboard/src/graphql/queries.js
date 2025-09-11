@@ -403,3 +403,147 @@ export const GET_FUNCTIONS_LIST_QUERY = gql`
     }
   }
 `;
+
+// Correlation Chain Queries
+export const CORRELATION_CHAINS_LIST_QUERY = gql`
+  query CorrelationChainsList($limit: Int = 50) {
+    invocations(
+      where: { correlation_id: { _is_null: false } }
+      distinct_on: correlation_id
+      order_by: [{ correlation_id: asc }, { created_at: desc }]
+      limit: $limit
+    ) {
+      correlation_id
+      created_at
+      source_function
+      
+      # Get chain stats using aggregation
+      correlation_chain_stats: invocations_aggregate(
+        where: { correlation_id: { _eq: $correlation_id } }
+      ) {
+        aggregate {
+          count
+          min { created_at }
+          max { created_at }
+          sum { 
+            events_detected_count
+            total_jobs_run
+            total_jobs_succeeded
+            total_jobs_failed
+          }
+        }
+      }
+    }
+  }
+`;
+
+export const CORRELATION_CHAIN_FLOW_QUERY = gql`
+  query CorrelationChainFlow($correlationId: String!) {
+    invocations(
+      where: { correlation_id: { _eq: $correlationId } }
+      order_by: { created_at: asc }
+    ) {
+      id
+      created_at
+      source_function
+      source_table
+      source_operation
+      status
+      total_duration_ms
+      events_detected_count
+      total_jobs_run
+      total_jobs_succeeded
+      total_jobs_failed
+      correlation_id
+      
+      event_executions {
+        id
+        event_name
+        detected
+        status
+        detection_duration_ms
+        handler_duration_ms
+        jobs_count
+        correlation_id
+        
+        job_executions {
+          id
+          job_name
+          job_function_name
+          status
+          duration_ms
+          result
+          error_message
+          correlation_id
+        }
+      }
+    }
+  }
+`;
+
+export const CORRELATION_CHAIN_DETAIL_QUERY = gql`
+  query CorrelationChainDetail($correlationId: String!) {
+    invocations(
+      where: { correlation_id: { _eq: $correlationId } }
+      order_by: { created_at: asc }
+    ) {
+      id
+      created_at
+      updated_at
+      source_function
+      source_table
+      source_operation
+      total_duration_ms
+      events_detected_count
+      total_jobs_run
+      total_jobs_succeeded
+      total_jobs_failed
+      status
+      error_message
+      correlation_id
+      
+      event_executions(order_by: { created_at: asc }) {
+        id
+        event_name
+        detected
+        status
+        detection_duration_ms
+        handler_duration_ms
+        jobs_count
+        jobs_succeeded
+        jobs_failed
+        correlation_id
+        
+        job_executions(order_by: { created_at: asc }) {
+          id
+          job_name
+          job_function_name
+          duration_ms
+          status
+          result
+          error_message
+          correlation_id
+        }
+      }
+    }
+    
+    # Chain statistics
+    chain_stats: invocations_aggregate(
+      where: { correlation_id: { _eq: $correlationId } }
+    ) {
+      aggregate {
+        count
+        min { created_at }
+        max { created_at }
+        sum { 
+          total_duration_ms
+          events_detected_count
+          total_jobs_run
+          total_jobs_succeeded
+          total_jobs_failed
+        }
+        avg { total_duration_ms }
+      }
+    }
+  }
+`;

@@ -20,7 +20,8 @@ const handleSuccess = results => {
  * reviewing the Hasura event logs.
  */
 const handleFailure = error => {
-  console.error('Unknown error:', error);
+  const { logError } = require('./log');
+  logError('netlifyHandler', 'Unknown error', error);
   return {
     statusCode: 500, // We assume its our fault because Hasura is consistently formatting
     body: JSON.stringify({ errors: [error] }, null, 2),

@@ -65,7 +65,8 @@ const parseHasuraEvent = hasuraEvent => {
       user = sessionVariables['x-hasura-user-email'] || (role === 'admin' ? 'system' : null);
     } catch {}
   } catch (error) {
-    console.error('Error parsing Hasura event:', error.message);
+    const { logError } = require('./log');
+    logError('parseHasuraEvent', 'Error parsing Hasura event', error);
   }
 
   return { hasuraEventTime, hasuraEventId, dbEvent, sessionVariables, role, user, operation };
@@ -90,7 +91,8 @@ const columnHasChanged = (column, hasuraData) => {
     //log('columnHasChanged', column, { before: dbEvent.old[column], after: dbEvent.new[column] });
     return hasuraData.old[column] !== hasuraData.new[column];
   } catch (error) {
-    console.error(`columnHasChanged failed`, error.message);
+    const { logError } = require('./log');
+    logError('columnHasChanged', 'columnHasChanged failed', error);
   }
 };
 

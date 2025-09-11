@@ -14,6 +14,9 @@ CREATE TABLE event_detector_observability.invocations (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     
+    -- Correlation tracking
+    correlation_id TEXT, -- Format: {source_function}.{uuid} for chaining related events
+    
     -- Source context
     source_function TEXT NOT NULL, -- netlify function name
     source_table TEXT, -- hasura table that triggered the event
@@ -53,6 +56,9 @@ CREATE TABLE event_detector_observability.event_executions (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     
+    -- Correlation tracking (denormalized for query efficiency)
+    correlation_id TEXT, -- Same as parent invocation's correlation_id
+    
     -- Event module details
     event_name TEXT NOT NULL,
     event_module_path TEXT,
@@ -83,6 +89,9 @@ CREATE TABLE event_detector_observability.job_executions (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     
+    -- Correlation tracking (denormalized for query efficiency)
+    correlation_id TEXT, -- Same as parent invocation's correlation_id
+    
     -- Job details
     job_name TEXT NOT NULL,
     job_function_name TEXT, -- extracted from func.name
@@ -97,25 +106,8 @@ CREATE TABLE event_detector_observability.job_executions (
     error_message TEXT,
     error_stack TEXT,
     
-    -- Captured logs during job execution
-    console_logs JSONB DEFAULT '[]'::jsonb
 );
 
--- Log entries captured during job execution
-CREATE TABLE event_detector_observability.job_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    job_execution_id UUID NOT NULL REFERENCES event_detector_observability.job_executions(id) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    
-    -- Log details
-    level TEXT NOT NULL DEFAULT 'info' CHECK (level IN ('debug', 'info', 'warn', 'error')),
-    message TEXT NOT NULL,
-    data JSONB,
-    
-    -- Context
-    source TEXT, -- where the log came from
-    line_number INTEGER
-);
 
 -- Performance metrics aggregated by time periods
 CREATE TABLE event_detector_observability.metrics_hourly (
@@ -150,21 +142,21 @@ CREATE INDEX idx_invocations_created_at ON event_detector_observability.invocati
 CREATE INDEX idx_invocations_source_function ON event_detector_observability.invocations(source_function);
 CREATE INDEX idx_invocations_status ON event_detector_observability.invocations(status);
 CREATE INDEX idx_invocations_hasura_event_id ON event_detector_observability.invocations(hasura_event_id);
+CREATE INDEX idx_invocations_correlation_id ON event_detector_observability.invocations(correlation_id);
 
 CREATE INDEX idx_event_executions_invocation_id ON event_detector_observability.event_executions(invocation_id);
 CREATE INDEX idx_event_executions_event_name ON event_detector_observability.event_executions(event_name);
 CREATE INDEX idx_event_executions_detected ON event_detector_observability.event_executions(detected);
 CREATE INDEX idx_event_executions_status ON event_detector_observability.event_executions(status);
+CREATE INDEX idx_event_executions_correlation_id ON event_detector_observability.event_executions(correlation_id);
 
 CREATE INDEX idx_job_executions_invocation_id ON event_detector_observability.job_executions(invocation_id);
 CREATE INDEX idx_job_executions_event_execution_id ON event_detector_observability.job_executions(event_execution_id);
 CREATE INDEX idx_job_executions_job_name ON event_detector_observability.job_executions(job_name);
 CREATE INDEX idx_job_executions_status ON event_detector_observability.job_executions(status);
 CREATE INDEX idx_job_executions_created_at ON event_detector_observability.job_executions(created_at DESC);
+CREATE INDEX idx_job_executions_correlation_id ON event_detector_observability.job_executions(correlation_id);
 
-CREATE INDEX idx_job_logs_job_execution_id ON event_detector_observability.job_logs(job_execution_id);
-CREATE INDEX idx_job_logs_level ON event_detector_observability.job_logs(level);
-CREATE INDEX idx_job_logs_created_at ON event_detector_observability.job_logs(created_at DESC);
 
 CREATE INDEX idx_metrics_hourly_bucket ON event_detector_observability.metrics_hourly(hour_bucket DESC);
 CREATE INDEX idx_metrics_hourly_function ON event_detector_observability.metrics_hourly(source_function);
@@ -265,5 +257,11 @@ COMMENT ON SCHEMA event_detector_observability IS 'Observability schema for Hasu
 COMMENT ON TABLE event_detector_observability.invocations IS 'Each call to listenTo() function with context and results';
 COMMENT ON TABLE event_detector_observability.event_executions IS 'Each event module checked during an invocation';
 COMMENT ON TABLE event_detector_observability.job_executions IS 'Each async job executed for detected events';
-COMMENT ON TABLE event_detector_observability.job_logs IS 'Console logs captured during job execution';
 COMMENT ON TABLE event_detector_observability.metrics_hourly IS 'Pre-aggregated hourly metrics for dashboard performance';
+
+-- Why correlation_id is in all tables:
+-- 1. Enables efficient querying at any level (invocations, events, or jobs by correlation ID)
+-- 2. Supports partial queries (e.g., all job executions for a correlation chain)
+-- 3. Provides redundancy if foreign key relationships break
+-- 4. Allows fast analytics queries grouped by correlation ID
+-- 5. Enables visualization of complete event chains across multiple invocations

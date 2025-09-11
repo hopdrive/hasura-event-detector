@@ -38,7 +38,8 @@ const getObjectSafely = obj => {
 
         safeObj[key] = property;
       } catch (error) {
-        console.log(`Issue adding property ${key} to the safeObject`, error);
+        const { logError } = require('./log');
+        logError('getObjectSafely', `Issue adding property ${key} to the safeObject`, error);
       }
     }
   }

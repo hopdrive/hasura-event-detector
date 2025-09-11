@@ -1,12 +1,10 @@
-const { log } = require('./helpers/log');
+const { log, logError, logWarn, setPluginManager } = require('./helpers/log');
 const { getObjectSafely } = require('./helpers/object');
 const { parseHasuraEvent } = require('./helpers/hasura');
 const { ObservabilityPlugin } = require('./observability-plugin');
+const { pluginManager, CorrelationIdUtils } = require('./plugin-system');
 const fs = require('fs');
 const path = require('path');
-
-// Global plugin instance
-let observabilityPlugin = null;
 
 /**
  * Main entry point for all automated event detection based on event
@@ -39,14 +37,21 @@ const listenTo = async (hasuraEvent, optionsOverride = {}, context = {}) => {
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Unary_plus
   let start = +new Date();
 
-  // Initialize observability plugin if configured
-  if (optionsOverride.observability && !observabilityPlugin) {
-    observabilityPlugin = new ObservabilityPlugin(optionsOverride.observability);
+  // Initialize plugin system if not already done
+  if (!pluginManager.initialized) {
+    // Register observability plugin if configured
+    if (optionsOverride.observability) {
+      const observabilityPlugin = new ObservabilityPlugin(optionsOverride.observability);
+      pluginManager.register(observabilityPlugin);
+    }
+
+    // Initialize all plugins
     try {
-      await observabilityPlugin.initialize();
+      await pluginManager.initialize();
+      // Set up internal logger to use plugin system
+      setPluginManager(pluginManager);
     } catch (error) {
-      console.warn('[ObservabilityPlugin] Failed to initialize, continuing without observability:', error.message);
-      observabilityPlugin = null;
+      logWarn('PluginSystem', 'Failed to initialize plugins, continuing without them', error);
     }
   }
 
@@ -65,20 +70,14 @@ const listenTo = async (hasuraEvent, optionsOverride = {}, context = {}) => {
   // Parse Hasura event for observability
   const parsedEvent = parseHasuraEvent(hasuraEvent);
   
-  // Record invocation start
-  const invocationId = await observabilityPlugin?.recordInvocationStart({
-    sourceFunction: options.sourceFunction || 'unknown',
-    sourceTable: parsedEvent.dbEvent?.table?.name || hasuraEvent?.table?.name,
-    sourceOperation: parsedEvent.operation || hasuraEvent?.event?.op,
-    hasuraEventId: hasuraEvent?.id,
-    hasuraEventPayload: hasuraEvent,
-    hasuraEventTime: parsedEvent.hasuraEventTime || hasuraEvent?.created_at,
-    hasuraUserEmail: parsedEvent.user,
-    hasuraUserRole: parsedEvent.role,
-    autoLoadModules: options.autoLoadEventModules,
-    eventModulesDirectory: options.eventModulesDirectory,
-    contextData: context
-  });
+  // Extract or generate correlation ID
+  const correlationId = extractCorrelationId(hasuraEvent, parsedEvent, options.sourceFunction || 'unknown');
+  
+  // Add correlation ID to context for plugins and jobs
+  hasuraEvent.__correlationId = correlationId;
+  
+  // Call plugin hook for invocation start
+  await pluginManager.callHook('onInvocationStart', hasuraEvent, options, context, correlationId);
 
   // If configured to do so, load the events from the file system
   if (options.autoLoadEventModules) {
@@ -95,24 +94,21 @@ const listenTo = async (hasuraEvent, optionsOverride = {}, context = {}) => {
     let eventExecutionId = null;
     
     try {
+      // Call plugin hook for event detection start
+      await pluginManager.callHook('onEventDetectionStart', event, hasuraEvent, correlationId);
+
       const eventHandler = await detectWithObservability(
         event, 
         hasuraEvent, 
         options.eventModulesDirectory,
-        invocationId
+        correlationId
       );
 
       const detectionDuration = +new Date() - detectionStart;
       const detected = eventHandler !== null;
 
-      // Record event execution
-      eventExecutionId = await observabilityPlugin?.recordEventExecution(invocationId, {
-        eventName: event,
-        eventModulePath: path.join(options.eventModulesDirectory, `${event}.js`),
-        detected,
-        detectionDuration,
-        status: detected ? 'handling' : 'not_detected'
-      });
+      // Call plugin hook for event detection end
+      await pluginManager.callHook('onEventDetectionEnd', event, detected, hasuraEvent, correlationId);
 
       if (detected) {
         eventExecutionRecords.set(event, eventExecutionId);
@@ -128,49 +124,24 @@ const listenTo = async (hasuraEvent, optionsOverride = {}, context = {}) => {
             if (!eventHandler) throw Error('Handler not defined');
             if (typeof eventHandler !== 'function') throw Error('Handler not a function');
             
-            // Pass observability context to handler
-            hasuraEvent.__observability = {
-              invocationId,
-              eventExecutionId,
-              plugin: observabilityPlugin
-            };
+            // Call plugin hook for event handler start
+            await pluginManager.callHook('onEventHandlerStart', event, hasuraEvent, correlationId);
+            
+            // Pass correlation ID to handler for job context
+            hasuraEvent.__correlationId = correlationId;
             
             const res = await eventHandler(event, hasuraEvent);
             const handlerDuration = +new Date() - handlerStart;
 
-            // Count job results for metrics
-            const jobsCount = res?.length || 0;
-            const jobsSucceeded = res?.filter(job => job?.completed)?.length || 0;
-            const jobsFailed = jobsCount - jobsSucceeded;
-
-            // Update event execution with handler results
-            await observabilityPlugin?.recordEventExecution(invocationId, {
-              eventName: event,
-              eventModulePath: path.join(options.eventModulesDirectory, `${event}.js`),
-              detected: true,
-              detectionDuration,
-              handlerDuration,
-              jobsCount,
-              jobsSucceeded,
-              jobsFailed,
-              status: 'completed'
-            });
+            // Call plugin hook for event handler end
+            await pluginManager.callHook('onEventHandlerEnd', event, res, hasuraEvent, correlationId);
 
             return res;
           } catch (error) {
             const handlerDuration = +new Date() - handlerStart;
             
-            // Update event execution with error
-            await observabilityPlugin?.recordEventExecution(invocationId, {
-              eventName: event,
-              eventModulePath: path.join(options.eventModulesDirectory, `${event}.js`),
-              detected: true,
-              detectionDuration,
-              handlerDuration,
-              handlerError: error.message,
-              handlerErrorStack: error.stack,
-              status: 'failed'
-            });
+            // Call plugin hook for error
+            await pluginManager.callHook('onError', error, 'event_handler', correlationId);
 
             log(event, `Handler crashed: ${error.stack}`);
             throw Error(`Handler crashed: ${error.stack}`);
@@ -180,42 +151,21 @@ const listenTo = async (hasuraEvent, optionsOverride = {}, context = {}) => {
     } catch (error) {
       const detectionDuration = +new Date() - detectionStart;
       
-      // Record failed event execution
-      await observabilityPlugin?.recordEventExecution(invocationId, {
-        eventName: event,
-        eventModulePath: path.join(options.eventModulesDirectory, `${event}.js`),
-        detected: false,
-        detectionDuration,
-        detectionError: error.message,
-        detectionErrorStack: error.stack,
-        status: 'failed'
-      });
+      // Call plugin hook for error
+      await pluginManager.callHook('onError', error, 'event_detection', correlationId);
 
-      console.error(`Error detecting events for ${event}`, error.message);
+      logError(event, 'Error detecting events', error);
     }
   }
 
-  console.log('eventHandlersToRun', eventHandlersToRun);
+  log('EventHandlers', 'Event handlers to run', eventHandlersToRun.length);
   const response = await Promise.allSettled(eventHandlersToRun);
   const preppedRes = preparedResponse(detectedEvents, response);
 
   preppedRes.duration = +new Date() - start;
 
-  // Calculate final metrics for observability
-  const totalJobsRun = preppedRes.events?.reduce((sum, event) => sum + (event.jobs?.length || 0), 0) || 0;
-  const totalJobsSucceeded = preppedRes.events?.reduce((sum, event) => 
-    sum + (event.jobs?.filter(job => job?.completed)?.length || 0), 0) || 0;
-  const totalJobsFailed = totalJobsRun - totalJobsSucceeded;
-
-  // Record invocation completion
-  await observabilityPlugin?.recordInvocationEnd(invocationId, {
-    duration: preppedRes.duration,
-    eventsDetectedCount: detectedEvents.length,
-    totalJobsRun,
-    totalJobsSucceeded,
-    totalJobsFailed,
-    status: 'completed'
-  });
+  // Call plugin hook for invocation end
+  await pluginManager.callHook('onInvocationEnd', hasuraEvent, preppedRes, correlationId);
 
   consoleLogResponse(detectedEvents, preppedRes);
 
@@ -252,7 +202,7 @@ const detectEventModules = modulesDir => {
     log('DetectEventModules', `Auto-detected event modules found in: ${modulesDir}`, filenames);
     return filenames.map(file => file.replace('.js', ''));
   } catch (error) {
-    console.error(`[ListModules] Failed to list modules`, error.message);
+    logError('DetectEventModules', 'Failed to list modules', error);
     return [];
   }
 };
@@ -260,7 +210,7 @@ const detectEventModules = modulesDir => {
 /**
  * Enhanced detect function with observability hooks
  */
-const detectWithObservability = async (event, hasuraEvent, eventModulesDirectory, invocationId) => {
+const detectWithObservability = async (event, hasuraEvent, eventModulesDirectory, correlationId) => {
   return await detect(event, hasuraEvent, eventModulesDirectory);
 };
 
@@ -326,19 +276,17 @@ const detect = async (event, hasuraEvent, eventModulesDirectory) => {
  * reflects what value each promise was fulfilled (or rejected) with.
  */
 const consoleLogResponse = (detectedEvents, response) => {
-  console.log(`\n🔔  Detected ${detectedEvents.length} events from the database event in ${response?.duration} ms:\n`);
-
-  //console.log('response', response, 'response.events', response.events)
+  log('EventDetection', `🔔 Detected ${detectedEvents.length} events from the database event in ${response?.duration} ms`);
 
   if (!Array.isArray(response?.events) || response?.events.length < 1) return;
 
   for (const eventIndex in response?.events) {
     const event = response?.events[eventIndex];
 
-    console.log(`   ⭐️ ${event.name}\n`);
+    log('EventDetection', `   ⭐️ ${event.name}`);
 
     if (!Array.isArray(event?.jobs) || event?.jobs?.length < 1) {
-      console.log(`      No jobs\n`);
+      log('EventDetection', '      No jobs');
       continue;
     }
 
@@ -347,8 +295,8 @@ const consoleLogResponse = (detectedEvents, response) => {
       let message = '';
       if (typeof job?.result === 'object') message = getObjectSafely(job?.result);
       if (typeof job?.result !== 'object') message = job?.result?.toString();
-      console.log(`      ${icon} ${job?.name} ${job?.duration || 0} ms\n`);
-      console.log(`            ${message}\n`);
+      log('EventDetection', `      ${icon} ${job?.name} ${job?.duration || 0} ms`);
+      log('EventDetection', `            ${message}`);
     });
   }
 };
@@ -368,9 +316,34 @@ const loadEventModule = (event, eventModulesDirectory) => {
     //log('loadEventModule', `🧩 Loaded ${event} module from ${modulePath}`, module);
     return module;
   } catch (error) {
-    console.error(`Failed to load module from ${modulePath}`, error.message, error.stack, error);
+    logError('loadEventModule', `Failed to load module from ${modulePath}`, error);
     return {};
   }
+};
+
+/**
+ * Extract correlation ID from Hasura event or generate a new one
+ * @param {Object} hasuraEvent - The Hasura event payload
+ * @param {Object} parsedEvent - Parsed event data
+ * @param {string} sourceFunction - Source function name for generating new correlation ID
+ * @returns {string} Correlation ID
+ */
+const extractCorrelationId = (hasuraEvent, parsedEvent, sourceFunction) => {
+  // Only check for correlation ID in UPDATE operations
+  if (parsedEvent.operation === 'UPDATE') {
+    const updatedBy = parsedEvent.dbEvent?.new?.updated_by;
+    
+    if (updatedBy && CorrelationIdUtils.isCorrelationId(updatedBy)) {
+      // Found existing correlation ID, continue the chain
+      log('CorrelationId', `Continuing correlation chain: ${updatedBy}`);
+      return updatedBy;
+    }
+  }
+  
+  // Generate new correlation ID for this chain
+  const newCorrelationId = CorrelationIdUtils.generate(sourceFunction);
+  log('CorrelationId', `Starting new correlation chain: ${newCorrelationId}`);
+  return newCorrelationId;
 };
 
 module.exports = { listenTo };

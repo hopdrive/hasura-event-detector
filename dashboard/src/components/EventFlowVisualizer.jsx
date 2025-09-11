@@ -10,15 +10,22 @@ import ReactFlow, {
   Handle,
   Position
 } from 'reactflow';
-import { Card, Select, Drawer, Descriptions, Tag, Typography, Space, Alert } from 'antd';
+import { Card, Select, Drawer, Descriptions, Tag, Typography, Space, Alert, Radio, Tooltip } from 'antd';
 import { 
   CheckCircleOutlined, 
   CloseCircleOutlined, 
   LoadingOutlined,
   ThunderboltOutlined,
-  BugOutlined
+  BugOutlined,
+  LinkOutlined,
+  ClockCircleOutlined
 } from '@ant-design/icons';
-import { INVOCATIONS_LIST_QUERY, EVENT_FLOW_QUERY } from '../graphql/queries';
+import { 
+  INVOCATIONS_LIST_QUERY, 
+  EVENT_FLOW_QUERY, 
+  CORRELATION_CHAINS_LIST_QUERY, 
+  CORRELATION_CHAIN_FLOW_QUERY 
+} from '../graphql/queries';
 import 'reactflow/dist/style.css';
 
 const { Title, Text } = Typography;
@@ -164,26 +171,111 @@ const JobNode = ({ data }) => {
   );
 };
 
+// Correlation Chain Node - represents multiple linked invocations
+const CorrelationChainNode = ({ data }) => {
+  const getChainStatusColor = () => {
+    const { chainStats } = data;
+    if (!chainStats) return '#d9d9d9';
+    
+    const totalInvocations = chainStats.count || 0;
+    const successfulInvocations = chainStats.successful || 0;
+    const successRate = totalInvocations > 0 ? (successfulInvocations / totalInvocations) * 100 : 0;
+    
+    if (successRate >= 90) return '#52c41a';
+    if (successRate >= 70) return '#faad14';
+    return '#ff4d4f';
+  };
+
+  const formatDuration = (ms) => {
+    if (!ms) return '0ms';
+    if (ms < 1000) return `${ms}ms`;
+    return `${(ms / 1000).toFixed(1)}s`;
+  };
+
+  return (
+    <div style={{ 
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+      border: `3px solid ${getChainStatusColor()}`,
+      borderRadius: 12,
+      padding: 16,
+      minWidth: 280,
+      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+      color: 'white'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
+        <LinkOutlined style={{ fontSize: 18, marginRight: 8 }} />
+        <Text strong style={{ color: 'white', fontSize: 14 }}>CORRELATION CHAIN</Text>
+      </div>
+      
+      <Tooltip title={`Correlation ID: ${data.correlationId}`}>
+        <Title level={5} style={{ margin: 0, marginBottom: 12, color: 'white' }}>
+          {data.label}
+        </Title>
+      </Tooltip>
+      
+      <Space direction="vertical" size="small" style={{ width: '100%' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Tag color="cyan">{data.chainStats?.count || 0} invocations</Tag>
+          <Tag color="blue">{formatDuration(data.chainStats?.totalDuration)}</Tag>
+        </div>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+          <span>Events: {data.chainStats?.totalEvents || 0}</span>
+          <span>Jobs: {data.chainStats?.totalJobs || 0}</span>
+        </div>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+          <span style={{ color: '#52c41a' }}>✓ {data.chainStats?.successful || 0}</span>
+          <span style={{ color: '#ff4d4f' }}>✗ {data.chainStats?.failed || 0}</span>
+        </div>
+        
+        {data.timespan && (
+          <div style={{ fontSize: 11, opacity: 0.8, display: 'flex', alignItems: 'center' }}>
+            <ClockCircleOutlined style={{ marginRight: 4 }} />
+            {data.timespan}
+          </div>
+        )}
+      </Space>
+      
+      <Handle type="source" position={Position.Bottom} />
+    </div>
+  );
+};
+
 const nodeTypes = {
   invocation: InvocationNode,
   event: EventNode,
   job: JobNode,
+  correlationChain: CorrelationChainNode,
 };
 
 const EventFlowVisualizer = () => {
+  const [viewMode, setViewMode] = useState('invocation'); // 'invocation' or 'correlation'
   const [selectedInvocation, setSelectedInvocation] = useState(null);
+  const [selectedCorrelationId, setSelectedCorrelationId] = useState(null);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNode, setSelectedNode] = useState(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
 
   const { data: invocationsData } = useQuery(INVOCATIONS_LIST_QUERY, {
-    variables: { limit: 50 }
+    variables: { limit: 50 },
+    skip: viewMode !== 'invocation'
+  });
+
+  const { data: correlationChainsData } = useQuery(CORRELATION_CHAINS_LIST_QUERY, {
+    variables: { limit: 50 },
+    skip: viewMode !== 'correlation'
   });
 
   const { data: flowData, loading: flowLoading } = useQuery(EVENT_FLOW_QUERY, {
     variables: { invocationId: selectedInvocation },
-    skip: !selectedInvocation
+    skip: !selectedInvocation || viewMode !== 'invocation'
+  });
+
+  const { data: correlationFlowData, loading: correlationFlowLoading } = useQuery(CORRELATION_CHAIN_FLOW_QUERY, {
+    variables: { correlationId: selectedCorrelationId },
+    skip: !selectedCorrelationId || viewMode !== 'correlation'
   });
 
   // Build flow nodes and edges from invocation data
@@ -292,12 +384,158 @@ const EventFlowVisualizer = () => {
     setEdges(newEdges);
   }, [setNodes, setEdges]);
 
+  // Build flow nodes and edges from correlation chain data
+  const buildFlowFromCorrelationChain = useCallback((correlationInvocations) => {
+    const newNodes = [];
+    const newEdges = [];
+
+    if (!correlationInvocations || correlationInvocations.length === 0) return;
+
+    // Calculate chain statistics
+    const chainStats = {
+      count: correlationInvocations.length,
+      totalDuration: correlationInvocations.reduce((sum, inv) => sum + (inv.total_duration_ms || 0), 0),
+      totalEvents: correlationInvocations.reduce((sum, inv) => sum + (inv.events_detected_count || 0), 0),
+      totalJobs: correlationInvocations.reduce((sum, inv) => sum + (inv.total_jobs_run || 0), 0),
+      successful: correlationInvocations.filter(inv => inv.status === 'completed').length,
+      failed: correlationInvocations.filter(inv => inv.status === 'failed').length,
+    };
+
+    const correlationId = correlationInvocations[0].correlation_id;
+    const firstInvocation = correlationInvocations[0];
+    const lastInvocation = correlationInvocations[correlationInvocations.length - 1];
+    
+    // Create timespan display
+    const timespan = correlationInvocations.length > 1 ? 
+      `${new Date(firstInvocation.created_at).toLocaleTimeString()} - ${new Date(lastInvocation.created_at).toLocaleTimeString()}` :
+      new Date(firstInvocation.created_at).toLocaleTimeString();
+
+    // Create correlation chain overview node
+    const chainNode = {
+      id: `chain-${correlationId}`,
+      type: 'correlationChain',
+      position: { x: 300, y: 50 },
+      data: {
+        label: `Chain: ${correlationId.split('.')[0]}`,
+        correlationId: correlationId,
+        chainStats: chainStats,
+        timespan: timespan,
+      },
+      draggable: false,
+    };
+    newNodes.push(chainNode);
+
+    // Create invocation nodes for each invocation in the chain
+    const invocationSpacing = 300;
+    const invocationStartY = 250;
+
+    correlationInvocations.forEach((invocation, invIndex) => {
+      const invocationNode = {
+        id: `inv-${invocation.id}`,
+        type: 'invocation',
+        position: { x: 50 + invIndex * invocationSpacing, y: invocationStartY },
+        data: {
+          label: `${invocation.source_function}`,
+          invocation: invocation,
+          status: invocation.status,
+          duration: invocation.total_duration_ms,
+          eventsCount: invocation.events_detected_count,
+          correlationId: invocation.correlation_id,
+        },
+        draggable: false,
+      };
+      newNodes.push(invocationNode);
+
+      // Edge from chain to invocation
+      newEdges.push({
+        id: `chain-inv-${invocation.id}`,
+        source: chainNode.id,
+        target: invocationNode.id,
+        type: 'smoothstep',
+        animated: true,
+        style: { 
+          stroke: '#667eea',
+          strokeWidth: 3,
+          strokeDasharray: '5,5'
+        },
+        label: `Step ${invIndex + 1}`,
+        labelStyle: { fontSize: 12, fontWeight: 'bold' },
+        labelBgStyle: { fill: '#667eea', color: 'white', fontSize: 10 },
+      });
+
+      // Add edge between consecutive invocations
+      if (invIndex > 0) {
+        const prevInvocation = correlationInvocations[invIndex - 1];
+        newEdges.push({
+          id: `inv-seq-${prevInvocation.id}-${invocation.id}`,
+          source: `inv-${prevInvocation.id}`,
+          target: `inv-${invocation.id}`,
+          type: 'smoothstep',
+          animated: true,
+          style: { 
+            stroke: '#52c41a',
+            strokeWidth: 4
+          },
+          label: 'triggers',
+          labelStyle: { fontSize: 11, fontWeight: 'bold' },
+          labelBgStyle: { fill: '#52c41a', color: 'white' },
+        });
+      }
+
+      // Create simplified event and job nodes for detected events
+      const eventExecutions = invocation.event_executions || [];
+      const detectedEvents = eventExecutions.filter(event => event.detected);
+      
+      if (detectedEvents.length > 0) {
+        const eventStartY = invocationStartY + 180;
+        
+        detectedEvents.forEach((event, eventIndex) => {
+          const eventNode = {
+            id: `event-${event.id}`,
+            type: 'event',
+            position: { 
+              x: invocationNode.position.x - 50 + eventIndex * 180, 
+              y: eventStartY 
+            },
+            data: {
+              label: event.event_name,
+              event: event,
+              detected: event.detected,
+              status: event.status,
+              duration: event.detection_duration_ms,
+              jobsCount: event.jobs_count,
+            },
+            draggable: false,
+          };
+          newNodes.push(eventNode);
+
+          // Edge from invocation to event
+          newEdges.push({
+            id: `inv-event-${event.id}`,
+            source: invocationNode.id,
+            target: eventNode.id,
+            type: 'smoothstep',
+            style: { 
+              stroke: '#52c41a',
+              strokeWidth: 2
+            },
+          });
+        });
+      }
+    });
+
+    setNodes(newNodes);
+    setEdges(newEdges);
+  }, [setNodes, setEdges]);
+
   // Update flow when data changes
   useMemo(() => {
-    if (flowData?.invocations_by_pk) {
+    if (viewMode === 'invocation' && flowData?.invocations_by_pk) {
       buildFlowFromInvocation(flowData.invocations_by_pk);
+    } else if (viewMode === 'correlation' && correlationFlowData?.invocations) {
+      buildFlowFromCorrelationChain(correlationFlowData.invocations);
     }
-  }, [flowData, buildFlowFromInvocation]);
+  }, [viewMode, flowData, correlationFlowData, buildFlowFromInvocation, buildFlowFromCorrelationChain]);
 
   const onNodeClick = useCallback((event, node) => {
     setSelectedNode(node);
@@ -317,6 +555,10 @@ const EventFlowVisualizer = () => {
             <Descriptions.Item label="Events Detected">{node.data.invocation.events_detected_count}</Descriptions.Item>
             <Descriptions.Item label="Jobs Run">{node.data.invocation.total_jobs_run}</Descriptions.Item>
             <Descriptions.Item label="Success Rate">{node.data.invocation.success_rate}%</Descriptions.Item>
+            {node.data.correlationId && (
+              <Descriptions.Item label="Correlation ID">{node.data.correlationId}</Descriptions.Item>
+            )}
+            <Descriptions.Item label="Created">{new Date(node.data.invocation.created_at).toLocaleString()}</Descriptions.Item>
           </Descriptions>
         );
       
@@ -331,6 +573,9 @@ const EventFlowVisualizer = () => {
               <Descriptions.Item label="Handler Duration">{node.data.event.handler_duration_ms}ms</Descriptions.Item>
             )}
             <Descriptions.Item label="Jobs Count">{node.data.event.jobs_count}</Descriptions.Item>
+            {node.data.event.correlation_id && (
+              <Descriptions.Item label="Correlation ID">{node.data.event.correlation_id}</Descriptions.Item>
+            )}
           </Descriptions>
         );
       
@@ -341,6 +586,9 @@ const EventFlowVisualizer = () => {
               <Descriptions.Item label="Job Name">{node.data.job.job_name}</Descriptions.Item>
               <Descriptions.Item label="Status">{node.data.job.status}</Descriptions.Item>
               <Descriptions.Item label="Duration">{node.data.job.duration_ms}ms</Descriptions.Item>
+              {node.data.job.correlation_id && (
+                <Descriptions.Item label="Correlation ID">{node.data.job.correlation_id}</Descriptions.Item>
+              )}
               {node.data.job.error_message && (
                 <Descriptions.Item label="Error">{node.data.job.error_message}</Descriptions.Item>
               )}
@@ -357,36 +605,113 @@ const EventFlowVisualizer = () => {
             )}
           </div>
         );
+
+      case 'correlationChain':
+        return (
+          <div>
+            <Descriptions column={1} size="small">
+              <Descriptions.Item label="Correlation ID">{node.data.correlationId}</Descriptions.Item>
+              <Descriptions.Item label="Chain Label">{node.data.label}</Descriptions.Item>
+              <Descriptions.Item label="Invocations Count">{node.data.chainStats?.count || 0}</Descriptions.Item>
+              <Descriptions.Item label="Total Duration">{node.data.chainStats?.totalDuration || 0}ms</Descriptions.Item>
+              <Descriptions.Item label="Total Events">{node.data.chainStats?.totalEvents || 0}</Descriptions.Item>
+              <Descriptions.Item label="Total Jobs">{node.data.chainStats?.totalJobs || 0}</Descriptions.Item>
+              <Descriptions.Item label="Successful Invocations">{node.data.chainStats?.successful || 0}</Descriptions.Item>
+              <Descriptions.Item label="Failed Invocations">{node.data.chainStats?.failed || 0}</Descriptions.Item>
+              <Descriptions.Item label="Timespan">{node.data.timespan}</Descriptions.Item>
+            </Descriptions>
+            <div style={{ marginTop: 16 }}>
+              <Title level={5}>Chain Statistics</Title>
+              <Space>
+                <Tag color="blue">
+                  Success Rate: {node.data.chainStats?.count > 0 ? 
+                    Math.round((node.data.chainStats.successful / node.data.chainStats.count) * 100) : 0}%
+                </Tag>
+                <Tag color="green">
+                  Avg Duration: {node.data.chainStats?.count > 0 ? 
+                    Math.round(node.data.chainStats.totalDuration / node.data.chainStats.count) : 0}ms
+                </Tag>
+              </Space>
+            </div>
+          </div>
+        );
       
       default:
         return <div>Unknown node type</div>;
     }
   };
 
+  const isLoading = viewMode === 'invocation' ? flowLoading : correlationFlowLoading;
+  const hasSelection = viewMode === 'invocation' ? selectedInvocation : selectedCorrelationId;
+
   return (
     <div style={{ height: '80vh' }}>
       <Card 
-        title="🌊 Event Flow Visualizer" 
+        title={
+          <Space>
+            🌊 Event Flow Visualizer
+            <Radio.Group 
+              value={viewMode} 
+              onChange={(e) => {
+                setViewMode(e.target.value);
+                setSelectedInvocation(null);
+                setSelectedCorrelationId(null);
+                setNodes([]);
+                setEdges([]);
+              }}
+              size="small"
+            >
+              <Radio.Button value="invocation">Single Invocation</Radio.Button>
+              <Radio.Button value="correlation">Correlation Chain</Radio.Button>
+            </Radio.Group>
+          </Space>
+        }
         extra={
-          <Select
-            style={{ width: 400 }}
-            placeholder="Select an invocation to visualize"
-            onChange={(value) => setSelectedInvocation(value)}
-            showSearch
-            loading={!invocationsData}
-            optionFilterProp="children"
-          >
-            {invocationsData?.invocations?.map(inv => (
-              <Select.Option key={inv.id} value={inv.id}>
-                {inv.source_function} - {new Date(inv.created_at).toLocaleString()} 
-                ({inv.events_detected_count} events, {inv.total_jobs_run} jobs)
-              </Select.Option>
-            ))}
-          </Select>
+          viewMode === 'invocation' ? (
+            <Select
+              style={{ width: 400 }}
+              placeholder="Select an invocation to visualize"
+              onChange={(value) => setSelectedInvocation(value)}
+              showSearch
+              loading={!invocationsData}
+              optionFilterProp="children"
+              value={selectedInvocation}
+            >
+              {invocationsData?.invocations?.map(inv => (
+                <Select.Option key={inv.id} value={inv.id}>
+                  {inv.source_function} - {new Date(inv.created_at).toLocaleString()} 
+                  ({inv.events_detected_count} events, {inv.total_jobs_run} jobs)
+                </Select.Option>
+              ))}
+            </Select>
+          ) : (
+            <Select
+              style={{ width: 400 }}
+              placeholder="Select a correlation chain to visualize"
+              onChange={(value) => setSelectedCorrelationId(value)}
+              showSearch
+              loading={!correlationChainsData}
+              optionFilterProp="children"
+              value={selectedCorrelationId}
+            >
+              {correlationChainsData?.invocations?.map(chain => (
+                <Select.Option key={chain.correlation_id} value={chain.correlation_id}>
+                  <div>
+                    <strong>{chain.correlation_id.split('.')[0]}</strong> - {new Date(chain.created_at).toLocaleString()}
+                    <br />
+                    <small style={{ color: '#666' }}>
+                      {chain.correlation_chain_stats?.aggregate?.count || 0} invocations, 
+                      {chain.correlation_chain_stats?.aggregate?.sum?.total_jobs_run || 0} jobs
+                    </small>
+                  </div>
+                </Select.Option>
+              ))}
+            </Select>
+          )
         }
         bodyStyle={{ padding: 0, height: 'calc(80vh - 100px)' }}
       >
-        {!selectedInvocation ? (
+        {!hasSelection ? (
           <div style={{ 
             display: 'flex', 
             alignItems: 'center', 
@@ -395,20 +720,24 @@ const EventFlowVisualizer = () => {
             flexDirection: 'column'
           }}>
             <Alert
-              message="No Invocation Selected"
-              description="Select an invocation from the dropdown above to visualize its event flow."
+              message={viewMode === 'invocation' ? "No Invocation Selected" : "No Correlation Chain Selected"}
+              description={viewMode === 'invocation' ? 
+                "Select an invocation from the dropdown above to visualize its event flow." :
+                "Select a correlation chain from the dropdown above to visualize the connected invocations."
+              }
               type="info"
               showIcon
             />
           </div>
-        ) : flowLoading ? (
+        ) : isLoading ? (
           <div style={{ 
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'center', 
             height: '100%'
           }}>
-            <LoadingOutlined style={{ fontSize: 24 }} /> Loading flow...
+            <LoadingOutlined style={{ fontSize: 24 }} /> 
+            Loading {viewMode === 'invocation' ? 'flow' : 'correlation chain'}...
           </div>
         ) : (
           <ReactFlow
@@ -431,6 +760,7 @@ const EventFlowVisualizer = () => {
                   case 'event': return node.data.detected ? '#52c41a' : '#d9d9d9';
                   case 'job': return node.data.status === 'completed' ? '#52c41a' : 
                                    node.data.status === 'failed' ? '#ff4d4f' : '#1890ff';
+                  case 'correlationChain': return '#667eea';
                   default: return '#ccc';
                 }
               }}
