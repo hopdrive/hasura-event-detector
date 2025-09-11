@@ -14,6 +14,21 @@
  * detector and handler functions, so you can access it via the 'event' parameter.
  * 
  * No manual configuration is needed - just name your file appropriately!
+ * 
+ * CORRELATION ID USAGE
+ * ====================
+ * Correlation IDs are automatically provided to jobs via options.correlationId.
+ * You can provide correlation IDs in two ways:
+ * 
+ * 1. Manual injection in options:
+ *    const correlationId = hasuraEvent.event.data.new?.process_id;
+ *    await listenTo(hasuraEvent, { correlationId });
+ * 
+ * 2. Plugin-based extraction (automatic):
+ *    Use UpdatedByCorrelationPlugin's onPreConfigure hook to automatically extract from payload
+ *    await listenTo(hasuraEvent); // System extracts or generates correlation ID
+ * 
+ * See examples below for how to access and use correlation IDs in jobs.
  */
 
 import type { 
@@ -116,9 +131,12 @@ export const handler: HandlerFunction = async (
       job(async function sendNotification(event, hasuraEvent, options) {
         const recordId = dbEvent?.new?.id;
         
-        // Access the job name from options (derived from function name)
+        // Access the job name and correlation ID from options
         const jobName = options?.jobName || 'unknown';
+        const correlationId = options?.correlationId;
+        
         console.log(`🔧 Job '${jobName}' processing event '${event}' for record ${recordId}`);
+        console.log(`🔗 Correlation ID: ${correlationId}`);
         
         // Skip in test mode unless explicitly enabled
         if (context?.testMode && !context?.enableTestNotifications) {
@@ -140,10 +158,29 @@ export const handler: HandlerFunction = async (
         // - Send push notification
         // - Update external systems
         
+        // Example: Create database record with correlation ID for tracking
+        const notificationRecord = {
+          id: `notification_${Date.now()}`,
+          record_id: recordId,
+          correlation_id: correlationId, // Include correlation ID in database row
+          event_name: event,
+          job_name: jobName,
+          user_id: user,
+          notification_type: 'email',
+          status: 'sent',
+          environment: context?.environment,
+          created_at: new Date().toISOString()
+        };
+        
+        // In a real application, you would save this to your database:
+        // await db.notifications.create(notificationRecord);
+        console.log('💾 Would create notification record:', notificationRecord);
+        
         return {
           action: 'notification_sent',
-          jobName,  // Include job name in result
+          jobName,
           recordId,
+          correlationId, // Include in job result for tracking
           user,
           environment: context?.environment,
           timestamp: new Date().toISOString()
@@ -158,8 +195,10 @@ export const handler: HandlerFunction = async (
     job(async function recordAnalytics(event, hasuraEvent, options) {
       const recordId = dbEvent?.new?.id;
       const jobName = options?.jobName || 'unknown';
+      const correlationId = options?.correlationId;
       
       console.log(`📊 Job '${jobName}' recording analytics for event '${event}'`);
+      console.log(`🔗 Using correlation ID: ${correlationId} for analytics tracking`);
       
       // Include context metadata in analytics
       const analyticsData = {
@@ -169,9 +208,25 @@ export const handler: HandlerFunction = async (
         environment: context?.environment || 'unknown',
         deployment: context?.deployment,
         requestId: context?.requestId,
-        correlationId: options?.correlationId,
+        correlationId,
         timestamp: new Date().toISOString()
       };
+      
+      // Example: Create analytics record with correlation ID
+      const analyticsRecord = {
+        id: `analytics_${Date.now()}`,
+        correlation_id: correlationId, // Link to business process
+        event_name: event,
+        job_name: jobName,
+        user_id: user,
+        record_id: recordId,
+        properties: analyticsData,
+        created_at: new Date().toISOString()
+      };
+      
+      // In a real application:
+      // await db.analytics_events.create(analyticsRecord);
+      console.log('📈 Would create analytics record:', analyticsRecord);
       
       // Your analytics logic here
       // Examples:
@@ -183,6 +238,7 @@ export const handler: HandlerFunction = async (
       return {
         action: 'analytics_recorded',
         jobName,
+        correlationId,
         ...analyticsData
       };
     }),

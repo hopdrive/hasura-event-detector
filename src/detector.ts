@@ -58,14 +58,12 @@ const validateHasuraEventPayload = (payload: unknown): payload is HasuraEventPay
  * executes corresponding jobs through a modular, plugin-aware architecture.
  *
  * @param hasuraEvent - Hasura event trigger payload
- * @param optionsOverride - Configuration options for event detection behavior
- * @param context - Context object passed to each event handler
+ * @param options - Optional configuration including context, correlation ID, and behavior settings
  * @returns Promise resolving to detection results with job execution outcomes
  */
 export const listenTo = async (
   hasuraEvent: HasuraEventPayload,
-  optionsOverride: Partial<ListenToOptions> = {},
-  context: Record<string, any> = {}
+  options: Partial<ListenToOptions> = {}
 ): Promise<ListenToResponse> => {
   // Track execution start time
   const start = Date.now();
@@ -97,57 +95,80 @@ export const listenTo = async (
     }
   }
 
-  // Inject context into hasuraEvent object
+  // Allow plugins to modify options before processing (including correlation ID extraction)
+  let modifiedOptions = { ...options };
+  
+  try {
+    const pluginModifiedOptions = await pluginManager.callHook('onPreConfigure', hasuraEvent, modifiedOptions);
+    if (pluginModifiedOptions && typeof pluginModifiedOptions === 'object') {
+      modifiedOptions = { ...modifiedOptions, ...pluginModifiedOptions };
+    }
+  } catch (error) {
+    logWarn('PreConfigure', 'Plugin pre-configuration failed, continuing with original options', error as Error);
+  }
+
+  // Extract context and inject into hasuraEvent object
+  const context = modifiedOptions.context || {};
   hasuraEvent.__context = context;
 
-  const options: ListenToOptions = {
+  const resolvedOptions: ListenToOptions = {
     autoLoadEventModules: true,
     eventModulesDirectory: './events',
     listenedEvents: [],
-    ...optionsOverride
+    ...modifiedOptions
   };
 
   // Parse Hasura event for observability
   const parsedEvent = parseHasuraEvent(hasuraEvent);
   
   // Extract or generate correlation ID
-  const correlationId = extractCorrelationId(hasuraEvent, parsedEvent, options.sourceFunction || 'listenTo');
+  let finalCorrelationId: CorrelationId;
   
-  // Add correlation ID to context for plugins and jobs
-  hasuraEvent.__correlationId = correlationId;
+  // 1. Check if correlation ID set in options (from plugin onPreConfigure or manual)
+  if (resolvedOptions.correlationId && CorrelationIdUtils.isCorrelationId(resolvedOptions.correlationId)) {
+    finalCorrelationId = resolvedOptions.correlationId as CorrelationId;
+    log('CorrelationId', `Using correlation ID from options: ${finalCorrelationId}`);
+  } else {
+    // 2. Generate new correlation ID if not provided (always generates UUID)
+    finalCorrelationId = CorrelationIdUtils.generate(resolvedOptions.sourceFunction || 'listenTo');
+    log('CorrelationId', `Generated new correlation ID: ${finalCorrelationId}`);
+  }
+  
+  // Add correlation ID to event for jobs and plugins
+  hasuraEvent.__correlationId = finalCorrelationId;
   
   // Call plugin hook for invocation start
-  await pluginManager.callHook('onInvocationStart', hasuraEvent, options, context, correlationId);
+  await pluginManager.callHook('onInvocationStart', hasuraEvent, resolvedOptions, context, finalCorrelationId);
 
   // If configured to do so, load the events from the file system
-  if (options.autoLoadEventModules) {
-    options.listenedEvents = await detectEventModules(options.eventModulesDirectory);
+  if (resolvedOptions.autoLoadEventModules) {
+    resolvedOptions.listenedEvents = await detectEventModules(resolvedOptions.eventModulesDirectory);
   }
 
   const detectedEvents: EventName[] = [];
   const eventHandlersToRun: Promise<JobResult[]>[] = [];
   const eventExecutionRecords = new Map<EventName, string | null>();
   
-  for (const event of options.listenedEvents || []) {
+  for (const event of resolvedOptions.listenedEvents || []) {
     const detectionStart = Date.now();
     let eventExecutionId: string | null = null;
     
     try {
       // Call plugin hook for event detection start
-      await pluginManager.callHook('onEventDetectionStart', event, hasuraEvent, correlationId);
+      await pluginManager.callHook('onEventDetectionStart', event, hasuraEvent, finalCorrelationId);
 
       const eventHandler = await detectWithObservability(
         event, 
         hasuraEvent, 
-        options.eventModulesDirectory,
-        correlationId
+        resolvedOptions.eventModulesDirectory,
+        finalCorrelationId
       );
 
       const detectionDuration = Date.now() - detectionStart;
       const detected = eventHandler !== null;
 
       // Call plugin hook for event detection end
-      await pluginManager.callHook('onEventDetectionEnd', event, detected, hasuraEvent, correlationId);
+      await pluginManager.callHook('onEventDetectionEnd', event, detected, hasuraEvent, finalCorrelationId);
 
       if (detected) {
         eventExecutionRecords.set(event, eventExecutionId);
@@ -164,23 +185,22 @@ export const listenTo = async (
             if (typeof eventHandler !== 'function') throw new Error('Handler not a function');
             
             // Call plugin hook for event handler start
-            await pluginManager.callHook('onEventHandlerStart', event, hasuraEvent, correlationId);
+            await pluginManager.callHook('onEventHandlerStart', event, hasuraEvent, finalCorrelationId);
             
-            // Pass correlation ID to handler for job context
-            hasuraEvent.__correlationId = correlationId;
+            // Correlation ID is already set on hasuraEvent above
             
             const res = await eventHandler(event, hasuraEvent);
             const handlerDuration = Date.now() - handlerStart;
 
             // Call plugin hook for event handler end
-            await pluginManager.callHook('onEventHandlerEnd', event, res, hasuraEvent, correlationId);
+            await pluginManager.callHook('onEventHandlerEnd', event, res, hasuraEvent, finalCorrelationId);
 
             return res;
           } catch (error) {
             const handlerDuration = Date.now() - handlerStart;
             
             // Call plugin hook for error
-            await pluginManager.callHook('onError', error as Error, 'event_handler', correlationId);
+            await pluginManager.callHook('onError', error as Error, 'event_handler', finalCorrelationId);
 
             log(event, `Handler crashed: ${(error as Error).stack}`);
             throw new Error(`Handler crashed: ${(error as Error).stack}`);
@@ -191,7 +211,7 @@ export const listenTo = async (
       const detectionDuration = Date.now() - detectionStart;
       
       // Call plugin hook for error
-      await pluginManager.callHook('onError', error as Error, 'event_detection', correlationId);
+      await pluginManager.callHook('onError', error as Error, 'event_detection', finalCorrelationId);
 
       logError(event, 'Error detecting events', error as Error);
     }
@@ -204,7 +224,7 @@ export const listenTo = async (
   preppedRes.duration = Date.now() - start;
 
   // Call plugin hook for invocation end
-  await pluginManager.callHook('onInvocationEnd', hasuraEvent, preppedRes, correlationId);
+  await pluginManager.callHook('onInvocationEnd', hasuraEvent, preppedRes, finalCorrelationId);
 
   consoleLogResponse(detectedEvents, preppedRes);
 
@@ -371,33 +391,5 @@ const loadEventModule = (event: EventName, eventModulesDirectory: string): Parti
   }
 };
 
-/**
- * Extract correlation ID from Hasura event or generate a new one
- * @param hasuraEvent - The Hasura event payload
- * @param parsedEvent - Parsed event data
- * @param sourceFunction - Source function name for generating new correlation ID
- * @returns Correlation ID
- */
-const extractCorrelationId = (
-  hasuraEvent: HasuraEventPayload, 
-  parsedEvent: any, 
-  sourceFunction: string
-): CorrelationId => {
-  // Only check for correlation ID in UPDATE operations
-  if (parsedEvent.operation === 'UPDATE') {
-    const updatedBy = parsedEvent.dbEvent?.new?.updated_by as string | undefined;
-    
-    if (updatedBy && CorrelationIdUtils.isCorrelationId(updatedBy)) {
-      // Found existing correlation ID, continue the chain
-      log('CorrelationId', `Continuing correlation chain: ${updatedBy}`);
-      return updatedBy;
-    }
-  }
-  
-  // Generate new correlation ID for this chain
-  const newCorrelationId = CorrelationIdUtils.generate(sourceFunction);
-  log('CorrelationId', `Starting new correlation chain: ${newCorrelationId}`);
-  return newCorrelationId;
-};
 
 // Main export - the listenTo function is already exported above

@@ -53,6 +53,7 @@ export const handler = async (event, context) => {
   const hasuraEvent = JSON.parse(event.body);
   
   const result = await listenTo(hasuraEvent, {
+    context: { environment: 'production' },
     autoLoadEventModules: true,
     eventModulesDirectory: './events'
   });
@@ -72,6 +73,7 @@ exports.handler = async (event, context) => {
   const hasuraEvent = JSON.parse(event.body);
   
   const result = await listenTo(hasuraEvent, {
+    context: { environment: 'production' },
     autoLoadEventModules: true,
     eventModulesDirectory: './events'
   });
@@ -218,6 +220,95 @@ export const handler = async (event, hasuraEvent) => {
 
 See the [Context System Guide](./docs/CONTEXT_EXAMPLES.md) for comprehensive examples.
 
+## 🔗 Correlation IDs
+
+Track business processes across multiple events and systems with two simple approaches:
+
+### Manual Injection (Simplest)
+```typescript
+import { listenTo } from '@hopdrive/hasura-event-detector';
+
+// Extract correlation ID and pass in options
+const correlationId = hasuraEvent.event.data.new?.process_id || generateNewId();
+
+const result = await listenTo(hasuraEvent, {
+  context: { environment: 'prod' },
+  correlationId: correlationId,
+  autoLoadEventModules: true
+});
+```
+
+### Plugin-Based Extraction (Automatic)
+```typescript
+import { UpdatedByCorrelationPlugin } from '@hopdrive/hasura-event-detector/plugins';
+
+// Create plugin to extract from updated_by field
+const correlationPlugin = new UpdatedByCorrelationPlugin({
+  extractionPattern: /^user\.([0-9a-f-]{36})$/i, // "user.uuid" format
+  validateUuidFormat: true
+});
+
+// Plugin automatically extracts correlation IDs from payload
+const result = await listenTo(hasuraEvent, {
+  autoLoadEventModules: true
+});
+```
+
+### Using Correlation IDs in Jobs
+
+```typescript
+job(async function trackAnalytics(event, hasuraEvent, options) {
+  const correlationId = options?.correlationId;
+  
+  // Create database record with correlation ID
+  await db.analytics.create({
+    correlation_id: correlationId,
+    event_name: event,
+    user_id: hasuraEvent.event.data.new?.id,
+    timestamp: new Date()
+  });
+  
+  return { correlationId, tracked: true };
+})
+```
+
+See the [Correlation ID Guide](./docs/CORRELATION_ID_GUIDE.md) for advanced patterns and examples.
+
+## 🔌 Plugin System
+
+Extend functionality with a powerful plugin system:
+
+```typescript
+import { BasePluginInterface } from '@hopdrive/hasura-event-detector';
+
+class MyObservabilityPlugin implements BasePluginInterface {
+  readonly name = 'my-observability' as PluginName;
+  
+  // Called before processing starts - perfect for correlation ID extraction
+  async onPreConfigure(hasuraEvent, options) {
+    const updatedBy = parseHasuraEvent(hasuraEvent).dbEvent?.new?.updated_by;
+    const match = updatedBy?.match(/^user\.([0-9a-f-]{36})$/i);
+    
+    return match ? { ...options, correlationId: match[1] } : options;
+  }
+
+  // Called when jobs complete
+  async onJobEnd(jobName, result, eventName, hasuraEvent, correlationId) {
+    await sendMetrics({ jobName, result, correlationId });
+  }
+}
+```
+
+**Available Hooks:**
+- `onPreConfigure` - Modify options before processing (correlation ID extraction)
+- `onInvocationStart/End` - Track processing lifecycle
+- `onEventDetectionStart/End` - Monitor event detection
+- `onJobStart/End` - Track individual job execution
+- `onError` - Handle errors and send to tracking services
+- `onLog` - Integrate with logging systems
+
+See the [Plugin System Guide](./docs/PLUGIN_SYSTEM.md) for complete documentation.
+
 ## 🔧 Configuration
 
 ### Basic Configuration
@@ -289,6 +380,8 @@ hasura-event-detector test user-activation --dry-run
 - [API Reference](./docs/API.md) - Complete API documentation
 - [Event Modules Guide](./docs/EVENT_MODULES.md) - How to create event modules
 - [Context System Guide](./docs/CONTEXT_EXAMPLES.md) - Using context for metadata injection
+- [Correlation ID Guide](./docs/CORRELATION_ID_GUIDE.md) - Tracing business processes with correlation IDs
+- [Plugin System Guide](./docs/PLUGIN_SYSTEM.md) - Create plugins for observability and customization
 - [Templates](./templates/) - Ready-to-use templates
 
 ## 🎨 Templates

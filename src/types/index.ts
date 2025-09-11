@@ -187,6 +187,11 @@ export interface PluginHookContext {
 export interface PluginLifecycleHooks<TConfig extends PluginConfig = PluginConfig> {
   initialize?(): Promise<void>;
   
+  onPreConfigure?(
+    hasuraEvent: HasuraEventPayload,
+    options: Partial<ListenToOptions>
+  ): Promise<Partial<ListenToOptions>>;
+  
   onInvocationStart?(
     hasuraEvent: HasuraEventPayload, 
     options: ListenToOptions, 
@@ -316,7 +321,10 @@ export interface ListenToOptions {
   listenedEvents?: EventName[];
   observability?: PluginConfig;
   sourceFunction?: string;
+  context?: Record<string, any>;
+  correlationId?: string;
 }
+
 
 // =============================================================================
 // RESPONSE TYPES
