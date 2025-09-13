@@ -252,7 +252,6 @@ describe('Debug Moves Event', () => {
           useEnrichment: false,
         },
       },
-
     });
 
     // Add assertions or just inspect the result
