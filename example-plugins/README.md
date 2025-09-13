@@ -793,29 +793,29 @@ gantt
     axisFormat %s
 
     section System Lifecycle
-    initialize()                    :milestone, init, 0, 0
-    shutdown()                      :milestone, shut, 100, 100
+    initialize                      :init, 0, 1
+    shutdown                        :shut, 99, 100
 
     section Pre-Processing
-    onPreConfigure()                :crit, preconf, 10, 15
-    onInvocationStart()             :invstart, 15, 20
+    onPreConfigure                  :crit, preconf, 10, 15
+    onInvocationStart               :invstart, 15, 20
 
     section Event Detection
-    onEventDetectionStart()         :evtstart, 25, 27
-    onEventDetectionEnd()           :evtend, 27, 30
+    onEventDetectionStart           :evtstart, 25, 27
+    onEventDetectionEnd             :evtend, 27, 30
 
     section Event Handling
-    onEventHandlerStart()           :handstart, 35, 37
-    onJobStart()                    :jobstart, 40, 42
-    onJobEnd()                      :jobend, 42, 45
-    onEventHandlerEnd()             :handend, 45, 50
+    onEventHandlerStart             :handstart, 35, 37
+    onJobStart                      :jobstart, 40, 42
+    onJobEnd                        :jobend, 42, 45
+    onEventHandlerEnd               :handend, 45, 50
 
     section Post-Processing
-    onInvocationEnd()               :invend, 55, 60
+    onInvocationEnd                 :invend, 55, 60
 
     section Throughout
-    onLog()                         :log, 10, 60
-    onError()                       :error, 10, 60
+    onLog                           :log, 10, 60
+    onError                         :error, 10, 60
 ```
 
 **Hook Categories:**
