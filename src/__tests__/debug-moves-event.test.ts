@@ -253,8 +253,6 @@ describe('Debug Moves Event', () => {
         },
       },
 
-      // Optional: Enable observability for debugging
-      observability: undefined, // Set to config object if you want to test observability
     });
 
     // Add assertions or just inspect the result

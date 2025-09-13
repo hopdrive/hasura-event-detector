@@ -71,35 +71,6 @@ export async function validateConfigCommand(options: ValidateConfigOptions) {
       }
     }
     
-    // Validate observability config
-    if (config.observability) {
-      console.log('🔬 Validating observability configuration...');
-      
-      if (!config.observability.database) {
-        issues.push('Observability enabled but database config missing');
-      } else {
-        const db = config.observability.database;
-        
-        if (!db.host) issues.push('Database host is required');
-        if (!db.database) issues.push('Database name is required');
-        if (!db.user) issues.push('Database user is required');
-        if (!db.password) issues.push('Database password is required');
-        
-        if (typeof db.port !== 'number' || db.port < 1 || db.port > 65535) {
-          issues.push('Database port must be a valid number between 1-65535');
-        }
-      }
-      
-      if (config.observability.batchSize && 
-          (typeof config.observability.batchSize !== 'number' || config.observability.batchSize < 1)) {
-        issues.push('Observability batchSize must be a positive number');
-      }
-      
-      if (config.observability.flushInterval && 
-          (typeof config.observability.flushInterval !== 'number' || config.observability.flushInterval < 1000)) {
-        issues.push('Observability flushInterval must be at least 1000ms');
-      }
-    }
     
     // Validate listened events if provided
     if (config.listenedEvents && Array.isArray(config.listenedEvents)) {

@@ -51,8 +51,6 @@ export async function testEventCommand(eventName: string, options: TestEventOpti
       autoLoadEventModules: true,
       eventModulesDirectory: options.directory,
       sourceFunction: 'cli-test',
-      // Disable observability for testing
-      observability: undefined,
     };
 
     console.log('🚀 Running event detection...');

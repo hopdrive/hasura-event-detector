@@ -13,10 +13,80 @@ import type {
   ListenToOptions,
   ListenToResponse,
   DatabaseConfig,
-  InvocationRecord,
-  EventDetectionRecord,
-  JobExecutionRecord
+  HasuraOperation
 } from '@/types/index.js';
+
+// Observability-specific types moved from core types
+export interface ObservabilityMetrics {
+  invocationCount: number;
+  eventDetectionCount: number;
+  jobExecutionCount: number;
+  errorCount: number;
+  avgDuration: number;
+  correlationChainsActive: number;
+}
+
+export interface ObservabilityData {
+  correlationId: CorrelationId;
+  eventName?: EventName;
+  jobName?: JobName;
+  durationMs?: number;
+  error?: Error;
+  metadata?: Record<string, any>;
+  timestamp: Date;
+}
+
+
+export interface InvocationRecord {
+  id: string;
+  correlation_id: CorrelationId;
+  start_time: Date;
+  end_time?: Date;
+  duration_ms?: number;
+  event_count: number;
+  job_count: number;
+  error_count: number;
+  hasura_event: Record<string, any>;
+  context: Record<string, any>;
+  created_at: Date;
+}
+
+export interface EventDetectionRecord {
+  id: string;
+  correlation_id: CorrelationId;
+  invocation_id: string;
+  event_name: EventName;
+  detected: boolean;
+  detection_duration_ms: number;
+  hasura_operation: HasuraOperation;
+  table_name: string;
+  schema_name: string;
+  created_at: Date;
+}
+
+export interface JobExecutionRecord {
+  id: string;
+  correlation_id: CorrelationId;
+  invocation_id: string;
+  event_detection_id: string;
+  job_name: JobName;
+  start_time: Date;
+  end_time?: Date;
+  duration_ms?: number;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  result?: Record<string, any>;
+  error?: string;
+  options: Record<string, any>;
+  created_at: Date;
+}
+
+export interface ObservabilityQueryVariables {
+  correlationId?: CorrelationId;
+  limit?: number;
+  offset?: number;
+  startTime?: string;
+  endTime?: string;
+}
 
 interface ObservabilityConfig extends PluginConfig {
   database: DatabaseConfig & {
@@ -154,7 +224,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     }
   }
 
-  async initialize(): Promise<void> {
+  override async initialize(): Promise<void> {
     if (!this.config.enabled || this.isInitialized) return;
 
     try {
@@ -191,7 +261,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     }
   }
 
-  async shutdown() {
+  override async shutdown() {
     if (this.flushTimer) {
       clearInterval(this.flushTimer);
       this.flushTimer = null;

@@ -139,7 +139,7 @@ describe('Event Detector', () => {
 
       const config = createTestConfig();
 
-      await listenTo(hasuraEvent, config);
+      await listenTo(hasuraEvent, { ...config, correlationId: existingCorrelationId });
 
       expect(hasuraEvent.__correlationId).toBe(existingCorrelationId);
     });
@@ -153,32 +153,11 @@ describe('Event Detector', () => {
       const hasuraEvent = createMockHasuraEvent();
       const config = createTestConfig();
 
-      await listenTo(hasuraEvent, config, testContext);
+      await listenTo(hasuraEvent, { ...config, context: testContext });
 
       expect(hasuraEvent.__context).toEqual(testContext);
     });
 
-    it('should handle plugin system initialization errors gracefully', async () => {
-      const hasuraEvent = createMockHasuraEvent();
-      const config = createTestConfig({
-        observability: {
-          enabled: true,
-          database: {
-            host: 'invalid-host',
-            port: 5432,
-            database: 'test',
-            user: 'test',
-            password: 'test',
-          },
-        } as any,
-      });
-
-      // Should not throw, should continue without observability
-      const result = await listenTo(hasuraEvent, config);
-
-      expect(result.events).toHaveLength(0);
-      expect(result.durationMs).toBeGreaterThanOrEqual(0);
-    });
 
     it('should process multiple events in parallel', async () => {
       // Create multiple event modules

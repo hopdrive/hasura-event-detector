@@ -1,7 +1,6 @@
 import { log, logError, logWarn, setPluginManager } from '@/helpers/log.js';
 import { getObjectSafely } from '@/helpers/object.js';
 import { parseHasuraEvent } from '@/helpers/hasura.js';
-import { ObservabilityPlugin } from '@/plugins/observability-plugin.js';
 import { pluginManager, CorrelationIdUtils } from '@/plugins/plugin-system.js';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -82,12 +81,6 @@ export const listenTo = async (
 
   // Initialize plugin system if not already done
   if (!pluginManager.initialized) {
-    // Register observability plugin if configured
-    if (modifiedOptions.observability) {
-      const observabilityPlugin = new ObservabilityPlugin(modifiedOptions.observability);
-      pluginManager.register(observabilityPlugin);
-    }
-
     // Initialize all plugins
     try {
       await pluginManager.initialize();
@@ -123,7 +116,7 @@ export const listenTo = async (
     ...modifiedOptions,
   };
 
-  // Parse Hasura event for observability
+  // Parse Hasura event
   const parsedEvent = parseHasuraEvent(hasuraEvent);
 
   // Extract or generate correlation ID
@@ -250,7 +243,7 @@ const detectEventModules = async (modulesDir: string): Promise<EventName[]> => {
 };
 
 /**
- * Enhanced detect function with observability hooks
+ * Enhanced detect function with plugin hooks
  */
 const runDetectorWithHooks = async (
   eventName: EventName,
