@@ -1,6 +1,6 @@
 /**
  * Detector Unit Tests
- * 
+ *
  * Tests for the core event detection system.
  */
 
@@ -28,21 +28,21 @@ describe('Event Detector', () => {
       const hasuraEvent = createMockHasuraEvent({
         operation: 'UPDATE',
         old: { id: 1, active: false },
-        new: { id: 1, active: true }
+        new: { id: 1, active: true },
       });
 
       const config = createTestConfig({
         eventModulesDirectory: tempDir,
-        listenedEvents: []
+        listenedEvents: [],
       });
 
       const result = await listenTo(hasuraEvent, config);
 
       expect(result).toMatchObject({
         events: [],
-        duration: expect.any(Number)
+        durationMs: expect.any(Number),
       });
-      expect(result.duration).toBeGreaterThanOrEqual(0);
+      expect(result.durationMs).toBeGreaterThanOrEqual(0);
     });
 
     it('should detect events when modules are provided', async () => {
@@ -52,12 +52,12 @@ describe('Event Detector', () => {
       const hasuraEvent = createMockHasuraEvent({
         operation: 'UPDATE',
         old: { id: 1, active: false },
-        new: { id: 1, active: true }
+        new: { id: 1, active: true },
       });
 
       const config = createTestConfig({
         eventModulesDirectory: tempDir,
-        listenedEvents: ['user-activation' as any]
+        listenedEvents: ['user-activation' as any],
       });
 
       const result = await listenTo(hasuraEvent, config);
@@ -69,9 +69,9 @@ describe('Event Detector', () => {
           expect.objectContaining({
             name: 'mockJob0',
             completed: true,
-            result: { action: 'mock_completed', jobIndex: 0 }
-          })
-        ])
+            result: { action: 'mock_completed', jobIndex: 0 },
+          }),
+        ]),
       });
     });
 
@@ -82,7 +82,7 @@ describe('Event Detector', () => {
       const hasuraEvent = createMockHasuraEvent();
       const config = createTestConfig({
         eventModulesDirectory: tempDir,
-        listenedEvents: ['no-detection' as any]
+        listenedEvents: ['no-detection' as any],
       });
 
       const result = await listenTo(hasuraEvent, config);
@@ -96,7 +96,7 @@ describe('Event Detector', () => {
         // Missing required event.data and event.op structure
         event: {
           // Missing data and op fields
-        }
+        },
       } as any;
 
       const config = createTestConfig();
@@ -111,13 +111,13 @@ describe('Event Detector', () => {
     it('should handle missing event modules directory gracefully', async () => {
       const hasuraEvent = createMockHasuraEvent();
       const config = createTestConfig({
-        eventModulesDirectory: '/nonexistent/directory'
+        eventModulesDirectory: '/nonexistent/directory',
       });
 
       const result = await listenTo(hasuraEvent, config);
 
       expect(result.events).toHaveLength(0);
-      expect(result.duration).toBeGreaterThanOrEqual(0);
+      expect(result.durationMs).toBeGreaterThanOrEqual(0);
     });
 
     it('should add correlation ID to Hasura event', async () => {
@@ -145,11 +145,11 @@ describe('Event Detector', () => {
     });
 
     it('should inject context into Hasura event', async () => {
-      const testContext = { 
+      const testContext = {
         requestId: 'test-request-123',
-        userAgent: 'test-agent' 
+        userAgent: 'test-agent',
       };
-      
+
       const hasuraEvent = createMockHasuraEvent();
       const config = createTestConfig();
 
@@ -168,16 +168,16 @@ describe('Event Detector', () => {
             port: 5432,
             database: 'test',
             user: 'test',
-            password: 'test'
-          }
-        } as any
+            password: 'test',
+          },
+        } as any,
       });
 
       // Should not throw, should continue without observability
       const result = await listenTo(hasuraEvent, config);
 
       expect(result.events).toHaveLength(0);
-      expect(result.duration).toBeGreaterThanOrEqual(0);
+      expect(result.durationMs).toBeGreaterThanOrEqual(0);
     });
 
     it('should process multiple events in parallel', async () => {
@@ -188,7 +188,7 @@ describe('Event Detector', () => {
       const hasuraEvent = createMockHasuraEvent();
       const config = createTestConfig({
         eventModulesDirectory: tempDir,
-        listenedEvents: ['event-1' as any, 'event-2' as any]
+        listenedEvents: ['event-1' as any, 'event-2' as any],
       });
 
       const startTime = Date.now();
@@ -196,14 +196,14 @@ describe('Event Detector', () => {
       const endTime = Date.now();
 
       expect(result.events).toHaveLength(2);
-      
+
       // Should process in parallel, not sequentially
       expect(endTime - startTime).toBeLessThan(200); // Generous threshold for parallel execution
-      
+
       // Check individual event results
       const event1 = result.events.find(e => e.name === 'event-1');
       const event2 = result.events.find(e => e.name === 'event-2');
-      
+
       expect(event1?.jobs).toHaveLength(1);
       expect(event2?.jobs).toHaveLength(2);
     });

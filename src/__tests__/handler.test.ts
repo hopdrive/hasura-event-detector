@@ -1,6 +1,6 @@
 /**
  * Handler Unit Tests
- * 
+ *
  * Tests for the job execution system.
  */
 
@@ -77,7 +77,7 @@ describe('Job Handler', () => {
           startTimes.push(Date.now());
           await global.testUtils.delay(100);
           return { action: 'job3' };
-        })
+        }),
       ];
 
       const startTime = Date.now();
@@ -86,7 +86,7 @@ describe('Job Handler', () => {
 
       // Should complete in roughly parallel time, not sequential
       expect(endTime - startTime).toBeLessThan(200); // Allow some overhead
-      
+
       // All jobs should have started around the same time
       const maxStartTimeDiff = Math.max(...startTimes) - Math.min(...startTimes);
       expect(maxStartTimeDiff).toBeLessThan(50);
@@ -102,17 +102,17 @@ describe('Job Handler', () => {
       const jobs = [
         job(createMockJob({ action: 'success' })),
         job(createMockJob(null, 0, true)), // This job will fail
-        job(createMockJob({ action: 'also_success' }))
+        job(createMockJob({ action: 'also_success' })),
       ];
 
       const results = await run(eventName, hasuraEvent, jobs);
 
       expect(results).toHaveLength(3);
-      
+
       // First and third jobs should succeed
       expect(results?.[0].completed).toBe(true);
       expect(results?.[2].completed).toBe(true);
-      
+
       // Second job should fail
       expect(results?.[1].completed).toBe(false);
       expect(results?.[1].error).toBeInstanceOf(Error);
@@ -120,15 +120,13 @@ describe('Job Handler', () => {
 
     it('should track job execution times', async () => {
       const delay = 50;
-      const jobs = [
-        job(createMockJob({ action: 'timed' }, delay))
-      ];
+      const jobs = [job(createMockJob({ action: 'timed' }, delay))];
 
       const results = await run(eventName, hasuraEvent, jobs);
 
       expect(results).toHaveLength(1);
-      expect(results?.[0].duration).toBeGreaterThan(delay);
-      expect(results?.[0].duration).toBeLessThan(delay + 100); // Allow overhead
+      expect(results?.[0].durationMs).toBeGreaterThan(delay);
+      expect(results?.[0].durationMs).toBeLessThan(delay + 100); // Allow overhead
     });
 
     it('should set job names correctly', async () => {
@@ -140,7 +138,7 @@ describe('Job Handler', () => {
         job(namedFunction),
         job(async function anotherTestJob() {
           return { action: 'another' };
-        })
+        }),
       ];
 
       const results = await run(eventName, hasuraEvent, jobs);
@@ -151,9 +149,7 @@ describe('Job Handler', () => {
     });
 
     it('should handle anonymous functions', async () => {
-      const jobs = [
-        job(async () => ({ action: 'anonymous' }))
-      ];
+      const jobs = [job(async () => ({ action: 'anonymous' }))];
 
       const results = await run(eventName, hasuraEvent, jobs);
 
@@ -170,7 +166,7 @@ describe('Job Handler', () => {
         job(async (event, hasuraEvent, options) => {
           receivedOptions = options;
           return { action: 'correlation_test' };
-        })
+        }),
       ];
 
       await run(eventName, hasuraEvent, jobs);
@@ -194,17 +190,17 @@ describe('Job Handler', () => {
       const jobs = [
         { func: null, options: {} } as any,
         { func: 'not a function', options: {} } as any,
-        job(async () => ({ action: 'valid' }))
+        job(async () => ({ action: 'valid' })),
       ];
 
       const results = await run(eventName, hasuraEvent, jobs);
 
       expect(results).toHaveLength(3);
-      
+
       // First two should fail due to invalid functions
       expect(results?.[0].completed).toBe(false);
       expect(results?.[1].completed).toBe(false);
-      
+
       // Third should succeed
       expect(results?.[2].completed).toBe(true);
     });
@@ -214,14 +210,14 @@ describe('Job Handler', () => {
         job(async () => {
           await global.testUtils.delay(50);
           return { action: 'timed' };
-        })
+        }),
       ];
 
       const results = await run(eventName, hasuraEvent, jobs);
 
       expect(results).toHaveLength(1);
       const result = results?.[0];
-      
+
       expect(result?.startTime).toBeInstanceOf(Date);
       expect(result?.endTime).toBeInstanceOf(Date);
       expect(result?.endTime?.getTime()).toBeGreaterThan(result?.startTime.getTime());
@@ -229,10 +225,13 @@ describe('Job Handler', () => {
 
     it('should handle job timeouts properly', async () => {
       const jobs = [
-        job(async () => {
-          await global.testUtils.delay(200); // Longer than any reasonable timeout
-          return { action: 'should_timeout' };
-        }, { timeout: 50 })
+        job(
+          async () => {
+            await global.testUtils.delay(200); // Longer than any reasonable timeout
+            return { action: 'should_timeout' };
+          },
+          { timeout: 50 }
+        ),
       ];
 
       // Note: Our implementation doesn't actually implement timeouts yet,
@@ -247,7 +246,7 @@ describe('Job Handler', () => {
 
     it('should preserve job options in enhanced options', async () => {
       const originalOptions = createTestJobOptions({
-        customProperty: 'test-value'
+        customProperty: 'test-value',
       });
 
       let receivedOptions: JobOptions | undefined;
@@ -255,7 +254,7 @@ describe('Job Handler', () => {
         job(async (event, hasuraEvent, options) => {
           receivedOptions = options;
           return { action: 'options_test' };
-        }, originalOptions)
+        }, originalOptions),
       ];
 
       await run(eventName, hasuraEvent, jobs);
@@ -277,14 +276,14 @@ describe('Job Handler', () => {
       const jobs = [
         job(async () => {
           throw new Error(errorMessage);
-        })
+        }),
       ];
 
       const results = await run(eventName, hasuraEvent, jobs);
 
       expect(results).toHaveLength(1);
       const result = results?.[0];
-      
+
       expect(result?.completed).toBe(false);
       expect(result?.error).toBeInstanceOf(Error);
       expect(result?.error?.message).toContain(errorMessage);
@@ -295,7 +294,7 @@ describe('Job Handler', () => {
       const jobs = [
         job(() => {
           throw new Error('Sync error');
-        })
+        }),
       ];
 
       const results = await run(eventName, hasuraEvent, jobs);
@@ -308,8 +307,10 @@ describe('Job Handler', () => {
     it('should continue processing other jobs when one fails', async () => {
       const jobs = [
         job(async () => ({ action: 'job1_success' })),
-        job(async () => { throw new Error('job2_failed'); }),
-        job(async () => ({ action: 'job3_success' }))
+        job(async () => {
+          throw new Error('job2_failed');
+        }),
+        job(async () => ({ action: 'job3_success' })),
       ];
 
       const results = await run(eventName, hasuraEvent, jobs);

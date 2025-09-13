@@ -104,7 +104,7 @@ export interface JobOptions {
 
 export interface JobResult<T = any> {
   name: JobName;
-  duration: number;
+  durationMs: number;
   result: T;
   completed: boolean;
   error?: Error;
@@ -145,7 +145,7 @@ export interface ObservabilityData {
   correlationId: CorrelationId;
   eventName?: EventName;
   jobName?: JobName;
-  duration?: number;
+  durationMs?: number;
   error?: Error;
   metadata?: Record<string, any>;
   timestamp: Date;
@@ -162,9 +162,7 @@ export interface LogEntry {
 }
 
 // Error handling types
-export type Result<T, E = Error> = 
-  | { success: true; data: T }
-  | { success: false; error: E };
+export type Result<T, E = Error> = { success: true; data: T } | { success: false; error: E };
 
 export interface AsyncResult<T, E = Error> extends Promise<Result<T, E>> {}
 
@@ -186,90 +184,90 @@ export interface PluginHookContext {
 // Plugin hook types with proper generic constraints
 export interface PluginLifecycleHooks<TConfig extends PluginConfig = PluginConfig> {
   initialize?(): Promise<void>;
-  
+
   onPreConfigure?(
     hasuraEvent: HasuraEventPayload,
     options: Partial<ListenToOptions>
   ): Promise<Partial<ListenToOptions>>;
-  
+
   onInvocationStart?(
-    hasuraEvent: HasuraEventPayload, 
-    options: ListenToOptions, 
-    context: Record<string, any>, 
+    hasuraEvent: HasuraEventPayload,
+    options: ListenToOptions,
+    context: Record<string, any>,
     correlationId: CorrelationId
   ): Promise<void>;
-  
+
   onInvocationEnd?(
-    hasuraEvent: HasuraEventPayload, 
-    result: ListenToResponse, 
-    correlationId: CorrelationId
+    hasuraEvent: HasuraEventPayload,
+    result: ListenToResponse,
+    correlationId: CorrelationId,
+    durationMs: number
   ): Promise<void>;
-  
+
   onEventDetectionStart?(
-    eventName: EventName, 
-    hasuraEvent: HasuraEventPayload, 
+    eventName: EventName,
+    hasuraEvent: HasuraEventPayload,
     correlationId: CorrelationId
   ): Promise<void>;
-  
+
   onEventDetectionEnd?(
-    eventName: EventName, 
-    detected: boolean, 
-    hasuraEvent: HasuraEventPayload, 
-    correlationId: CorrelationId
+    eventName: EventName,
+    detected: boolean,
+    hasuraEvent: HasuraEventPayload,
+    correlationId: CorrelationId,
+    durationMs: number
   ): Promise<void>;
-  
+
   onEventHandlerStart?(
-    eventName: EventName, 
-    hasuraEvent: HasuraEventPayload, 
+    eventName: EventName,
+    hasuraEvent: HasuraEventPayload,
     correlationId: CorrelationId
   ): Promise<void>;
-  
+
   onEventHandlerEnd?(
-    eventName: EventName, 
-    jobResults: JobResult[], 
-    hasuraEvent: HasuraEventPayload, 
-    correlationId: CorrelationId
+    eventName: EventName,
+    jobResults: JobResult[],
+    hasuraEvent: HasuraEventPayload,
+    correlationId: CorrelationId,
+    durationMs: number
   ): Promise<void>;
-  
+
   onJobStart?(
-    jobName: JobName, 
-    jobOptions: JobOptions, 
-    eventName: EventName, 
-    hasuraEvent: HasuraEventPayload, 
+    jobName: JobName,
+    jobOptions: JobOptions,
+    eventName: EventName,
+    hasuraEvent: HasuraEventPayload,
     correlationId: CorrelationId
   ): Promise<void>;
-  
+
   onJobEnd?(
-    jobName: JobName, 
-    result: JobResult, 
-    eventName: EventName, 
-    hasuraEvent: HasuraEventPayload, 
-    correlationId: CorrelationId
+    jobName: JobName,
+    result: JobResult,
+    eventName: EventName,
+    hasuraEvent: HasuraEventPayload,
+    correlationId: CorrelationId,
+    durationMs: number
   ): Promise<void>;
-  
+
   onLog?(
-    level: LogEntry['level'], 
-    message: string, 
-    data: any, 
-    jobName: JobName, 
+    level: LogEntry['level'],
+    message: string,
+    data: any,
+    jobName: JobName,
     correlationId: CorrelationId
   ): Promise<void>;
-  
-  onError?(
-    error: Error, 
-    context: string, 
-    correlationId: CorrelationId
-  ): Promise<void>;
-  
+
+  onError?(error: Error, context: string, correlationId: CorrelationId): Promise<void>;
+
   shutdown?(): Promise<void>;
 }
 
-export interface BasePluginInterface<TConfig extends PluginConfig = PluginConfig> 
+export interface BasePluginInterface<TConfig extends PluginConfig = PluginConfig>
   extends PluginLifecycleHooks<TConfig> {
   readonly name: PluginName;
   readonly config: TConfig;
   readonly enabled: boolean;
-  
+
   getStatus(): {
     name: PluginName;
     enabled: boolean;
@@ -279,7 +277,7 @@ export interface BasePluginInterface<TConfig extends PluginConfig = PluginConfig
 
 export interface PluginManagerInterface {
   readonly initialized: boolean;
-  
+
   register<T extends BasePluginInterface>(plugin: T): this;
   initialize(): Promise<void>;
   callHook(hookName: keyof PluginLifecycleHooks, ...args: any[]): Promise<void>;
@@ -325,7 +323,6 @@ export interface ListenToOptions {
   correlationId?: string;
 }
 
-
 // =============================================================================
 // RESPONSE TYPES
 // =============================================================================
@@ -337,7 +334,7 @@ export interface EventResponse {
 
 export interface ListenToResponse {
   events: EventResponse[];
-  duration: number;
+  durationMs: number;
 }
 
 // =============================================================================

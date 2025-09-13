@@ -34,51 +34,75 @@ interface ObservabilityConfig extends PluginConfig {
 
 interface BufferedInvocation {
   id: string;
-  correlationId: CorrelationId;
-  startTime: Date;
-  endTime?: Date;
-  durationMs?: number;
-  eventCount: number;
-  jobCount: number;
-  errorCount: number;
-  hasuraEvent: Record<string, any>;
-  context: Record<string, any>;
+  correlation_id: CorrelationId;
+  source_function: string;
+  source_table: string;
+  source_operation: string;
+  hasura_event_id: string | null;
+  hasura_event_payload: Record<string, any> | null;
+  hasura_event_time: Date;
+  hasura_user_email: string | null;
+  hasura_user_role: string | null;
+  auto_load_modules: boolean;
+  event_modules_directory: string;
+  context_data: Record<string, any> | null;
+  status: string;
+  created_at: Date;
+  updated_at?: Date;
+  total_duration_ms: number | null;
+  events_detected_count: number;
+  total_jobs_run: number;
+  total_jobs_succeeded: number;
+  total_jobs_failed: number;
+  error_message: string | null;
+  error_stack: string | null;
 }
 
 interface BufferedEventExecution {
   id: string;
-  correlationId: CorrelationId;
-  invocationId: string;
-  eventName: EventName;
+  invocation_id: string;
+  correlation_id: CorrelationId;
+  event_name: EventName;
+  event_module_path: string | null;
   detected: boolean;
-  detectionDurationMs: number;
-  hasuraOperation: string;
-  tableName: string;
-  schemaName: string;
+  detection_duration_ms: number | null;
+  detection_error: string | null;
+  detection_error_stack: string | null;
+  handler_duration_ms: number | null;
+  handler_error: string | null;
+  handler_error_stack: string | null;
+  jobs_count: number;
+  jobs_succeeded: number;
+  jobs_failed: number;
+  status: string;
+  created_at: Date;
+  updated_at: Date;
 }
 
 interface BufferedJobExecution {
   id: string;
-  correlationId: CorrelationId;
-  invocationId: string;
-  eventExecutionId: string;
-  jobName: JobName;
-  startTime: Date;
-  endTime?: Date;
-  durationMs?: number;
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  result?: Record<string, any>;
-  error?: string;
-  options: Record<string, any>;
+  invocation_id: string;
+  event_execution_id: string;
+  correlation_id: CorrelationId;
+  job_name: JobName;
+  job_function_name: string | null;
+  job_options: Record<string, any> | null;
+  duration_ms: number | null;
+  status: string;
+  result: Record<string, any> | null;
+  error_message: string | null;
+  error_stack: string | null;
+  created_at: Date;
+  updated_at: Date;
 }
 
 /**
  * ObservabilityPlugin for Hasura Event Detector
- * 
+ *
  * This plugin captures detailed execution metadata for event detection and job processing
  * to provide comprehensive observability and debugging capabilities. It uses buffered
  * writes to minimize performance impact while providing rich monitoring data.
- * 
+ *
  * Extends BasePlugin to integrate with the plugin system and support correlation ID tracking.
  */
 export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
@@ -111,17 +135,17 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       flushInterval: 5000, // ms
       retryAttempts: 3,
       retryDelay: 1000, // ms
-      ...config
+      ...config,
     };
 
     super(defaultConfig);
-    
+
     this.buffer = {
       invocations: new Map(),
-      eventExecutions: new Map(), 
-      jobExecutions: new Map()
+      eventExecutions: new Map(),
+      jobExecutions: new Map(),
     };
-    
+
     // Auto-initialize if enabled
     if (this.config.enabled) {
       this.initialize().catch((error: Error) => {
@@ -132,33 +156,32 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
 
   async initialize(): Promise<void> {
     if (!this.config.enabled || this.isInitialized) return;
-    
+
     try {
       // Validate configuration
-      if (!this.config.database.connectionString && 
-          !this.config.database.host) {
+      if (!this.config.database.connectionString && !this.config.database.host) {
         throw new Error('Database connection configuration is required');
       }
-      
+
       // Initialize connection pool
       this.pool = new Pool(this.config.database);
-      
+
       // Test connection
       const client: PoolClient = await this.pool.connect();
       await client.query('SELECT 1');
       client.release();
-      
+
       // Setup periodic flush
       this.flushTimer = setInterval(() => {
         this.flush().catch(error => {
           logError('ObservabilityPlugin', 'Flush error', error);
         });
       }, this.config.flushInterval);
-      
+
       // Setup graceful shutdown
       process.on('SIGINT', () => this.shutdown());
       process.on('SIGTERM', () => this.shutdown());
-      
+
       this.isInitialized = true;
       log('ObservabilityPlugin', 'Initialized successfully');
     } catch (error) {
@@ -173,15 +196,15 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       clearInterval(this.flushTimer);
       this.flushTimer = null;
     }
-    
+
     // Final flush
     await this.flush();
-    
+
     if (this.pool) {
       await this.pool.end();
       this.pool = null;
     }
-    
+
     log('ObservabilityPlugin', 'Shutdown complete');
   }
 
@@ -190,7 +213,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
    */
   async recordInvocationStart(data) {
     if (!this.config.enabled) return null;
-    
+
     const id = uuidv4();
     const record = {
       id,
@@ -215,9 +238,9 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       total_jobs_succeeded: 0,
       total_jobs_failed: 0,
       error_message: null,
-      error_stack: null
+      error_stack: null,
     };
-    
+
     this.buffer.invocations.set(id, record);
     return id;
   }
@@ -227,12 +250,12 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
    */
   async recordInvocationEnd(invocationId, data) {
     if (!this.config.enabled || !invocationId) return;
-    
+
     const record = this.buffer.invocations.get(invocationId);
     if (!record) return;
-    
+
     Object.assign(record, {
-      total_duration_ms: data.duration,
+      total_duration_ms: data.durationMs,
       events_detected_count: data.eventsDetectedCount || 0,
       total_jobs_run: data.totalJobsRun || 0,
       total_jobs_succeeded: data.totalJobsSucceeded || 0,
@@ -240,9 +263,9 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       status: data.status || 'completed',
       error_message: data.errorMessage,
       error_stack: this.config.captureErrorStacks ? data.errorStack : null,
-      updated_at: new Date()
+      updated_at: new Date(),
     });
-    
+
     this.buffer.invocations.set(invocationId, record);
   }
 
@@ -251,7 +274,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
    */
   async recordEventExecution(invocationId, data) {
     if (!this.config.enabled || !invocationId) return null;
-    
+
     const id = uuidv4();
     const record = {
       id,
@@ -260,10 +283,10 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       event_name: data.eventName,
       event_module_path: data.eventModulePath,
       detected: data.detected || false,
-      detection_duration_ms: data.detectionDuration,
+      detection_duration_ms: data.detectionDurationMs,
       detection_error: data.detectionError,
       detection_error_stack: this.config.captureErrorStacks ? data.detectionErrorStack : null,
-      handler_duration_ms: data.handlerDuration,
+      handler_duration_ms: data.handlerDurationMs,
       handler_error: data.handlerError,
       handler_error_stack: this.config.captureErrorStacks ? data.handlerErrorStack : null,
       jobs_count: data.jobsCount || 0,
@@ -271,9 +294,9 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       jobs_failed: data.jobsFailed || 0,
       status: data.status || (data.detected ? 'completed' : 'not_detected'),
       created_at: new Date(),
-      updated_at: new Date()
+      updated_at: new Date(),
     };
-    
+
     this.buffer.eventExecutions.set(id, record);
     return id;
   }
@@ -283,7 +306,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
    */
   async recordJobExecution(invocationId, eventExecutionId, data) {
     if (!this.config.enabled || !invocationId || !eventExecutionId) return null;
-    
+
     const id = uuidv4();
     const record = {
       id,
@@ -293,62 +316,58 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       job_name: data.jobName,
       job_function_name: data.jobFunctionName,
       job_options: this.config.captureJobOptions ? data.jobOptions : null,
-      duration_ms: data.duration,
+      duration_ms: data.durationMs,
       status: data.status || 'running',
       result: data.result,
       error_message: data.errorMessage,
       error_stack: this.config.captureErrorStacks ? data.errorStack : null,
       created_at: new Date(),
-      updated_at: new Date()
+      updated_at: new Date(),
     };
-    
+
     this.buffer.jobExecutions.set(id, record);
     return id;
   }
-
 
   /**
    * Flush buffered data to database
    */
   async flush() {
     if (!this.config.enabled || !this.pool || !this.isInitialized) return;
-    
-    const hasData = this.buffer.invocations.size > 0 || 
-                   this.buffer.eventExecutions.size > 0 || 
-                   this.buffer.jobExecutions.size > 0;
-    
+
+    const hasData =
+      this.buffer.invocations.size > 0 || this.buffer.eventExecutions.size > 0 || this.buffer.jobExecutions.size > 0;
+
     if (!hasData) return;
 
     let client;
     try {
       client = await this.pool.connect();
       await client.query('BEGIN');
-      
+
       // Insert/update invocations
       if (this.buffer.invocations.size > 0) {
         await this.bulkUpsertInvocations(client, Array.from(this.buffer.invocations.values()));
         this.buffer.invocations.clear();
       }
-      
+
       // Insert event executions
       if (this.buffer.eventExecutions.size > 0) {
         await this.bulkInsertEventExecutions(client, Array.from(this.buffer.eventExecutions.values()));
         this.buffer.eventExecutions.clear();
       }
-      
+
       // Insert job executions
       if (this.buffer.jobExecutions.size > 0) {
         await this.bulkInsertJobExecutions(client, Array.from(this.buffer.jobExecutions.values()));
         this.buffer.jobExecutions.clear();
       }
-      
-      
+
       await client.query('COMMIT');
-      
     } catch (error) {
       if (client) await client.query('ROLLBACK');
       logError('ObservabilityPlugin', 'Flush failed', error);
-      
+
       // Retry logic could be added here
       throw error;
     } finally {
@@ -363,34 +382,48 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     if (records.length === 0) return;
 
     const columns = [
-      'id', 'correlation_id', 'source_function', 'source_table', 'source_operation',
-      'hasura_event_id', 'hasura_event_payload', 'hasura_event_time',
-      'hasura_user_email', 'hasura_user_role', 'total_duration_ms',
-      'events_detected_count', 'total_jobs_run', 'total_jobs_succeeded',
-      'total_jobs_failed', 'auto_load_modules', 'event_modules_directory',
-      'status', 'error_message', 'error_stack', 'context_data',
-      'created_at', 'updated_at'
+      'id',
+      'correlation_id',
+      'source_function',
+      'source_table',
+      'source_operation',
+      'hasura_event_id',
+      'hasura_event_payload',
+      'hasura_event_time',
+      'hasura_user_email',
+      'hasura_user_role',
+      'total_duration_ms',
+      'events_detected_count',
+      'total_jobs_run',
+      'total_jobs_succeeded',
+      'total_jobs_failed',
+      'auto_load_modules',
+      'event_modules_directory',
+      'status',
+      'error_message',
+      'error_stack',
+      'context_data',
+      'created_at',
+      'updated_at',
     ];
-    
-    const values = records.map(record => 
-      columns.map(col => this.serializeValue(record[col]))
-    );
-    
-    const placeholders = values.map((_, i) => 
-      `(${columns.map((_, j) => `$${i * columns.length + j + 1}`).join(', ')})`
-    ).join(', ');
-    
+
+    const values = records.map(record => columns.map(col => this.serializeValue(record[col])));
+
+    const placeholders = values
+      .map((_, i) => `(${columns.map((_, j) => `$${i * columns.length + j + 1}`).join(', ')})`)
+      .join(', ');
+
     const updateSet = columns
       .filter(col => col !== 'id' && col !== 'created_at')
       .map(col => `${col} = EXCLUDED.${col}`)
       .join(', ');
-    
+
     const query = `
       INSERT INTO ${this.config.schema}.invocations (${columns.join(', ')})
       VALUES ${placeholders}
       ON CONFLICT (id) DO UPDATE SET ${updateSet}
     `;
-    
+
     await client.query(query, values.flat());
   }
 
@@ -401,27 +434,38 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     if (records.length === 0) return;
 
     const columns = [
-      'id', 'invocation_id', 'correlation_id', 'event_name', 'event_module_path',
-      'detected', 'detection_duration_ms', 'detection_error', 'detection_error_stack',
-      'handler_duration_ms', 'handler_error', 'handler_error_stack',
-      'jobs_count', 'jobs_succeeded', 'jobs_failed', 'status',
-      'created_at', 'updated_at'
+      'id',
+      'invocation_id',
+      'correlation_id',
+      'event_name',
+      'event_module_path',
+      'detected',
+      'detection_duration_ms',
+      'detection_error',
+      'detection_error_stack',
+      'handler_duration_ms',
+      'handler_error',
+      'handler_error_stack',
+      'jobs_count',
+      'jobs_succeeded',
+      'jobs_failed',
+      'status',
+      'created_at',
+      'updated_at',
     ];
-    
-    const values = records.map(record => 
-      columns.map(col => this.serializeValue(record[col]))
-    );
-    
-    const placeholders = values.map((_, i) => 
-      `(${columns.map((_, j) => `$${i * columns.length + j + 1}`).join(', ')})`
-    ).join(', ');
-    
+
+    const values = records.map(record => columns.map(col => this.serializeValue(record[col])));
+
+    const placeholders = values
+      .map((_, i) => `(${columns.map((_, j) => `$${i * columns.length + j + 1}`).join(', ')})`)
+      .join(', ');
+
     const query = `
       INSERT INTO ${this.config.schema}.event_executions (${columns.join(', ')})
       VALUES ${placeholders}
       ON CONFLICT (id) DO NOTHING
     `;
-    
+
     await client.query(query, values.flat());
   }
 
@@ -432,29 +476,36 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     if (records.length === 0) return;
 
     const columns = [
-      'id', 'invocation_id', 'event_execution_id', 'correlation_id', 'job_name',
-      'job_function_name', 'job_options', 'duration_ms', 'status',
-      'result', 'error_message', 'error_stack',
-      'created_at', 'updated_at'
+      'id',
+      'invocation_id',
+      'event_execution_id',
+      'correlation_id',
+      'job_name',
+      'job_function_name',
+      'job_options',
+      'duration_ms',
+      'status',
+      'result',
+      'error_message',
+      'error_stack',
+      'created_at',
+      'updated_at',
     ];
-    
-    const values = records.map(record => 
-      columns.map(col => this.serializeValue(record[col]))
-    );
-    
-    const placeholders = values.map((_, i) => 
-      `(${columns.map((_, j) => `$${i * columns.length + j + 1}`).join(', ')})`
-    ).join(', ');
-    
+
+    const values = records.map(record => columns.map(col => this.serializeValue(record[col])));
+
+    const placeholders = values
+      .map((_, i) => `(${columns.map((_, j) => `$${i * columns.length + j + 1}`).join(', ')})`)
+      .join(', ');
+
     const query = `
       INSERT INTO ${this.config.schema}.job_executions (${columns.join(', ')})
       VALUES ${placeholders}
       ON CONFLICT (id) DO NOTHING
     `;
-    
+
     await client.query(query, values.flat());
   }
-
 
   /**
    * Serialize values for database insertion
@@ -472,20 +523,9 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
    */
   override getStatus() {
     return {
-      ...super.getStatus(),
-      initialized: this.isInitialized,
-      buffered: {
-        invocations: this.buffer.invocations.size,
-        eventExecutions: this.buffer.eventExecutions.size,
-        jobExecutions: this.buffer.jobExecutions.size
-      },
-      config: {
-        schema: this.config.schema,
-        batchSize: this.config.batchSize,
-        flushInterval: this.config.flushInterval,
-        captureJobOptions: this.config.captureJobOptions,
-        captureHasuraPayload: this.config.captureHasuraPayload
-      }
+      name: this.name,
+      enabled: this.enabled,
+      config: this.config,
     };
   }
 }

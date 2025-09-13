@@ -43,10 +43,10 @@ interface Colors {
 
 /**
  * SimpleLoggingPlugin - Listens to log events and performs structured console logging
- * 
+ *
  * This plugin listens to the onLog hook and provides enhanced console logging
  * with structured formatting, job context, and correlation ID tracking.
- * 
+ *
  * Unlike ConsoleInterceptorPlugin which monkey-patches console methods,
  * this plugin only responds to log events triggered through the plugin system.
  */
@@ -64,34 +64,34 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
       logLevel: 'info',
       colorize: true,
       prefix: '[HED]',
-      ...config
+      ...config,
     };
 
     super(defaultConfig);
-    
+
     // Log level hierarchy for filtering
     this.logLevels = {
       debug: 0,
       info: 1,
       warn: 2,
-      error: 3
+      error: 3,
     };
-    
+
     // Console colors
     this.colors = {
       debug: '\x1b[36m', // Cyan
-      info: '\x1b[32m',  // Green
-      warn: '\x1b[33m',  // Yellow
+      info: '\x1b[32m', // Green
+      warn: '\x1b[33m', // Yellow
       error: '\x1b[31m', // Red
-      reset: '\x1b[0m',  // Reset
-      bold: '\x1b[1m',   // Bold
-      dim: '\x1b[2m'     // Dim
+      reset: '\x1b[0m', // Reset
+      bold: '\x1b[1m', // Bold
+      dim: '\x1b[2m', // Dim
     };
   }
 
   async initialize() {
     if (!this.config.enabled) return;
-    
+
     // Note: Can't use internal logger here as it depends on plugin system
     // This is the bootstrap phase, so console.log is appropriate
     console.log('[SimpleLoggingPlugin] Initialized successfully');
@@ -102,10 +102,10 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
    */
   async onLog(level, message, data, jobName, correlationId) {
     if (!this.config.enabled) return;
-    
+
     // Filter by log level
     if (!this.shouldLog(level)) return;
-    
+
     const logEntry = {
       timestamp: new Date().toISOString(),
       level: level,
@@ -113,9 +113,9 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
       correlationId: correlationId,
       jobName: jobName,
       source: data?.source || 'unknown',
-      rawData: data
+      rawData: data,
     };
-    
+
     this.outputLog(logEntry);
   }
 
@@ -151,24 +151,24 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
    */
   outputSimpleLog(logEntry: any) {
     const parts = [];
-    
+
     if (this.config.includeTimestamp) {
       parts.push(this.colorize('dim', new Date(logEntry.timestamp).toLocaleTimeString()));
     }
-    
+
     parts.push(this.config.prefix);
     parts.push(this.colorize(logEntry.level, `[${logEntry.level.toUpperCase()}]`));
-    
+
     if (this.config.includeJobContext && logEntry.jobName) {
       parts.push(this.colorize('bold', `[${logEntry.jobName}]`));
     }
-    
+
     if (this.config.includeCorrelationId && logEntry.correlationId) {
       parts.push(this.colorize('dim', `[${logEntry.correlationId.split('.')[0]}]`));
     }
-    
+
     parts.push(logEntry.message);
-    
+
     // Use appropriate console method
     const consoleMethod = this.getConsoleMethod(logEntry.level);
     consoleMethod(parts.join(' '));
@@ -178,28 +178,29 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
    * Output structured formatted log
    */
   outputStructuredLog(logEntry) {
-    const timestamp = this.config.includeTimestamp ? 
-      this.colorize('dim', `[${new Date(logEntry.timestamp).toLocaleTimeString()}]`) : '';
-    
+    const timestamp = this.config.includeTimestamp
+      ? this.colorize('dim', `[${new Date(logEntry.timestamp).toLocaleTimeString()}]`)
+      : '';
+
     const levelBadge = this.colorize(logEntry.level, `[${logEntry.level.toUpperCase()}]`);
-    
+
     const context = [];
     if (this.config.includeJobContext && logEntry.jobName) {
       context.push(`job: ${this.colorize('bold', logEntry.jobName)}`);
     }
-    
+
     if (this.config.includeCorrelationId && logEntry.correlationId) {
       context.push(`correlation: ${this.colorize('dim', logEntry.correlationId)}`);
     }
-    
+
     if (logEntry.source && logEntry.source !== 'unknown') {
       context.push(`source: ${this.colorize('dim', logEntry.source)}`);
     }
-    
+
     const contextStr = context.length > 0 ? ` ${this.colorize('dim', `{${context.join(', ')}}`)}` : '';
-    
+
     const logLine = `${timestamp} ${this.config.prefix} ${levelBadge}${contextStr} ${logEntry.message}`;
-    
+
     // Use appropriate console method
     const consoleMethod = this.getConsoleMethod(logEntry.level);
     consoleMethod(logLine);
@@ -215,14 +216,14 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
       message: logEntry.message,
       correlationId: logEntry.correlationId,
       jobName: logEntry.jobName,
-      source: logEntry.source
+      source: logEntry.source,
     };
-    
+
     // Add raw data if available
     if (logEntry.rawData) {
       jsonLog.data = logEntry.rawData;
     }
-    
+
     // Use appropriate console method
     const consoleMethod = this.getConsoleMethod(logEntry.level);
     consoleMethod(JSON.stringify(jsonLog));
@@ -233,7 +234,7 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
    */
   colorize(level: string, text: string) {
     if (!this.config.colorize) return text;
-    
+
     const color = this.colors[level] || this.colors.reset;
     return `${color}${text}${this.colors.reset}`;
   }
@@ -259,13 +260,19 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
    */
   override async onInvocationStart(hasuraEvent: HasuraEventPayload, options: any, context: any, correlationId: CorrelationId) {
     if (!this.config.enabled) return;
-    
+
     const sourceFunction = options.sourceFunction || 'unknown';
-    await this.onLog('info', `Starting invocation: ${sourceFunction}`, {
-      source: 'invocation_start',
-      hasuraEventId: hasuraEvent?.event?.id,
-      operation: hasuraEvent?.event?.op
-    }, null, correlationId);
+    await this.onLog(
+      'info',
+      `Starting invocation: ${sourceFunction}`,
+      {
+        source: 'invocation_start',
+        hasuraEventId: hasuraEvent?.id,
+        operation: hasuraEvent?.event?.op,
+      },
+      null,
+      correlationId
+    );
   }
 
   /**
@@ -273,17 +280,23 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
    */
   override async onInvocationEnd(hasuraEvent: HasuraEventPayload, result: any, correlationId: CorrelationId) {
     if (!this.config.enabled) return;
-    
-    const duration = result?.duration || 0;
+
+    const durationMs = result?.durationMs || 0;
     const eventsCount = result?.events?.length || 0;
     const totalJobs = result?.events?.reduce((sum, event) => sum + (event?.jobs?.length || 0), 0) || 0;
-    
-    await this.onLog('info', `Completed invocation in ${duration}ms: ${eventsCount} events, ${totalJobs} jobs`, {
-      source: 'invocation_end',
-      duration,
-      eventsCount,
-      totalJobs
-    }, null, correlationId);
+
+    await this.onLog(
+      'info',
+      `Completed invocation in ${durationMs}ms: ${eventsCount} events, ${totalJobs} jobs`,
+      {
+        source: 'invocation_end',
+        durationMs,
+        eventsCount,
+        totalJobs,
+      },
+      null,
+      correlationId
+    );
   }
 
   /**
@@ -291,7 +304,7 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
    */
   override async onJobStart(jobName: JobName, jobOptions: JobOptions, eventName: EventName, hasuraEvent: HasuraEventPayload, correlationId: CorrelationId) {
     if (!this.config.enabled) return;
-    
+
     await this.onLog('debug', `Starting job: ${jobName}`, {
       source: 'job_start',
       eventName,
@@ -304,18 +317,23 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
    */
   override async onJobEnd(jobName: JobName, result: JobResult, eventName: EventName, hasuraEvent: HasuraEventPayload, correlationId: CorrelationId) {
     if (!this.config.enabled) return;
-    
-    const duration = result?.duration || 0;
+
+    const durationMs = result?.durationMs || 0;
     const success = !result?.result || typeof result.result !== 'string' || !result.result.includes('crashed');
-    
-    await this.onLog(success ? 'info' : 'error', 
-      `${success ? 'Completed' : 'Failed'} job: ${jobName} in ${duration}ms`, {
+
+    await this.onLog(
+      success ? 'info' : 'error',
+      `${success ? 'Completed' : 'Failed'} job: ${jobName} in ${durationMs}ms`,
+      {
         source: 'job_end',
         eventName,
-        duration,
+        durationMs,
         success,
-        result: result?.result
-      }, jobName, correlationId);
+        result: result?.result,
+      },
+      jobName,
+      correlationId
+    );
   }
 
   /**
@@ -323,7 +341,7 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
    */
   override async onError(error: Error, context: any, correlationId: CorrelationId) {
     if (!this.config.enabled) return;
-    
+
     await this.onLog('error', `Error in ${context}: ${error.message}`, {
       source: 'error',
       context,

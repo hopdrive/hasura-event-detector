@@ -1,6 +1,6 @@
 /**
  * Plugin System for Hasura Event Detector
- * 
+ *
  * This module provides a base plugin architecture that allows multiple plugins
  * to hook into the event detector lifecycle. Plugins can observe and react to
  * various events during execution (invocation start/end, event detection, job execution, etc.)
@@ -30,8 +30,7 @@ import { v4 as uuidv4 } from 'uuid';
  * Base Plugin Interface
  * All plugins should extend this class and implement the hooks they need
  */
-export class BasePlugin<TConfig extends PluginConfig = PluginConfig> 
-  implements BasePluginInterface<TConfig> {
+export class BasePlugin<TConfig extends PluginConfig = PluginConfig> implements BasePluginInterface<TConfig> {
   public readonly name: PluginName;
   public readonly config: TConfig;
   public enabled: boolean;
@@ -55,9 +54,9 @@ export class BasePlugin<TConfig extends PluginConfig = PluginConfig>
    * Called before listenTo() starts processing
    */
   async onInvocationStart(
-    hasuraEvent: HasuraEventPayload, 
-    options: ListenToOptions, 
-    context: Record<string, any>, 
+    hasuraEvent: HasuraEventPayload,
+    options: ListenToOptions,
+    context: Record<string, any>,
     correlationId: CorrelationId
   ): Promise<void> {
     // Override in subclass
@@ -67,9 +66,10 @@ export class BasePlugin<TConfig extends PluginConfig = PluginConfig>
    * Called when listenTo() completes
    */
   async onInvocationEnd(
-    hasuraEvent: HasuraEventPayload, 
-    result: ListenToResponse, 
-    correlationId: CorrelationId
+    hasuraEvent: HasuraEventPayload,
+    result: ListenToResponse,
+    correlationId: CorrelationId,
+    durationMs: number
   ): Promise<void> {
     // Override in subclass
   }
@@ -78,8 +78,8 @@ export class BasePlugin<TConfig extends PluginConfig = PluginConfig>
    * Called before event detection starts
    */
   async onEventDetectionStart(
-    eventName: EventName, 
-    hasuraEvent: HasuraEventPayload, 
+    eventName: EventName,
+    hasuraEvent: HasuraEventPayload,
     correlationId: CorrelationId
   ): Promise<void> {
     // Override in subclass
@@ -89,10 +89,11 @@ export class BasePlugin<TConfig extends PluginConfig = PluginConfig>
    * Called after event detection completes
    */
   async onEventDetectionEnd(
-    eventName: EventName, 
-    detected: boolean, 
-    hasuraEvent: HasuraEventPayload, 
-    correlationId: CorrelationId
+    eventName: EventName,
+    detected: boolean,
+    hasuraEvent: HasuraEventPayload,
+    correlationId: CorrelationId,
+    durationMs: number
   ): Promise<void> {
     // Override in subclass
   }
@@ -101,8 +102,8 @@ export class BasePlugin<TConfig extends PluginConfig = PluginConfig>
    * Called before event handler starts (only for detected events)
    */
   async onEventHandlerStart(
-    eventName: EventName, 
-    hasuraEvent: HasuraEventPayload, 
+    eventName: EventName,
+    hasuraEvent: HasuraEventPayload,
     correlationId: CorrelationId
   ): Promise<void> {
     // Override in subclass
@@ -112,10 +113,11 @@ export class BasePlugin<TConfig extends PluginConfig = PluginConfig>
    * Called after event handler completes
    */
   async onEventHandlerEnd(
-    eventName: EventName, 
-    jobResults: JobResult[], 
-    hasuraEvent: HasuraEventPayload, 
-    correlationId: CorrelationId
+    eventName: EventName,
+    jobResults: JobResult[],
+    hasuraEvent: HasuraEventPayload,
+    correlationId: CorrelationId,
+    durationMs: number
   ): Promise<void> {
     // Override in subclass
   }
@@ -124,10 +126,10 @@ export class BasePlugin<TConfig extends PluginConfig = PluginConfig>
    * Called before a job starts executing
    */
   async onJobStart(
-    jobName: JobName, 
-    jobOptions: JobOptions, 
-    eventName: EventName, 
-    hasuraEvent: HasuraEventPayload, 
+    jobName: JobName,
+    jobOptions: JobOptions,
+    eventName: EventName,
+    hasuraEvent: HasuraEventPayload,
     correlationId: CorrelationId
   ): Promise<void> {
     // Override in subclass
@@ -137,11 +139,12 @@ export class BasePlugin<TConfig extends PluginConfig = PluginConfig>
    * Called after a job completes (success or failure)
    */
   async onJobEnd(
-    jobName: JobName, 
-    result: JobResult, 
-    eventName: EventName, 
-    hasuraEvent: HasuraEventPayload, 
-    correlationId: CorrelationId
+    jobName: JobName,
+    result: JobResult,
+    eventName: EventName,
+    hasuraEvent: HasuraEventPayload,
+    correlationId: CorrelationId,
+    durationMs: number
   ): Promise<void> {
     // Override in subclass
   }
@@ -150,10 +153,10 @@ export class BasePlugin<TConfig extends PluginConfig = PluginConfig>
    * Called when console logging occurs during job execution
    */
   async onLog(
-    level: LogEntry['level'], 
-    message: string, 
-    data: any, 
-    jobName: JobName, 
+    level: LogEntry['level'],
+    message: string,
+    data: any,
+    jobName: JobName,
     correlationId: CorrelationId
   ): Promise<void> {
     // Override in subclass
@@ -162,11 +165,7 @@ export class BasePlugin<TConfig extends PluginConfig = PluginConfig>
   /**
    * Called when an error occurs during execution
    */
-  async onError(
-    error: Error, 
-    context: string, 
-    correlationId: CorrelationId
-  ): Promise<void> {
+  async onError(error: Error, context: string, correlationId: CorrelationId): Promise<void> {
     // Override in subclass
   }
 
@@ -188,7 +187,7 @@ export class BasePlugin<TConfig extends PluginConfig = PluginConfig>
     return {
       name: this.name,
       enabled: this.enabled,
-      config: this.config
+      config: this.config,
     };
   }
 }
@@ -216,7 +215,7 @@ export class PluginManager implements PluginManagerInterface {
     if (!(plugin instanceof BasePlugin)) {
       throw new Error('Plugin must extend BasePlugin');
     }
-    
+
     this.plugins.set(plugin.name, plugin);
     return this;
   }
@@ -229,13 +228,13 @@ export class PluginManager implements PluginManagerInterface {
 
     for (const [name, plugin] of this.plugins) {
       if (!plugin.enabled) continue;
-      
+
       try {
         // Provide plugin manager reference to plugins that need it
         if (typeof (plugin as any).setPluginManager === 'function') {
           (plugin as any).setPluginManager(this);
         }
-        
+
         await plugin.initialize?.();
         log('PluginSystem', `Initialized plugin: ${name}`);
       } catch (error) {
@@ -244,7 +243,7 @@ export class PluginManager implements PluginManagerInterface {
         (plugin as any).enabled = false;
       }
     }
-    
+
     this._initialized = true;
   }
 
@@ -258,12 +257,12 @@ export class PluginManager implements PluginManagerInterface {
     }
 
     const promises: Promise<any>[] = [];
-    
+
     for (const [name, plugin] of this.plugins) {
       if (!plugin.enabled) continue;
       const hookMethod = (plugin as any)[hookName];
       if (typeof hookMethod !== 'function') continue;
-      
+
       promises.push(
         hookMethod.call(plugin, ...args).catch((error: Error) => {
           logError('PluginSystem', `Plugin ${name} hook ${hookName} failed`, error);
@@ -297,7 +296,7 @@ export class PluginManager implements PluginManagerInterface {
   async shutdown(): Promise<void> {
     for (const [name, plugin] of this.plugins) {
       if (!plugin.enabled) continue;
-      
+
       try {
         await plugin.shutdown?.();
         log('PluginSystem', `Shut down plugin: ${name}`);
@@ -305,7 +304,7 @@ export class PluginManager implements PluginManagerInterface {
         logError('PluginSystem', `Failed to shutdown plugin ${name}`, error as Error);
       }
     }
-    
+
     this._initialized = false;
   }
 
@@ -322,7 +321,7 @@ export class PluginManager implements PluginManagerInterface {
       initialized: this._initialized,
       pluginCount: this.plugins.size,
       enabledCount: this.getEnabledPlugins().length,
-      plugins: {} as Record<string, ReturnType<BasePluginInterface['getStatus']>>
+      plugins: {} as Record<string, ReturnType<BasePluginInterface['getStatus']>>,
     };
 
     for (const [name, plugin] of this.plugins) {
@@ -347,13 +346,10 @@ export class CorrelationIdUtils {
    */
   static isCorrelationId(value: unknown): value is CorrelationId {
     if (!value || typeof value !== 'string') return false;
-    
+
     // Format: {source_function}.{uuid}
     const parts = value.split('.');
-    return parts.length === 2 && 
-           parts[0]?.length > 0 && 
-           parts[1]?.length > 0 &&
-           /^[a-f0-9-]+$/i.test(parts[1] || ''); // UUID-like format
+    return parts.length === 2 && parts[0]?.length > 0 && parts[1]?.length > 0 && /^[a-f0-9-]+$/i.test(parts[1] || ''); // UUID-like format
   }
 
   /**
@@ -368,12 +364,12 @@ export class CorrelationIdUtils {
    */
   static parse(correlationId: CorrelationId): CorrelationIdParts | null {
     if (!this.isCorrelationId(correlationId)) return null;
-    
+
     const parts = correlationId.split('.');
     return {
       sourceFunction: parts[0]!,
       uuid: parts[1]!,
-      full: correlationId
+      full: correlationId,
     };
   }
 }

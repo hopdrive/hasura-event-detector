@@ -11,7 +11,8 @@ import type {
   ParsedHasuraEvent,
   BasePluginInterface,
   PluginName,
-  PluginConfig
+  PluginConfig,
+  ListenToOptions
 } from '@/types/index.js';
 import { log, logWarn } from '@/helpers/log.js';
 import { parseHasuraEvent } from '@/helpers/hasura.js';

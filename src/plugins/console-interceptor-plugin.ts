@@ -25,10 +25,10 @@ interface JobContext {
 
 /**
  * ConsoleInterceptorPlugin - Monkey-patches console methods to intercept ALL console logs
- * 
+ *
  * This plugin captures console logs from ANY source within job execution context,
  * including direct console.log calls from jobs that don't use the hasura event detector logger.
- * 
+ *
  * The intercepted logs are forwarded through the plugin system's onLog hook,
  * allowing other plugins (like SimpleLoggingPlugin) to handle the actual logging.
  */
@@ -44,7 +44,7 @@ export class ConsoleInterceptorPlugin extends BasePlugin<ConsoleInterceptorConfi
       levels: ['log', 'error', 'warn', 'info'],
       includeTimestamp: true,
       includeJobContext: true,
-      ...config
+      ...config,
     };
 
     super(defaultConfig);
@@ -52,7 +52,7 @@ export class ConsoleInterceptorPlugin extends BasePlugin<ConsoleInterceptorConfi
 
   override async initialize() {
     if (!this.config.enabled) return;
-    
+
     // Note: Can't use internal logger here as it depends on plugin system
     // This is the bootstrap phase, so console.log is appropriate
     console.log('[ConsoleInterceptorPlugin] Initialized successfully');
@@ -62,17 +62,24 @@ export class ConsoleInterceptorPlugin extends BasePlugin<ConsoleInterceptorConfi
    * Called before a job starts executing
    * Sets up console interception for this specific job
    */
-  override async onJobStart(jobName: JobName, jobOptions: JobOptions, eventName: EventName, hasuraEvent: HasuraEventPayload, correlationId: CorrelationId) {
+  override async onJobStart(
+    jobName: JobName,
+    jobOptions: JobOptions,
+    eventName: EventName,
+    hasuraEvent: HasuraEventPayload,
+    correlationId: CorrelationId,
+    durationMs: number
+  ) {
     if (!this.config.enabled) return;
-    
+
     // Store job context for log attribution
     this.currentJobContext = {
       jobName,
       eventName,
       correlationId,
-      startTime: Date.now()
+      startTime: Date.now(),
     };
-    
+
     // Start intercepting console methods
     this.startIntercepting();
   }
@@ -81,12 +88,19 @@ export class ConsoleInterceptorPlugin extends BasePlugin<ConsoleInterceptorConfi
    * Called after a job completes
    * Restores original console methods
    */
-  override async onJobEnd(jobName: JobName, result: JobResult, eventName: EventName, hasuraEvent: HasuraEventPayload, correlationId: CorrelationId) {
+  override async onJobEnd(
+    jobName: JobName,
+    result: JobResult,
+    eventName: EventName,
+    hasuraEvent: HasuraEventPayload,
+    correlationId: CorrelationId,
+    durationMs: number
+  ) {
     if (!this.config.enabled) return;
-    
+
     // Stop intercepting and restore original console
     this.stopIntercepting();
-    
+
     // Clear job context
     this.currentJobContext = null;
   }
@@ -96,21 +110,21 @@ export class ConsoleInterceptorPlugin extends BasePlugin<ConsoleInterceptorConfi
    */
   startIntercepting() {
     if (this.isIntercepting) return;
-    
+
     // Store original console methods
     this.config.levels.forEach(level => {
       this.originalConsole[level] = console[level];
-      
+
       // Replace with intercepted version
       console[level] = (...args) => {
         // Call original console method first
         this.originalConsole[level](...args);
-        
+
         // Forward to plugin system for other plugins to handle
         this.forwardLogEvent(level, args);
       };
     });
-    
+
     this.isIntercepting = true;
   }
 
@@ -119,14 +133,14 @@ export class ConsoleInterceptorPlugin extends BasePlugin<ConsoleInterceptorConfi
    */
   stopIntercepting() {
     if (!this.isIntercepting) return;
-    
+
     // Restore original console methods
     this.config.levels.forEach(level => {
       if (this.originalConsole[level]) {
         console[level] = this.originalConsole[level];
       }
     });
-    
+
     this.isIntercepting = false;
   }
 
@@ -135,30 +149,33 @@ export class ConsoleInterceptorPlugin extends BasePlugin<ConsoleInterceptorConfi
    */
   forwardLogEvent(level, args) {
     if (!this.currentJobContext) return;
-    
+
     const logData = {
       level: level === 'log' ? 'info' : level, // Normalize 'log' to 'info'
       message: args.join(' '),
       rawArgs: args,
       timestamp: new Date(),
       jobContext: this.config.includeJobContext ? this.currentJobContext : null,
-      source: 'console_interceptor'
+      source: 'console_interceptor',
     };
-    
+
     // Forward to plugin manager's onLog hook
     // Note: We can't await here as console methods are synchronous
     if (this.pluginManager) {
       setImmediate(() => {
-        this.pluginManager.callHook('onLog', 
-          logData.level, 
-          logData.message, 
-          logData, 
-          this.currentJobContext.jobName, 
-          this.currentJobContext.correlationId
-        ).catch(error => {
-          // Use original console to avoid recursion
-          this.originalConsole.error('[ConsoleInterceptorPlugin] Error forwarding log:', error.message);
-        });
+        this.pluginManager
+          .callHook(
+            'onLog',
+            logData.level,
+            logData.message,
+            logData,
+            this.currentJobContext.jobName,
+            this.currentJobContext.correlationId
+          )
+          .catch(error => {
+            // Use original console to avoid recursion
+            this.originalConsole.error('[ConsoleInterceptorPlugin] Error forwarding log:', error.message);
+          });
       });
     }
   }
@@ -184,7 +201,7 @@ export class ConsoleInterceptorPlugin extends BasePlugin<ConsoleInterceptorConfi
       ...super.getStatus(),
       isIntercepting: this.isIntercepting,
       interceptedLevels: this.config.levels,
-      currentJobContext: this.currentJobContext
+      currentJobContext: this.currentJobContext,
     };
   }
 }
