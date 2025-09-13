@@ -116,9 +116,6 @@ export const listenTo = async (
     ...modifiedOptions,
   };
 
-  // Parse Hasura event
-  const parsedEvent = parseHasuraEvent(hasuraEvent);
-
   // Extract or generate correlation ID
   let finalCorrelationId: CorrelationId;
 
@@ -430,5 +427,3 @@ const loadEventModule = (eventName: EventName, eventModulesDirectory: string): P
     return {};
   }
 };
-
-// Main export - the listenTo function is already exported above
