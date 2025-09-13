@@ -824,68 +824,68 @@ gantt
 mindmap
   root((Plugin Hooks))
     System Lifecycle
-      initialize()
+      initialize
         One-time setup
         Load configuration
         Establish connections
-      shutdown()
+      shutdown
         Cleanup resources
         Close connections
         Save final state
 
     Configuration Phase
-      onPreConfigure()
-        **MOST CRITICAL**
+      onPreConfigure
+        MOST CRITICAL
         Enrich payload by reference
         Extract correlation IDs
         Modify options before processing
 
     Processing Lifecycle
-      onInvocationStart()
+      onInvocationStart
         Track processing start
         Initialize per-request metrics
         Log request details
-      onInvocationEnd()
+      onInvocationEnd
         Track processing completion
         Send final metrics
         Cleanup per-request resources
 
     Event Detection
-      onEventDetectionStart()
+      onEventDetectionStart
         Track detection attempts
         Log event names being checked
         Start detection timers
-      onEventDetectionEnd()
+      onEventDetectionEnd
         Track detection results
         Log success/failure
         Record detection metrics
 
     Event Handling
-      onEventHandlerStart()
+      onEventHandlerStart
         Track handler execution start
         Log detected events
         Initialize handler metrics
-      onEventHandlerEnd()
+      onEventHandlerEnd
         Track handler completion
         Log job results summary
         Record handler metrics
 
     Job Execution
-      onJobStart()
+      onJobStart
         Track individual job start
         Log job details
         Start job timers
-      onJobEnd()
+      onJobEnd
         Track job completion
         Log job results
         Record job metrics
 
     Cross-Cutting
-      onError()
+      onError
         Handle all errors
         Send to error tracking
         Log error details
-      onLog()
+      onLog
         Integrate with logging systems
         Filter/enhance log messages
         Send to external systems
