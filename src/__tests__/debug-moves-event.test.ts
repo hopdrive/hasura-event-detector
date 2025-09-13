@@ -11,6 +11,8 @@
  */
 
 import { listenTo } from '../detector';
+import { pluginManager } from '@hopdrive/hasura-event-detector';
+import { SimpleLoggingPlugin } from '../../example-plugins/simple-logging/plugin';
 import * as path from 'path';
 
 describe('Debug Moves Event', () => {
@@ -231,6 +233,21 @@ describe('Debug Moves Event', () => {
   };
 
   it('should process moves UPDATE event with debugging', async () => {
+    // Create and configure plugin
+    const logger = new SimpleLoggingPlugin({
+      format: 'structured',
+      colorize: true,
+    });
+
+    // Register with plugin manager
+    pluginManager.register(logger);
+
+    // Initialize (usually done once at startup)
+    await pluginManager.initialize();
+
+    // Now use the event detector as normal - plugins will automatically hook in
+    await listenTo(hasuraEvent, options);
+
     // Set a breakpoint on the next line to start debugging
     const result = await listenTo(HASURA_PAYLOAD, {
       autoLoadEventModules: true,
