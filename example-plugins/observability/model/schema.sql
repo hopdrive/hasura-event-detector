@@ -16,18 +16,51 @@ BEGIN
     RAISE NOTICE 'Creating schema in database: %', current_database();
 END $$;
 
--- Enable UUID extension for primary keys
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- Enable UUID generation capability
+-- Try uuid-ossp extension first, fall back to built-in gen_random_uuid() if not available
+DO $$
+BEGIN
+    -- Try to create the uuid-ossp extension
+    IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'uuid-ossp') THEN
+        CREATE EXTENSION "uuid-ossp";
+        RAISE NOTICE 'UUID extension (uuid-ossp) created successfully';
+    ELSE
+        RAISE NOTICE 'UUID extension (uuid-ossp) already exists';
+    END IF;
+EXCEPTION
+    WHEN insufficient_privilege THEN
+        RAISE NOTICE 'NOTE: Could not create uuid-ossp extension due to insufficient privileges.';
+        RAISE NOTICE 'Using built-in gen_random_uuid() function instead (PostgreSQL 13+).';
+        RAISE NOTICE 'To use uuid-ossp, ask your RDS admin to run: CREATE EXTENSION "uuid-ossp";';
+    WHEN OTHERS THEN
+        RAISE NOTICE 'NOTE: UUID extension creation failed: %', SQLERRM;
+        RAISE NOTICE 'Using built-in gen_random_uuid() function instead.';
+END $$;
+
+-- Create a wrapper function for UUID generation that works with or without uuid-ossp
+CREATE OR REPLACE FUNCTION generate_uuid()
+RETURNS UUID AS $$
+BEGIN
+    -- Try uuid_generate_v4() first (from uuid-ossp extension)
+    BEGIN
+        RETURN uuid_generate_v4();
+    EXCEPTION
+        WHEN undefined_function THEN
+            -- Fall back to gen_random_uuid() (built-in since PostgreSQL 13)
+            RETURN gen_random_uuid();
+    END;
+END;
+$$ LANGUAGE plpgsql;
 
 -- Main invocation table - each call to listenTo()
 CREATE TABLE invocations (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT generate_uuid(),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    
+
     -- Correlation tracking
     correlation_id TEXT, -- Format: {source_function}.{uuid} for chaining related events
-    
+
     -- Source context
     source_function TEXT NOT NULL, -- function name (netlify, lambda, etc.)
     source_table TEXT, -- database table that triggered the event
@@ -40,47 +73,47 @@ CREATE TABLE invocations (
     source_event_time TIMESTAMPTZ, -- timestamp from source system
     source_user_email TEXT, -- user who triggered the event
     source_user_role TEXT, -- user's role in source system
-    
+
     -- Execution metadata
     total_duration_ms INTEGER,
     events_detected_count INTEGER DEFAULT 0,
     total_jobs_run INTEGER DEFAULT 0,
     total_jobs_succeeded INTEGER DEFAULT 0,
     total_jobs_failed INTEGER DEFAULT 0,
-    
+
     -- Configuration used
     auto_load_modules BOOLEAN DEFAULT true,
     event_modules_directory TEXT,
-    
+
     -- Overall status
     status TEXT NOT NULL DEFAULT 'running' CHECK (status IN ('running', 'completed', 'failed')),
     error_message TEXT,
     error_stack TEXT,
-    
+
     -- Custom context passed in
     context_data JSONB
 );
 
 -- Event module execution - each event module checked during an invocation
 CREATE TABLE event_executions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT generate_uuid(),
     invocation_id UUID NOT NULL REFERENCES invocations(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    
+
     -- Correlation tracking (denormalized for query efficiency)
     correlation_id TEXT, -- Same as parent invocation's correlation_id
-    
+
     -- Event module details
     event_name TEXT NOT NULL,
     event_module_path TEXT,
-    
+
     -- Detection results
     detected BOOLEAN NOT NULL DEFAULT false,
     detection_duration_ms INTEGER,
     detection_error TEXT,
     detection_error_stack TEXT,
-    
+
     -- Handler execution (if detected)
     handler_duration_ms INTEGER,
     handler_error TEXT,
@@ -88,64 +121,63 @@ CREATE TABLE event_executions (
     jobs_count INTEGER DEFAULT 0,
     jobs_succeeded INTEGER DEFAULT 0,
     jobs_failed INTEGER DEFAULT 0,
-    
+
     -- Status tracking
     status TEXT NOT NULL DEFAULT 'detecting' CHECK (status IN ('detecting', 'not_detected', 'handling', 'completed', 'failed'))
 );
 
 -- Job execution - each async job run for detected events
 CREATE TABLE job_executions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT generate_uuid(),
     invocation_id UUID NOT NULL REFERENCES invocations(id) ON DELETE CASCADE,
     event_execution_id UUID NOT NULL REFERENCES event_executions(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    
+
     -- Correlation tracking (denormalized for query efficiency)
     correlation_id TEXT, -- Same as parent invocation's correlation_id
-    
+
     -- Job details
     job_name TEXT NOT NULL,
     job_function_name TEXT, -- extracted from func.name
-    
+
     -- Job configuration
     job_options JSONB,
-    
+
     -- Execution results
     duration_ms INTEGER,
     status TEXT NOT NULL DEFAULT 'running' CHECK (status IN ('running', 'completed', 'failed')),
     result JSONB,
     error_message TEXT,
-    error_stack TEXT,
-    
+    error_stack TEXT
 );
 
 
 -- Performance metrics aggregated by time periods
 CREATE TABLE metrics_hourly (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT generate_uuid(),
     hour_bucket TIMESTAMPTZ NOT NULL,
     source_function TEXT NOT NULL,
-    
+
     -- Counts
     total_invocations INTEGER DEFAULT 0,
     total_events_detected INTEGER DEFAULT 0,
     total_jobs_run INTEGER DEFAULT 0,
     successful_invocations INTEGER DEFAULT 0,
     failed_invocations INTEGER DEFAULT 0,
-    
+
     -- Performance
     avg_duration_ms NUMERIC(10,2),
     min_duration_ms INTEGER,
     max_duration_ms INTEGER,
     p95_duration_ms NUMERIC(10,2),
-    
+
     -- Top events and jobs
     top_detected_events JSONB DEFAULT '[]'::jsonb,
     most_failed_jobs JSONB DEFAULT '[]'::jsonb,
-    
+
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    
+
     UNIQUE(hour_bucket, source_function)
 );
 
@@ -265,11 +297,12 @@ $$ LANGUAGE plpgsql;
 -- Note: This requires pg_cron extension in production
 -- SELECT cron.schedule('refresh-dashboard-stats', '*/5 * * * *', 'SELECT refresh_dashboard_stats();');
 
-COMMENT ON DATABASE event_detector_observability IS 'Dedicated observability database for Event Detector - captures execution metadata for monitoring and debugging';
+-- Add table comments (these should work since we own the tables we just created)
 COMMENT ON TABLE invocations IS 'Each call to listenTo() function with context and results from any event source system';
 COMMENT ON TABLE event_executions IS 'Each event module checked during an invocation';
 COMMENT ON TABLE job_executions IS 'Each async job executed for detected events';
 COMMENT ON TABLE metrics_hourly IS 'Pre-aggregated hourly metrics for dashboard performance';
+COMMENT ON MATERIALIZED VIEW dashboard_stats IS 'Pre-computed metrics for dashboard performance';
 
 -- Why correlation_id is in all tables:
 -- 1. Enables efficient querying at any level (invocations, events, or jobs by correlation ID)

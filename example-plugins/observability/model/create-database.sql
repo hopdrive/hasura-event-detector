@@ -1,18 +1,23 @@
--- Database Creation Script for Event Detector Observability
--- This script creates a new PostgreSQL database on the same RDS server
+-- Database Creation Script for Event Detector Observability (Step 1 of 2)
+-- This script creates a new PostgreSQL database and users on the same RDS server
 -- for isolated observability data storage
-
--- Connect as superuser (postgres) to create the database and users
--- Usage: psql -h your-rds-endpoint -U postgres -f create-database.sql
+--
+-- IMPORTANT: This script only creates the database and users. After running this,
+-- you must connect to the new database and run setup-permissions.sql (Step 2).
+--
+-- Connect as your RDS master user (the one you created the RDS instance with)
+-- Usage examples:
+--   psql: psql -h your-rds-endpoint -U your_master_user -f create-database.sql
+--   pgAdmin: Open and execute this script while connected to any database
+--   DBeaver: Execute this script in SQL editor connected to any database
 
 -- Create the observability database
+-- Note: TABLESPACE omitted for RDS compatibility (uses default automatically)
 CREATE DATABASE event_detector_observability
     WITH
-    OWNER = postgres
     ENCODING = 'UTF8'
     LC_COLLATE = 'en_US.UTF-8'
     LC_CTYPE = 'en_US.UTF-8'
-    TABLESPACE = pg_default
     CONNECTION LIMIT = -1
     TEMPLATE = template0;
 
@@ -52,53 +57,36 @@ GRANT CONNECT ON DATABASE event_detector_observability TO observability_admin;
 GRANT CONNECT ON DATABASE event_detector_observability TO observability_app;
 GRANT CONNECT ON DATABASE event_detector_observability TO observability_readonly;
 
--- Switch to the new database context for remaining operations
-\c event_detector_observability
-
--- Grant schema creation permissions to admin
-GRANT ALL PRIVILEGES ON DATABASE event_detector_observability TO observability_admin;
-
--- Create default schema (public is sufficient since we have our own database)
--- Grant permissions on public schema
-GRANT ALL PRIVILEGES ON SCHEMA public TO observability_admin;
-GRANT USAGE ON SCHEMA public TO observability_app;
-GRANT USAGE ON SCHEMA public TO observability_readonly;
-
--- Set default privileges for future tables
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO observability_admin;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO observability_app;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO observability_readonly;
-
--- Set default privileges for sequences
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO observability_admin;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE ON SEQUENCES TO observability_app;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON SEQUENCES TO observability_readonly;
-
--- Set default privileges for functions
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO observability_admin;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO observability_app;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO observability_readonly;
-
+-- Add database comment
 COMMENT ON DATABASE event_detector_observability IS 'Dedicated database for Event Detector observability data - execution metadata, performance metrics, and debugging information';
 
--- Create connection information view for reference
-CREATE OR REPLACE VIEW connection_info AS
-SELECT
-    current_database() as database_name,
-    current_user as current_user,
-    session_user as session_user,
-    inet_server_addr() as server_address,
-    inet_server_port() as server_port,
-    version() as postgres_version;
+-- Grant additional database privileges to observability_admin
+GRANT ALL PRIVILEGES ON DATABASE event_detector_observability TO observability_admin;
 
-COMMENT ON VIEW connection_info IS 'Database connection and version information for troubleshooting';
+-- Try to make observability_admin the owner (may fail in RDS, which is okay)
+DO $$
+BEGIN
+    ALTER DATABASE event_detector_observability OWNER TO observability_admin;
+    RAISE NOTICE 'Database ownership transferred to observability_admin';
+EXCEPTION
+    WHEN insufficient_privilege THEN
+        RAISE NOTICE 'Note: Could not change database ownership (RDS limitation) - using granted privileges instead';
+END $$;
 
 -- Display setup completion message
 DO $$
 BEGIN
-    RAISE NOTICE 'Observability database setup completed successfully!';
-    RAISE NOTICE 'Database: event_detector_observability';
+    RAISE NOTICE '==========================================';
+    RAISE NOTICE 'Step 1 completed successfully!';
+    RAISE NOTICE '==========================================';
+    RAISE NOTICE 'Database created: event_detector_observability';
     RAISE NOTICE 'Users created: observability_admin, observability_app, observability_readonly';
-    RAISE NOTICE 'Next step: Run schema.sql to create tables and indexes';
+    RAISE NOTICE '';
+    RAISE NOTICE 'NEXT STEPS:';
+    RAISE NOTICE '1. Connect to the event_detector_observability database';
+    RAISE NOTICE '2. Run setup-permissions.sql as observability_admin';
+    RAISE NOTICE '3. Run schema.sql to create tables and indexes';
+    RAISE NOTICE '';
     RAISE NOTICE 'IMPORTANT: Change default passwords before production use!';
+    RAISE NOTICE '==========================================';
 END $$;

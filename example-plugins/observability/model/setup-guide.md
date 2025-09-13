@@ -12,42 +12,74 @@ The observability system uses a **separate database** on your existing RDS Postg
 
 ## Prerequisites
 
-- Existing PostgreSQL RDS server (where your main Hasura database runs)
-- Superuser access to the PostgreSQL server (usually `postgres` user)
-- `psql` command-line tool or database management interface
+- Existing PostgreSQL RDS server (where your main database runs)
+- Master user access to the PostgreSQL server (the username you used when creating RDS)
+- Database client: `psql`, pgAdmin, DBeaver, or similar PostgreSQL client
 
 ## Setup Process
 
+The setup is now split into **three clear steps** to work with any PostgreSQL client (pgAdmin, DBeaver, psql, etc.):
+
 ### Step 1: Create the Observability Database
 
-Connect to your RDS server as the `postgres` superuser and run the database creation script:
+Connect to your RDS server as your **master user** (the username you used when creating the RDS instance) and run the database creation script.
 
+#### Using psql:
 ```bash
-# Download the create-database.sql script to your local machine
-# Replace with your actual RDS endpoint
-psql -h your-rds-endpoint.region.rds.amazonaws.com -U postgres -f create-database.sql
+psql -h your-rds-endpoint.region.rds.amazonaws.com -U your_master_user -f create-database.sql
 ```
+
+#### Using GUI clients (pgAdmin, DBeaver, etc.):
+1. Connect to any existing database on your RDS server
+2. Open `create-database.sql` in the SQL editor
+3. Execute the script
 
 This script will:
 - Create the `event_detector_observability` database
-- Create three dedicated users with appropriate permissions:
+- Create three dedicated users:
   - `observability_admin` - Full database management access
   - `observability_app` - Read/write access for the plugin
   - `observability_readonly` - Read-only access for dashboards/reports
 
-**⚠️ IMPORTANT**: Change the default passwords before production use!
+### Step 2: Set Up Database Permissions
 
-### Step 2: Create Tables and Indexes
+**Important**: Now connect specifically to the **new** `event_detector_observability` database and run the permissions setup:
 
-Connect to the new observability database and create the schema:
-
+#### Using psql:
 ```bash
-# Connect to the observability database as the admin user
+psql -h your-rds-endpoint.region.rds.amazonaws.com \
+     -U observability_admin \
+     -d event_detector_observability \
+     -f setup-permissions.sql
+```
+
+#### Using GUI clients:
+1. **Connect to the `event_detector_observability` database** (not your original database)
+2. Login as `observability_admin` user
+3. Open `setup-permissions.sql` in the SQL editor
+4. Execute the script
+
+This script will:
+- Set up schema permissions for all three users
+- Configure default privileges for future objects
+- Create diagnostic views for troubleshooting
+
+### Step 3: Create Tables and Indexes
+
+Still connected to the `event_detector_observability` database, create the schema:
+
+#### Using psql:
+```bash
 psql -h your-rds-endpoint.region.rds.amazonaws.com \
      -U observability_admin \
      -d event_detector_observability \
      -f schema.sql
 ```
+
+#### Using GUI clients:
+1. Ensure you're connected to `event_detector_observability` database as `observability_admin`
+2. Open `schema.sql` in the SQL editor
+3. Execute the script
 
 This creates:
 - Core tables: `invocations`, `event_executions`, `job_executions`, `metrics_hourly`
@@ -55,7 +87,9 @@ This creates:
 - Computed functions for success rates and averages
 - Materialized views for dashboard performance
 
-### Step 3: Configure Environment Variables
+**⚠️ IMPORTANT**: Change the default passwords before production use!
+
+## Configure Environment Variables
 
 Add these environment variables to your Netlify function or application:
 
@@ -73,7 +107,7 @@ OBSERVABILITY_DB_POOL_MAX=10
 OBSERVABILITY_DB_POOL_IDLE=10000
 ```
 
-### Step 4: Update Your Event Detector Configuration
+## Update Your Event Detector Configuration
 
 Update your `listenTo()` calls to use the observability database:
 
@@ -248,17 +282,25 @@ WHERE created_at < NOW() - INTERVAL '90 days';
 
 ### Common Issues
 
-1. **Connection Refused**
+1. **"role postgres does not exist" Error**
+   - Use your RDS master username instead of 'postgres'
+   - This is the username you specified when creating your RDS instance
+
+2. **"syntax error at or near \\" Error**
+   - Use the new split scripts: create-database.sql, then setup-permissions.sql
+   - Avoid using psql meta-commands in GUI clients
+
+3. **Connection Refused**
    - Check that RDS security groups allow connections
    - Verify host and port settings
    - Ensure user has `CONNECT` privilege on the database
 
-2. **Permission Denied**
-   - Check that user has appropriate table privileges
-   - Verify password is correct
-   - Check that user exists in the correct database
+4. **Permission Denied**
+   - Run setup-permissions.sql as observability_admin user
+   - Verify password is correct and user exists
+   - Ensure you're connected to the event_detector_observability database
 
-3. **High Connection Usage**
+5. **High Connection Usage**
    - Monitor `pg_stat_activity` for connection counts
    - Adjust connection pool settings
    - Consider read replicas for heavy dashboard usage
