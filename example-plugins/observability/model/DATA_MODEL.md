@@ -11,7 +11,7 @@ This document explains the data model, table relationships, and transaction flow
 
 ## Overview
 
-The observability system uses a hierarchical data model that mirrors the execution flow of your event detector:
+The observability system uses a **dedicated PostgreSQL database** (`hasura_event_detector_observability`) on your existing RDS server and a hierarchical data model that mirrors the execution flow of your event detector:
 
 ```
 📞 Netlify Function Call
@@ -26,6 +26,12 @@ The observability system uses a hierarchical data model that mirrors the executi
 ```
 
 ## Database Schema
+
+The observability data is stored in a dedicated database (`hasura_event_detector_observability`) rather than a schema within your main application database. This provides:
+- **Isolation**: Observability operations don't impact main application performance
+- **Scalability**: Independent connection pools and resource allocation
+- **Security**: Granular access control for observability data
+- **Maintenance**: Independent backup and maintenance schedules
 
 ### Entity Relationship Diagram
 
@@ -216,7 +222,7 @@ sequenceDiagram
     participant LD as listenTo()
     participant EM as Event Modules
     participant JH as Job Handler
-    participant DB as Database
+    participant DB as Observability Database
     participant Jobs as Job Functions
 
     Note over NF,Jobs: 1. Invocation Start
@@ -553,3 +559,13 @@ ORDER BY ee.created_at, je.created_at, jl.created_at;
 - Storage: ~2KB + 5×1KB + 8×3KB + 20×0.5KB = **37KB total**
 
 This data model provides complete observability while maintaining reasonable storage requirements and query performance.
+
+## Database Setup
+
+To implement this model:
+1. **Create Database**: Run `create-database.sql` to create the dedicated observability database
+2. **Create Schema**: Run `schema.sql` to create tables, indexes, and functions
+3. **Configure Connection**: Use `connection-config.js` for environment-specific database connections
+4. **Setup Guide**: Follow `setup-guide.md` for complete implementation instructions
+
+The separate database approach ensures observability operations don't impact your main application performance and provides better resource isolation.

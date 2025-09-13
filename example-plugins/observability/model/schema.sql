@@ -1,15 +1,26 @@
 -- Hasura Event Detector Observability Database Schema
 -- This schema captures detailed execution metadata for event detection and job processing
 -- to provide comprehensive observability and debugging capabilities.
+--
+-- Prerequisites:
+-- 1. Run create-database.sql first to create the observability database
+-- 2. Connect to hasura_event_detector_observability database before running this script
+-- Usage: psql -h your-rds-endpoint -U observability_admin -d hasura_event_detector_observability -f schema.sql
 
--- Create the observability schema
-CREATE SCHEMA IF NOT EXISTS event_detector_observability;
+-- Verify we're connected to the correct database
+DO $$
+BEGIN
+    IF current_database() != 'hasura_event_detector_observability' THEN
+        RAISE EXCEPTION 'This script must be run on the hasura_event_detector_observability database. Current database: %', current_database();
+    END IF;
+    RAISE NOTICE 'Creating schema in database: %', current_database();
+END $$;
 
 -- Enable UUID extension for primary keys
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Main invocation table - each call to listenTo()
-CREATE TABLE event_detector_observability.invocations (
+CREATE TABLE invocations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -50,9 +61,9 @@ CREATE TABLE event_detector_observability.invocations (
 );
 
 -- Event module execution - each event module checked during an invocation
-CREATE TABLE event_detector_observability.event_executions (
+CREATE TABLE event_executions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    invocation_id UUID NOT NULL REFERENCES event_detector_observability.invocations(id) ON DELETE CASCADE,
+    invocation_id UUID NOT NULL REFERENCES invocations(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     
@@ -82,10 +93,10 @@ CREATE TABLE event_detector_observability.event_executions (
 );
 
 -- Job execution - each async job run for detected events
-CREATE TABLE event_detector_observability.job_executions (
+CREATE TABLE job_executions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    invocation_id UUID NOT NULL REFERENCES event_detector_observability.invocations(id) ON DELETE CASCADE,
-    event_execution_id UUID NOT NULL REFERENCES event_detector_observability.event_executions(id) ON DELETE CASCADE,
+    invocation_id UUID NOT NULL REFERENCES invocations(id) ON DELETE CASCADE,
+    event_execution_id UUID NOT NULL REFERENCES event_executions(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     
@@ -110,7 +121,7 @@ CREATE TABLE event_detector_observability.job_executions (
 
 
 -- Performance metrics aggregated by time periods
-CREATE TABLE event_detector_observability.metrics_hourly (
+CREATE TABLE metrics_hourly (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     hour_bucket TIMESTAMPTZ NOT NULL,
     source_function TEXT NOT NULL,
@@ -138,31 +149,30 @@ CREATE TABLE event_detector_observability.metrics_hourly (
 );
 
 -- Performance indexes
-CREATE INDEX idx_invocations_created_at ON event_detector_observability.invocations(created_at DESC);
-CREATE INDEX idx_invocations_source_function ON event_detector_observability.invocations(source_function);
-CREATE INDEX idx_invocations_status ON event_detector_observability.invocations(status);
-CREATE INDEX idx_invocations_hasura_event_id ON event_detector_observability.invocations(hasura_event_id);
-CREATE INDEX idx_invocations_correlation_id ON event_detector_observability.invocations(correlation_id);
+CREATE INDEX idx_invocations_created_at ON invocations(created_at DESC);
+CREATE INDEX idx_invocations_source_function ON invocations(source_function);
+CREATE INDEX idx_invocations_status ON invocations(status);
+CREATE INDEX idx_invocations_hasura_event_id ON invocations(hasura_event_id);
+CREATE INDEX idx_invocations_correlation_id ON invocations(correlation_id);
 
-CREATE INDEX idx_event_executions_invocation_id ON event_detector_observability.event_executions(invocation_id);
-CREATE INDEX idx_event_executions_event_name ON event_detector_observability.event_executions(event_name);
-CREATE INDEX idx_event_executions_detected ON event_detector_observability.event_executions(detected);
-CREATE INDEX idx_event_executions_status ON event_detector_observability.event_executions(status);
-CREATE INDEX idx_event_executions_correlation_id ON event_detector_observability.event_executions(correlation_id);
+CREATE INDEX idx_event_executions_invocation_id ON event_executions(invocation_id);
+CREATE INDEX idx_event_executions_event_name ON event_executions(event_name);
+CREATE INDEX idx_event_executions_detected ON event_executions(detected);
+CREATE INDEX idx_event_executions_status ON event_executions(status);
+CREATE INDEX idx_event_executions_correlation_id ON event_executions(correlation_id);
 
-CREATE INDEX idx_job_executions_invocation_id ON event_detector_observability.job_executions(invocation_id);
-CREATE INDEX idx_job_executions_event_execution_id ON event_detector_observability.job_executions(event_execution_id);
-CREATE INDEX idx_job_executions_job_name ON event_detector_observability.job_executions(job_name);
-CREATE INDEX idx_job_executions_status ON event_detector_observability.job_executions(status);
-CREATE INDEX idx_job_executions_created_at ON event_detector_observability.job_executions(created_at DESC);
-CREATE INDEX idx_job_executions_correlation_id ON event_detector_observability.job_executions(correlation_id);
+CREATE INDEX idx_job_executions_invocation_id ON job_executions(invocation_id);
+CREATE INDEX idx_job_executions_event_execution_id ON job_executions(event_execution_id);
+CREATE INDEX idx_job_executions_job_name ON job_executions(job_name);
+CREATE INDEX idx_job_executions_status ON job_executions(status);
+CREATE INDEX idx_job_executions_created_at ON job_executions(created_at DESC);
+CREATE INDEX idx_job_executions_correlation_id ON job_executions(correlation_id);
 
-
-CREATE INDEX idx_metrics_hourly_bucket ON event_detector_observability.metrics_hourly(hour_bucket DESC);
-CREATE INDEX idx_metrics_hourly_function ON event_detector_observability.metrics_hourly(source_function);
+CREATE INDEX idx_metrics_hourly_bucket ON metrics_hourly(hour_bucket DESC);
+CREATE INDEX idx_metrics_hourly_function ON metrics_hourly(source_function);
 
 -- Triggers for updated_at timestamps
-CREATE OR REPLACE FUNCTION event_detector_observability.update_updated_at()
+CREATE OR REPLACE FUNCTION update_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at = NOW();
@@ -170,20 +180,20 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER invocations_updated_at 
-    BEFORE UPDATE ON event_detector_observability.invocations
-    FOR EACH ROW EXECUTE FUNCTION event_detector_observability.update_updated_at();
+CREATE TRIGGER invocations_updated_at
+    BEFORE UPDATE ON invocations
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
-CREATE TRIGGER event_executions_updated_at 
-    BEFORE UPDATE ON event_detector_observability.event_executions
-    FOR EACH ROW EXECUTE FUNCTION event_detector_observability.update_updated_at();
+CREATE TRIGGER event_executions_updated_at
+    BEFORE UPDATE ON event_executions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
-CREATE TRIGGER job_executions_updated_at 
-    BEFORE UPDATE ON event_detector_observability.job_executions
-    FOR EACH ROW EXECUTE FUNCTION event_detector_observability.update_updated_at();
+CREATE TRIGGER job_executions_updated_at
+    BEFORE UPDATE ON job_executions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- Computed field functions for Hasura
-CREATE OR REPLACE FUNCTION event_detector_observability.invocation_success_rate(invocation_row event_detector_observability.invocations)
+CREATE OR REPLACE FUNCTION invocation_success_rate(invocation_row invocations)
 RETURNS NUMERIC AS $$
 BEGIN
     IF invocation_row.total_jobs_run = 0 THEN
@@ -193,21 +203,21 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE;
 
-CREATE OR REPLACE FUNCTION event_detector_observability.invocation_avg_job_duration(invocation_row event_detector_observability.invocations)
+CREATE OR REPLACE FUNCTION invocation_avg_job_duration(invocation_row invocations)
 RETURNS NUMERIC AS $$
 DECLARE
     avg_duration NUMERIC;
 BEGIN
     SELECT AVG(duration_ms)
     INTO avg_duration
-    FROM event_detector_observability.job_executions
+    FROM job_executions
     WHERE invocation_id = invocation_row.id;
-    
+
     RETURN COALESCE(avg_duration, 0);
 END;
 $$ LANGUAGE plpgsql STABLE;
 
-CREATE OR REPLACE FUNCTION event_detector_observability.event_job_success_rate(event_row event_detector_observability.event_executions)
+CREATE OR REPLACE FUNCTION event_job_success_rate(event_row event_executions)
 RETURNS NUMERIC AS $$
 BEGIN
     IF event_row.jobs_count = 0 THEN
@@ -218,8 +228,8 @@ END;
 $$ LANGUAGE plpgsql STABLE;
 
 -- Materialized view for dashboard performance
-CREATE MATERIALIZED VIEW event_detector_observability.dashboard_stats AS
-SELECT 
+CREATE MATERIALIZED VIEW dashboard_stats AS
+SELECT
     DATE_TRUNC('hour', created_at) as hour_bucket,
     source_function,
     COUNT(*) as total_invocations,
@@ -232,32 +242,32 @@ SELECT
     MIN(total_duration_ms) as min_duration_ms,
     MAX(total_duration_ms) as max_duration_ms,
     PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY total_duration_ms) as p95_duration_ms
-FROM event_detector_observability.invocations 
+FROM invocations
 WHERE created_at >= NOW() - INTERVAL '7 days'
 GROUP BY DATE_TRUNC('hour', created_at), source_function
 ORDER BY hour_bucket DESC;
 
 -- Index for materialized view
-CREATE INDEX idx_dashboard_stats_hour_bucket ON event_detector_observability.dashboard_stats(hour_bucket DESC);
-CREATE INDEX idx_dashboard_stats_function ON event_detector_observability.dashboard_stats(source_function);
+CREATE INDEX idx_dashboard_stats_hour_bucket ON dashboard_stats(hour_bucket DESC);
+CREATE INDEX idx_dashboard_stats_function ON dashboard_stats(source_function);
 
 -- Function to refresh the materialized view
-CREATE OR REPLACE FUNCTION event_detector_observability.refresh_dashboard_stats()
+CREATE OR REPLACE FUNCTION refresh_dashboard_stats()
 RETURNS void AS $$
 BEGIN
-    REFRESH MATERIALIZED VIEW event_detector_observability.dashboard_stats;
+    REFRESH MATERIALIZED VIEW dashboard_stats;
 END;
 $$ LANGUAGE plpgsql;
 
 -- Set up automatic refresh of materialized view every 5 minutes
 -- Note: This requires pg_cron extension in production
--- SELECT cron.schedule('refresh-dashboard-stats', '*/5 * * * *', 'SELECT event_detector_observability.refresh_dashboard_stats();');
+-- SELECT cron.schedule('refresh-dashboard-stats', '*/5 * * * *', 'SELECT refresh_dashboard_stats();');
 
-COMMENT ON SCHEMA event_detector_observability IS 'Observability schema for Hasura Event Detector - captures execution metadata for monitoring and debugging';
-COMMENT ON TABLE event_detector_observability.invocations IS 'Each call to listenTo() function with context and results';
-COMMENT ON TABLE event_detector_observability.event_executions IS 'Each event module checked during an invocation';
-COMMENT ON TABLE event_detector_observability.job_executions IS 'Each async job executed for detected events';
-COMMENT ON TABLE event_detector_observability.metrics_hourly IS 'Pre-aggregated hourly metrics for dashboard performance';
+COMMENT ON DATABASE hasura_event_detector_observability IS 'Dedicated observability database for Hasura Event Detector - captures execution metadata for monitoring and debugging';
+COMMENT ON TABLE invocations IS 'Each call to listenTo() function with context and results';
+COMMENT ON TABLE event_executions IS 'Each event module checked during an invocation';
+COMMENT ON TABLE job_executions IS 'Each async job executed for detected events';
+COMMENT ON TABLE metrics_hourly IS 'Pre-aggregated hourly metrics for dashboard performance';
 
 -- Why correlation_id is in all tables:
 -- 1. Enables efficient querying at any level (invocations, events, or jobs by correlation ID)
