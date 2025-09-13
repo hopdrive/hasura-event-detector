@@ -131,8 +131,8 @@ Plugins enable:
 ### 1. Basic Plugin Usage
 
 ```typescript
-import { pluginManager } from '@hopdrive/hasura-event-detector';
-import { SimpleLoggingPlugin } from './example-plugins/simple-logging/plugin.js';
+import { pluginManager, listenTo } from '@hopdrive/hasura-event-detector';
+import { SimpleLoggingPlugin } from './example-plugins/simple-logging/plugin';
 
 // Create and configure plugin
 const logger = new SimpleLoggingPlugin({
@@ -154,9 +154,9 @@ await listenTo(hasuraEvent, options);
 
 ```typescript
 import { pluginManager } from '@hopdrive/hasura-event-detector';
-import { SimpleLoggingPlugin } from './example-plugins/simple-logging/plugin.js';
-import { ConsoleInterceptorPlugin } from './example-plugins/console-interceptor/plugin.js';
-import { CorrelationIdExtractionPlugin } from './example-plugins/correlation-id-extraction/plugin.js';
+import { SimpleLoggingPlugin } from './example-plugins/simple-logging/plugin';
+import { ConsoleInterceptorPlugin } from './example-plugins/console-interceptor/plugin';
+import { CorrelationIdExtractionPlugin } from './example-plugins/correlation-id-extraction/plugin';
 
 // Create plugins
 const consoleInterceptor = new ConsoleInterceptorPlugin();
@@ -176,9 +176,9 @@ await pluginManager.initialize();
 ### 3. Production Monitoring Setup
 
 ```typescript
-import { ObservabilityPlugin } from './example-plugins/observability/plugin.js';
-import { SimpleLoggingPlugin } from './example-plugins/simple-logging/plugin.js';
-import { ConsoleInterceptorPlugin } from './example-plugins/console-interceptor/plugin.js';
+import { ObservabilityPlugin } from './example-plugins/observability/plugin';
+import { SimpleLoggingPlugin } from './example-plugins/simple-logging/plugin';
+import { ConsoleInterceptorPlugin } from './example-plugins/console-interceptor/plugin';
 
 // Production-ready monitoring stack
 const observability = new ObservabilityPlugin({
