@@ -172,21 +172,24 @@ export const listenTo = async (
   const eventHandlersToRun: Promise<JobResult[]>[] = [];
   const detectedEventNames: EventName[] = [];
 
-  for (const eventName of resolvedOptions.listenedEvents || []) {
-    try {
-      const eventHandler = runDetectorWithHooks(
-        eventName,
-        hasuraEvent,
-        resolvedOptions.eventModulesDirectory,
-        finalCorrelationId
-      );
-      eventHandlersToRun.push(eventHandler);
-      detectedEventNames.push(eventName);
-    } catch (error) {
-      await pluginManager.callHook('onError', error as Error, 'event_detection', finalCorrelationId);
-      logError(eventName, 'Error detecting events', error as Error);
-    }
-  }
+  // Run all event detectors in parallel.
+  await Promise.allSettled(
+    (resolvedOptions.listenedEvents || []).map(async eventName => {
+      try {
+        const eventHandler = runDetectorWithHooks(
+          eventName,
+          hasuraEvent,
+          resolvedOptions.eventModulesDirectory || './events',
+          finalCorrelationId
+        );
+        eventHandlersToRun.push(eventHandler);
+        detectedEventNames.push(eventName);
+      } catch (error) {
+        await pluginManager.callHook('onError', error as Error, 'event_detection', finalCorrelationId);
+        logError(eventName, 'Error detecting events', error as Error);
+      }
+    })
+  );
 
   // Run all event handlers in parallel.
   log('EventHandlers', 'Event handlers to run', eventHandlersToRun.length);
