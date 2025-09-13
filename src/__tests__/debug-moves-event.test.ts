@@ -12,7 +12,7 @@
 
 import { listenTo } from '../detector';
 import { pluginManager } from '@hopdrive/hasura-event-detector';
-import { SimpleLoggingPlugin } from '../../example-plugins/simple-logging/plugin';
+import { ObservabilityPlugin } from '../../example-plugins/observability/plugin';
 import * as path from 'path';
 
 describe('Debug Moves Event', () => {
@@ -212,7 +212,7 @@ describe('Debug Moves Event', () => {
           workflowset_id: 1,
         },
       },
-      op: 'UPDATE',
+      op: 'UPDATE' as const,
       session_variables: {
         'x-hasura-role': 'admin',
       },
@@ -233,29 +233,31 @@ describe('Debug Moves Event', () => {
   };
 
   it('should process moves UPDATE event with debugging', async () => {
-    // Create and configure plugin
-    const logger = new SimpleLoggingPlugin({
-      format: 'structured',
-      colorize: true,
+    const observabilityPlugin = new ObservabilityPlugin({
+      enabled: process.env.OBSERVABILITY_ENABLED === 'true',
+      database: {
+        host: process.env.OBSERVABILITY_DB_HOST || 'localhost',
+        port: parseInt(process.env.OBSERVABILITY_DB_PORT || '5432'),
+        database: process.env.OBSERVABILITY_DB_NAME || 'observability',
+        user: process.env.OBSERVABILITY_DB_USER || 'postgres',
+        password: process.env.OBSERVABILITY_DB_PASSWORD || 'password',
+        connectionString: process.env.OBSERVABILITY_DB_URL,
+      },
+      captureJobOptions: true,
+      captureHasuraPayload: true,
+      captureErrorStacks: true,
     });
 
-    // Register with plugin manager
-    pluginManager.register(logger);
+    pluginManager.register(observabilityPlugin);
 
     // Initialize (usually done once at startup)
     await pluginManager.initialize();
-
-    // Now use the event detector as normal - plugins will automatically hook in
-    await listenTo(hasuraEvent, options);
 
     // Set a breakpoint on the next line to start debugging
     const result = await listenTo(HASURA_PAYLOAD, {
       autoLoadEventModules: true,
       // Update this path to point to your event-handlers events directory
       eventModulesDirectory: path.join('', '/Users/robnewton/Github/event-handlers/functions/db-moves/events'),
-
-      // Optional: Add correlation ID if you want to test that
-      correlationId: 'test-correlation-123',
 
       // Optional: Add context like your production code does
       context: {

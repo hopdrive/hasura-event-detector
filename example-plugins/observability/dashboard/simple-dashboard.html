@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Detector Observability Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .config-bar {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .config-bar input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        .metric-value {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #667eea;
+            margin: 10px 0;
+        }
+
+        .metric-label {
+            color: #666;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .metric-change {
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        .metric-change.positive {
+            color: #10b981;
+        }
+
+        .metric-change.negative {
+            color: #ef4444;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .table-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f3f4f6;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        tr:hover {
+            background: #f9fafb;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-completed {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-failed {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-running {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: #5a67d8;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .time-filter {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Event Detector Observability Dashboard</h1>
+
+        <div class="config-bar">
+            <input type="text" id="hasuraEndpoint" placeholder="Enter your Hasura GraphQL endpoint (e.g., https://your-hasura.herokuapp.com/v1/graphql)" />
+            <div class="controls">
+                <select class="time-filter" id="timeFilter">
+                    <option value="1">Last Hour</option>
+                    <option value="24" selected>Last 24 Hours</option>
+                    <option value="168">Last Week</option>
+                    <option value="720">Last Month</option>
+                </select>
+                <button class="refresh-btn" onclick="refreshDashboard()">Refresh Dashboard</button>
+            </div>
+        </div>
+
+        <div id="loading" class="loading">Loading dashboard data...</div>
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="dashboard" style="display: none;">
+            <div class="dashboard-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Total Invocations</div>
+                    <div class="metric-value" id="totalInvocations">-</div>
+                    <div class="metric-change" id="invocationsChange"></div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Success Rate</div>
+                    <div class="metric-value" id="successRate">-</div>
+                    <div class="metric-change" id="successChange"></div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Avg Duration</div>
+                    <div class="metric-value" id="avgDuration">-</div>
+                    <div class="metric-change" id="durationChange"></div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Total Jobs</div>
+                    <div class="metric-value" id="totalJobs">-</div>
+                    <div class="metric-change" id="jobsChange"></div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-title">Invocation Trends</div>
+                <canvas id="trendsChart"></canvas>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="chart-container">
+                    <div class="chart-title">Event Distribution</div>
+                    <canvas id="eventsChart"></canvas>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-title">Source Systems</div>
+                    <canvas id="systemsChart"></canvas>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <div class="chart-title">Recent Invocations</div>
+                <table id="invocationsTable">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Function</th>
+                            <th>System</th>
+                            <th>Status</th>
+                            <th>Duration (ms)</th>
+                            <th>Events</th>
+                            <th>Jobs</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invocationsBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        let HASURA_ENDPOINT = localStorage.getItem('hasuraEndpoint') || '';
+        document.getElementById('hasuraEndpoint').value = HASURA_ENDPOINT;
+
+        // Charts
+        let trendsChart, eventsChart, systemsChart;
+
+        // Save endpoint when changed
+        document.getElementById('hasuraEndpoint').addEventListener('change', (e) => {
+            HASURA_ENDPOINT = e.target.value;
+            localStorage.setItem('hasuraEndpoint', HASURA_ENDPOINT);
+            refreshDashboard();
+        });
+
+        // GraphQL Query
+        const getDashboardQuery = (hours) => `
+            query GetDashboard {
+                invocations_aggregate(where: {created_at: {_gte: "${new Date(Date.now() - hours * 3600000).toISOString()}"}}) {
+                    aggregate {
+                        count
+                        avg { total_duration_ms }
+                        sum {
+                            total_jobs_run
+                            total_jobs_succeeded
+                            total_jobs_failed
+                        }
+                    }
+                    nodes {
+                        status
+                    }
+                }
+
+                recent: invocations(
+                    where: {created_at: {_gte: "${new Date(Date.now() - hours * 3600000).toISOString()}"}}
+                    order_by: {created_at: desc}
+                    limit: 20
+                ) {
+                    id
+                    created_at
+                    source_function
+                    source_system
+                    status
+                    total_duration_ms
+                    events_detected_count
+                    total_jobs_run
+                }
+
+                hourly_stats: invocations_aggregate(
+                    where: {created_at: {_gte: "${new Date(Date.now() - 24 * 3600000).toISOString()}"}}
+                ) {
+                    aggregate {
+                        count
+                    }
+                    group_by: [source_system]
+                }
+
+                event_stats: event_executions_aggregate(
+                    where: {
+                        created_at: {_gte: "${new Date(Date.now() - hours * 3600000).toISOString()}"}
+                        detected: {_eq: true}
+                    }
+                ) {
+                    aggregate {
+                        count
+                    }
+                    group_by: [event_name]
+                }
+            }
+        `;
+
+        async function fetchDashboardData() {
+            if (!HASURA_ENDPOINT) {
+                throw new Error('Please enter your Hasura GraphQL endpoint');
+            }
+
+            const hours = parseInt(document.getElementById('timeFilter').value);
+            const response = await fetch(HASURA_ENDPOINT, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    query: getDashboardQuery(hours)
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (data.errors) {
+                throw new Error(data.errors[0].message);
+            }
+
+            return data.data;
+        }
+
+        function updateMetrics(data) {
+            const agg = data.invocations_aggregate.aggregate;
+            const nodes = data.invocations_aggregate.nodes;
+
+            // Total Invocations
+            document.getElementById('totalInvocations').textContent = agg.count || 0;
+
+            // Success Rate
+            const completed = nodes.filter(n => n.status === 'completed').length;
+            const successRate = agg.count > 0 ? ((completed / agg.count) * 100).toFixed(1) : 0;
+            document.getElementById('successRate').textContent = successRate + '%';
+
+            // Average Duration
+            const avgDuration = agg.avg?.total_duration_ms || 0;
+            document.getElementById('avgDuration').textContent = Math.round(avgDuration) + 'ms';
+
+            // Total Jobs
+            const totalJobs = agg.sum?.total_jobs_run || 0;
+            document.getElementById('totalJobs').textContent = totalJobs;
+        }
+
+        function updateTable(invocations) {
+            const tbody = document.getElementById('invocationsBody');
+            tbody.innerHTML = '';
+
+            invocations.forEach(inv => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${new Date(inv.created_at).toLocaleString()}</td>
+                    <td>${inv.source_function || '-'}</td>
+                    <td>${inv.source_system || '-'}</td>
+                    <td><span class="status-badge status-${inv.status}">${inv.status}</span></td>
+                    <td>${inv.total_duration_ms || '-'}</td>
+                    <td>${inv.events_detected_count || 0}</td>
+                    <td>${inv.total_jobs_run || 0}</td>
+                `;
+            });
+        }
+
+        function createCharts(data) {
+            // Destroy existing charts
+            if (trendsChart) trendsChart.destroy();
+            if (eventsChart) eventsChart.destroy();
+            if (systemsChart) systemsChart.destroy();
+
+            // Trends Chart (simplified for this example)
+            const ctx1 = document.getElementById('trendsChart').getContext('2d');
+            trendsChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: data.recent.map((_, i) => `T-${i}`).reverse(),
+                    datasets: [{
+                        label: 'Duration (ms)',
+                        data: data.recent.map(r => r.total_duration_ms).reverse(),
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // Events Distribution Chart
+            const eventData = data.event_stats?.group_by || [];
+            const ctx2 = document.getElementById('eventsChart').getContext('2d');
+            eventsChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: eventData.map(e => e.event_name || 'Unknown'),
+                    datasets: [{
+                        data: eventData.map(e => e.aggregate.count),
+                        backgroundColor: [
+                            '#667eea',
+                            '#764ba2',
+                            '#f093fb',
+                            '#f5576c',
+                            '#4facfe',
+                            '#00f2fe'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            // Systems Chart
+            const systemData = data.hourly_stats?.group_by || [];
+            const ctx3 = document.getElementById('systemsChart').getContext('2d');
+            systemsChart = new Chart(ctx3, {
+                type: 'bar',
+                data: {
+                    labels: systemData.map(s => s.source_system || 'Unknown'),
+                    datasets: [{
+                        label: 'Invocations',
+                        data: systemData.map(s => s.aggregate.count),
+                        backgroundColor: '#667eea'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        async function refreshDashboard() {
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const dashboard = document.getElementById('dashboard');
+
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            dashboard.style.display = 'none';
+
+            try {
+                const data = await fetchDashboardData();
+
+                updateMetrics(data);
+                updateTable(data.recent);
+                createCharts(data);
+
+                loading.style.display = 'none';
+                dashboard.style.display = 'block';
+            } catch (err) {
+                loading.style.display = 'none';
+                error.style.display = 'block';
+                error.textContent = `Error: ${err.message}`;
+            }
+        }
+
+        // Auto-refresh every 30 seconds
+        setInterval(refreshDashboard, 30000);
+
+        // Initial load
+        if (HASURA_ENDPOINT) {
+            refreshDashboard();
+        } else {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('error').textContent = 'Please enter your Hasura GraphQL endpoint above to view the dashboard.';
+        }
+    </script>
+</body>
+</html>

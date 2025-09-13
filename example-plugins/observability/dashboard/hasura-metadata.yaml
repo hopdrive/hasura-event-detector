@@ -1,0 +1,275 @@
+# Hasura Metadata Configuration for Event Detector Observability Dashboard
+# This file configures Hasura to expose the observability database via GraphQL
+#
+# To apply this configuration:
+# 1. Add the observability database as a data source in Hasura Console
+# 2. Import this metadata or manually configure the tracking
+# 3. Set up permissions for the readonly user
+
+version: 3
+
+sources:
+  - name: event_detector_observability
+    kind: postgres
+    configuration:
+      connection_info:
+        database_url:
+          from_env: OBSERVABILITY_DATABASE_URL  # Set this to your connection string
+        # Alternative: use individual settings
+        # host: your-rds-endpoint.region.rds.amazonaws.com
+        # port: 5432
+        # database: event_detector_observability
+        # username: observability_readonly
+        # password:
+        #   from_env: OBSERVABILITY_READONLY_PASSWORD
+        pool_settings:
+          max_connections: 10
+          idle_timeout: 180
+          retries: 1
+          pool_timeout: 360
+          connection_lifetime: 600
+        use_prepared_statements: true
+        isolation_level: read-committed
+    tables:
+      # Track the invocations table
+      - table:
+          schema: public
+          name: invocations
+        object_relationships:
+          - name: event_executions
+            using:
+              foreign_key_constraint_on:
+                column: invocation_id
+                table:
+                  schema: public
+                  name: event_executions
+          - name: job_executions
+            using:
+              foreign_key_constraint_on:
+                column: invocation_id
+                table:
+                  schema: public
+                  name: job_executions
+        computed_fields:
+          - name: success_rate
+            definition:
+              function:
+                schema: public
+                name: invocation_success_rate
+          - name: avg_job_duration
+            definition:
+              function:
+                schema: public
+                name: invocation_avg_job_duration
+        select_permissions:
+          - role: public
+            permission:
+              columns: "*"
+              filter: {}
+              allow_aggregations: true
+
+      # Track the event_executions table
+      - table:
+          schema: public
+          name: event_executions
+        object_relationships:
+          - name: invocation
+            using:
+              foreign_key_constraint_on: invocation_id
+          - name: job_executions
+            using:
+              foreign_key_constraint_on:
+                column: event_execution_id
+                table:
+                  schema: public
+                  name: job_executions
+        computed_fields:
+          - name: job_success_rate
+            definition:
+              function:
+                schema: public
+                name: event_job_success_rate
+        select_permissions:
+          - role: public
+            permission:
+              columns: "*"
+              filter: {}
+              allow_aggregations: true
+
+      # Track the job_executions table
+      - table:
+          schema: public
+          name: job_executions
+        object_relationships:
+          - name: invocation
+            using:
+              foreign_key_constraint_on: invocation_id
+          - name: event_execution
+            using:
+              foreign_key_constraint_on: event_execution_id
+        select_permissions:
+          - role: public
+            permission:
+              columns: "*"
+              filter: {}
+              allow_aggregations: true
+
+      # Track the metrics_hourly table
+      - table:
+          schema: public
+          name: metrics_hourly
+        select_permissions:
+          - role: public
+            permission:
+              columns: "*"
+              filter: {}
+              allow_aggregations: true
+
+      # Track the dashboard_stats materialized view
+      - table:
+          schema: public
+          name: dashboard_stats
+        select_permissions:
+          - role: public
+            permission:
+              columns: "*"
+              filter: {}
+              allow_aggregations: true
+
+      # Track the connection_info view
+      - table:
+          schema: public
+          name: connection_info
+        select_permissions:
+          - role: public
+            permission:
+              columns: "*"
+              filter: {}
+
+# Custom SQL functions to expose
+custom_sql_functions:
+  - function:
+      schema: public
+      name: refresh_dashboard_stats
+
+# REST endpoints (optional - for non-GraphQL access)
+rest_endpoints:
+  - definition:
+      query:
+        collection_name: allowed-queries
+        query_name: GetDashboardOverview
+    url: dashboard-overview
+    methods:
+      - GET
+    comment: Get dashboard overview data
+
+  - definition:
+      query:
+        collection_name: allowed-queries
+        query_name: GetInvocationDetails
+    url: invocation/:id
+    methods:
+      - GET
+    comment: Get detailed invocation data
+
+# Query collections for REST endpoints
+query_collections:
+  - name: allowed-queries
+    definition:
+      queries:
+        - name: GetDashboardOverview
+          query: |
+            query GetDashboardOverview($hours: Int = 24) {
+              invocations(
+                where: { created_at: { _gte: $hours } }
+                order_by: { created_at: desc }
+                limit: 20
+              ) {
+                id
+                source_function
+                source_system
+                created_at
+                total_duration_ms
+                events_detected_count
+                total_jobs_run
+                total_jobs_succeeded
+                total_jobs_failed
+                status
+                success_rate
+              }
+
+              invocations_aggregate(
+                where: { created_at: { _gte: $hours } }
+              ) {
+                aggregate {
+                  count
+                  avg { total_duration_ms }
+                  sum {
+                    total_jobs_run
+                    total_jobs_succeeded
+                    total_jobs_failed
+                  }
+                }
+              }
+
+              dashboard_stats(
+                order_by: { hour_bucket: desc }
+                limit: 24
+              ) {
+                hour_bucket
+                source_function
+                total_invocations
+                successful_invocations
+                failed_invocations
+                avg_duration_ms
+                p95_duration_ms
+              }
+            }
+
+        - name: GetInvocationDetails
+          query: |
+            query GetInvocationDetails($id: uuid!) {
+              invocations_by_pk(id: $id) {
+                id
+                created_at
+                updated_at
+                source_function
+                source_system
+                source_table
+                source_operation
+                source_event_payload
+                source_user_email
+                total_duration_ms
+                events_detected_count
+                total_jobs_run
+                total_jobs_succeeded
+                total_jobs_failed
+                status
+                error_message
+                success_rate
+                avg_job_duration
+
+                event_executions {
+                  id
+                  event_name
+                  detected
+                  detection_duration_ms
+                  handler_duration_ms
+                  jobs_count
+                  jobs_succeeded
+                  jobs_failed
+                  status
+                  job_success_rate
+
+                  job_executions {
+                    id
+                    job_name
+                    job_options
+                    duration_ms
+                    status
+                    result
+                    error_message
+                  }
+                }
+              }
+            }
