@@ -48,5 +48,10 @@ export type {
   PluginLifecycleHooks,
   BasePluginInterface,
   PluginManagerInterface,
-  CorrelationIdParts
+  CorrelationIdParts,
+
+  // Additional types used by plugins
+  DatabaseConfig,
+  LogEntry,
+  HasuraOperation
 } from './types/index';

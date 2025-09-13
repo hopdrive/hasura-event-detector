@@ -1,20 +1,21 @@
 import { Pool, PoolClient } from 'pg';
 import { v4 as uuidv4 } from 'uuid';
-import { BasePlugin } from '../../src/plugin.js';
-import { log, logError } from '@/helpers/log.js';
-import type {
-  PluginConfig,
-  CorrelationId,
-  EventName,
-  JobName,
-  JobResult,
-  JobOptions,
-  HasuraEventPayload,
-  ListenToOptions,
-  ListenToResponse,
-  DatabaseConfig,
-  HasuraOperation
-} from '@/types/index.js';
+import {
+  BasePlugin,
+  log,
+  logError,
+  type PluginConfig,
+  type CorrelationId,
+  type EventName,
+  type JobName,
+  type JobResult,
+  type JobOptions,
+  type HasuraEventPayload,
+  type ListenToOptions,
+  type ListenToResponse,
+  type DatabaseConfig,
+  type HasuraOperation
+} from '@hopdrive/hasura-event-detector';
 
 // Observability-specific types moved from core types
 export interface ObservabilityMetrics {

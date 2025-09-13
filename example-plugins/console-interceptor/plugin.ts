@@ -1,14 +1,14 @@
-import { BasePlugin } from '../../src/plugin.js';
-import type {
-  PluginConfig,
-  CorrelationId,
-  EventName,
-  JobName,
-  JobResult,
-  JobOptions,
-  HasuraEventPayload,
-  LogEntry
-} from '@/types/index.js';
+import {
+  BasePlugin,
+  type PluginConfig,
+  type CorrelationId,
+  type EventName,
+  type JobName,
+  type JobResult,
+  type JobOptions,
+  type HasuraEventPayload,
+  type LogEntry
+} from '@hopdrive/hasura-event-detector';
 
 interface ConsoleInterceptorConfig extends PluginConfig {
   levels: string[];
@@ -67,8 +67,7 @@ export class ConsoleInterceptorPlugin extends BasePlugin<ConsoleInterceptorConfi
     jobOptions: JobOptions,
     eventName: EventName,
     hasuraEvent: HasuraEventPayload,
-    correlationId: CorrelationId,
-    durationMs: number
+    correlationId: CorrelationId
   ) {
     if (!this.config.enabled) return;
 
@@ -93,8 +92,7 @@ export class ConsoleInterceptorPlugin extends BasePlugin<ConsoleInterceptorConfi
     result: JobResult,
     eventName: EventName,
     hasuraEvent: HasuraEventPayload,
-    correlationId: CorrelationId,
-    durationMs: number
+    correlationId: CorrelationId
   ) {
     if (!this.config.enabled) return;
 

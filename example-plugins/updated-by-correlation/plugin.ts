@@ -19,9 +19,8 @@ import type {
   PluginConfig,
   ListenToOptions,
   ParsedHasuraEvent
-} from '@/types/index.js';
-import { log, logWarn } from '@/helpers/log.js';
-import { parseHasuraEvent } from '@/helpers/hasura.js';
+} from '@hopdrive/hasura-event-detector';
+import { log, logWarn, parseHasuraEvent } from '@hopdrive/hasura-event-detector';
 
 export interface UpdatedByCorrelationConfig extends PluginConfig {
   enabled?: boolean;

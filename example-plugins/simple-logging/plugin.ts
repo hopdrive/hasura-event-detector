@@ -1,16 +1,16 @@
-import { BasePlugin } from '../../src/plugin.js';
-import type {
-  PluginConfig,
-  CorrelationId,
-  EventName,
-  JobName,
-  JobResult,
-  JobOptions,
-  HasuraEventPayload,
-  ListenToOptions,
-  ListenToResponse,
-  LogEntry
-} from '@/types/index.js';
+import {
+  BasePlugin,
+  type PluginConfig,
+  type CorrelationId,
+  type EventName,
+  type JobName,
+  type JobResult,
+  type JobOptions,
+  type HasuraEventPayload,
+  type ListenToOptions,
+  type ListenToResponse,
+  type LogEntry
+} from '@hopdrive/hasura-event-detector';
 
 interface SimpleLoggingConfig extends PluginConfig {
   format: 'simple' | 'structured' | 'json';
