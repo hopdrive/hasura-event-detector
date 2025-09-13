@@ -18,36 +18,35 @@ export const OVERVIEW_DASHBOARD_QUERY = gql`
       total_jobs_run
       total_jobs_succeeded
       total_jobs_failed
-      success_rate
+      correlation_id
     }
-    
+
     # Aggregated stats
     invocations_aggregate(where: { created_at: { _gte: $timeRange } }) {
       aggregate {
         count
         avg { total_duration_ms }
-        sum { 
+        sum {
           total_jobs_run
           total_jobs_succeeded
           total_jobs_failed
         }
       }
     }
-    
+
     # Top event types
     event_executions_aggregate(
       where: { detected: { _eq: true }, created_at: { _gte: $timeRange } }
-      group_by: event_name
     ) {
       aggregate {
         count
       }
-      nodes {
+      group_by {
         event_name
       }
     }
-    
-    # Performance trends
+
+    # Performance trends (from materialized view)
     dashboard_stats(
       where: { hour_bucket: { _gte: $timeRange } }
       order_by: { hour_bucket: asc }
@@ -58,6 +57,9 @@ export const OVERVIEW_DASHBOARD_QUERY = gql`
       avg_duration_ms
       successful_invocations
       failed_invocations
+      total_events_detected
+      total_jobs_run
+      total_jobs_succeeded
     }
   }
 `;
@@ -87,10 +89,10 @@ export const INVOCATIONS_LIST_QUERY = gql`
       total_jobs_succeeded
       total_jobs_failed
       status
-      success_rate
       hasura_user_email
+      correlation_id
     }
-    
+
     invocations_aggregate(where: $where) {
       aggregate {
         count
@@ -121,10 +123,12 @@ export const INVOCATION_DETAIL_QUERY = gql`
       total_jobs_failed
       status
       error_message
-      success_rate
-      avg_job_duration
+      error_stack
       context_data
-      
+      correlation_id
+      auto_load_modules
+      event_modules_directory
+
       # Related event executions
       event_executions(order_by: { created_at: asc }) {
         id
@@ -133,14 +137,16 @@ export const INVOCATION_DETAIL_QUERY = gql`
         detected
         detection_duration_ms
         detection_error
+        detection_error_stack
         handler_duration_ms
         handler_error
+        handler_error_stack
         jobs_count
         jobs_succeeded
         jobs_failed
         status
-        job_success_rate
-        
+        correlation_id
+
         # Related job executions
         job_executions(order_by: { created_at: asc }) {
           id
@@ -151,17 +157,8 @@ export const INVOCATION_DETAIL_QUERY = gql`
           status
           result
           error_message
-          console_logs
-          
-          # Job logs
-          logs(order_by: { created_at: asc }) {
-            id
-            created_at
-            level
-            message
-            data
-            source
-          }
+          error_stack
+          correlation_id
         }
       }
     }
@@ -177,7 +174,8 @@ export const EVENT_FLOW_QUERY = gql`
       status
       total_duration_ms
       events_detected_count
-      
+      correlation_id
+
       event_executions {
         id
         event_name
@@ -186,7 +184,8 @@ export const EVENT_FLOW_QUERY = gql`
         detection_duration_ms
         handler_duration_ms
         jobs_count
-        
+        correlation_id
+
         job_executions {
           id
           job_name
@@ -195,6 +194,7 @@ export const EVENT_FLOW_QUERY = gql`
           duration_ms
           result
           error_message
+          correlation_id
         }
       }
     }
@@ -204,7 +204,7 @@ export const EVENT_FLOW_QUERY = gql`
 // Performance Analytics Query
 export const PERFORMANCE_ANALYTICS_QUERY = gql`
   query PerformanceAnalytics($timeRange: timestamptz!) {
-    # Performance trends by function
+    # Performance trends by function (from materialized view)
     dashboard_stats(
       where: { hour_bucket: { _gte: $timeRange } }
       order_by: { hour_bucket: asc }
@@ -215,24 +215,26 @@ export const PERFORMANCE_ANALYTICS_QUERY = gql`
       successful_invocations
       failed_invocations
       avg_duration_ms
-      min_duration_ms
-      max_duration_ms
-      p95_duration_ms
+      total_events_detected
+      total_jobs_run
+      total_jobs_succeeded
     }
-    
+
     # Job failure analysis
     job_executions(
-      where: { 
+      where: {
         created_at: { _gte: $timeRange }
         status: { _eq: "failed" }
       }
       order_by: { created_at: desc }
+      limit: 100
     ) {
       id
       job_name
       error_message
       created_at
       duration_ms
+      correlation_id
       invocation {
         source_function
       }
@@ -240,37 +242,38 @@ export const PERFORMANCE_ANALYTICS_QUERY = gql`
         event_name
       }
     }
-    
+
     # Event success rates
     event_executions_aggregate(
       where: { created_at: { _gte: $timeRange } }
-      group_by: event_name
     ) {
       aggregate {
         count
-        count(where: { detected: { _eq: true } })
       }
-      nodes {
+      group_by {
         event_name
+        detected
       }
     }
-    
+
     # System health metrics
     invocations_aggregate(where: { created_at: { _gte: $timeRange } }) {
       aggregate {
         count
-        count(where: { status: { _eq: "completed" } })
-        count(where: { status: { _eq: "failed" } })
         avg { total_duration_ms }
       }
+      nodes {
+        status
+      }
     }
-    
+
     job_executions_aggregate(where: { created_at: { _gte: $timeRange } }) {
       aggregate {
         count
-        count(where: { status: { _eq: "completed" } })
-        count(where: { status: { _eq: "failed" } })
         avg { duration_ms }
+      }
+      nodes {
+        status
       }
     }
   }
@@ -279,7 +282,7 @@ export const PERFORMANCE_ANALYTICS_QUERY = gql`
 // Real-time Monitoring Query (use as subscription in production)
 export const REALTIME_MONITOR_QUERY = gql`
   query RealtimeMonitor {
-    # Currently running invocations
+    # Recently completed/running invocations
     invocations(
       limit: 10
       order_by: { created_at: desc }
@@ -292,9 +295,9 @@ export const REALTIME_MONITOR_QUERY = gql`
       total_duration_ms
       events_detected_count
       total_jobs_run
-      success_rate
+      correlation_id
     }
-    
+
     # Currently running jobs
     job_executions(
       where: { status: { _eq: "running" } }
@@ -303,6 +306,7 @@ export const REALTIME_MONITOR_QUERY = gql`
       id
       job_name
       created_at
+      correlation_id
       invocation {
         source_function
       }
@@ -320,25 +324,27 @@ export const SYSTEM_HEALTH_QUERY = gql`
     invocations_aggregate(where: { created_at: { _gte: $timeRange } }) {
       aggregate {
         count
-        count(where: { status: { _eq: "completed" } })
-        count(where: { status: { _eq: "failed" } })
         avg { total_duration_ms }
       }
+      group_by {
+        status
+      }
     }
-    
+
     # Jobs stats
     job_executions_aggregate(where: { created_at: { _gte: $timeRange } }) {
       aggregate {
         count
-        count(where: { status: { _eq: "completed" } })
-        count(where: { status: { _eq: "failed" } })
         avg { duration_ms }
       }
+      group_by {
+        status
+      }
     }
-    
+
     # Recent errors
     job_executions(
-      where: { 
+      where: {
         created_at: { _gte: $timeRange }
         status: { _eq: "failed" }
       }
@@ -348,15 +354,15 @@ export const SYSTEM_HEALTH_QUERY = gql`
       job_name
       error_message
       created_at
+      correlation_id
       invocation {
         source_function
       }
     }
-    
-    # Performance by function
+
+    # Performance by function (from materialized view)
     dashboard_stats(
       where: { hour_bucket: { _gte: $timeRange } }
-      group_by: source_function
     ) {
       source_function
       total_invocations
@@ -376,6 +382,7 @@ export const SEARCH_INVOCATIONS_QUERY = gql`
           { source_function: { _ilike: $searchTerm } }
           { source_table: { _ilike: $searchTerm } }
           { hasura_user_email: { _ilike: $searchTerm } }
+          { correlation_id: { _ilike: $searchTerm } }
         ]
       }
       limit: $limit
@@ -388,7 +395,7 @@ export const SEARCH_INVOCATIONS_QUERY = gql`
       status
       events_detected_count
       total_jobs_run
-      success_rate
+      correlation_id
     }
   }
 `;
@@ -416,21 +423,24 @@ export const CORRELATION_CHAINS_LIST_QUERY = gql`
       correlation_id
       created_at
       source_function
-      
-      # Get chain stats using aggregation
-      correlation_chain_stats: invocations_aggregate(
-        where: { correlation_id: { _eq: $correlation_id } }
-      ) {
-        aggregate {
-          count
-          min { created_at }
-          max { created_at }
-          sum { 
-            events_detected_count
-            total_jobs_run
-            total_jobs_succeeded
-            total_jobs_failed
-          }
+    }
+
+    # Get aggregated chain stats
+    invocations_aggregate(
+      where: { correlation_id: { _is_null: false } }
+    ) {
+      group_by {
+        correlation_id
+      }
+      aggregate {
+        count
+        min { created_at }
+        max { created_at }
+        sum {
+          events_detected_count
+          total_jobs_run
+          total_jobs_succeeded
+          total_jobs_failed
         }
       }
     }
@@ -455,7 +465,7 @@ export const CORRELATION_CHAIN_FLOW_QUERY = gql`
       total_jobs_succeeded
       total_jobs_failed
       correlation_id
-      
+
       event_executions {
         id
         event_name
@@ -465,7 +475,7 @@ export const CORRELATION_CHAIN_FLOW_QUERY = gql`
         handler_duration_ms
         jobs_count
         correlation_id
-        
+
         job_executions {
           id
           job_name
@@ -501,7 +511,7 @@ export const CORRELATION_CHAIN_DETAIL_QUERY = gql`
       status
       error_message
       correlation_id
-      
+
       event_executions(order_by: { created_at: asc }) {
         id
         event_name
@@ -513,7 +523,7 @@ export const CORRELATION_CHAIN_DETAIL_QUERY = gql`
         jobs_succeeded
         jobs_failed
         correlation_id
-        
+
         job_executions(order_by: { created_at: asc }) {
           id
           job_name
@@ -526,7 +536,7 @@ export const CORRELATION_CHAIN_DETAIL_QUERY = gql`
         }
       }
     }
-    
+
     # Chain statistics
     chain_stats: invocations_aggregate(
       where: { correlation_id: { _eq: $correlationId } }
@@ -535,7 +545,7 @@ export const CORRELATION_CHAIN_DETAIL_QUERY = gql`
         count
         min { created_at }
         max { created_at }
-        sum { 
+        sum {
           total_duration_ms
           events_detected_count
           total_jobs_run
@@ -544,6 +554,82 @@ export const CORRELATION_CHAIN_DETAIL_QUERY = gql`
         }
         avg { total_duration_ms }
       }
+    }
+  }
+`;
+
+// Hourly Metrics Query (for detailed analytics)
+export const HOURLY_METRICS_QUERY = gql`
+  query HourlyMetrics($timeRange: timestamptz!, $sourceFunction: String) {
+    metrics_hourly(
+      where: {
+        hour_bucket: { _gte: $timeRange }
+        source_function: { _eq: $sourceFunction }
+      }
+      order_by: { hour_bucket: asc }
+    ) {
+      id
+      hour_bucket
+      source_function
+      total_invocations
+      total_events_detected
+      total_jobs_run
+      successful_invocations
+      failed_invocations
+      avg_duration_ms
+      min_duration_ms
+      max_duration_ms
+      p95_duration_ms
+      top_detected_events
+      most_failed_jobs
+    }
+  }
+`;
+
+// Subscription for real-time invocation updates
+export const INVOCATION_SUBSCRIPTION = gql`
+  subscription InvocationUpdates($invocationId: uuid!) {
+    invocations_by_pk(id: $invocationId) {
+      id
+      status
+      total_duration_ms
+      events_detected_count
+      total_jobs_run
+      total_jobs_succeeded
+      total_jobs_failed
+      error_message
+
+      event_executions {
+        id
+        status
+        jobs_count
+        jobs_succeeded
+        jobs_failed
+
+        job_executions {
+          id
+          status
+          duration_ms
+          error_message
+        }
+      }
+    }
+  }
+`;
+
+// Subscription for new invocations
+export const NEW_INVOCATIONS_SUBSCRIPTION = gql`
+  subscription NewInvocations($sourceFunction: String) {
+    invocations(
+      where: { source_function: { _eq: $sourceFunction } }
+      order_by: { created_at: desc }
+      limit: 1
+    ) {
+      id
+      created_at
+      source_function
+      status
+      correlation_id
     }
   }
 `;

@@ -43,6 +43,33 @@ Events are traced through the system using correlation IDs that follow this patt
 - **Configurable capture levels** allow tuning for performance vs. detail
 - **Asynchronous processing** ensures minimal latency impact
 
+## Plugin Structure
+
+The observability plugin is organized into the following directories:
+
+```
+example-plugins/observability/
+├── README.md              # Main plugin documentation
+├── plugin.ts              # Plugin implementation
+├── dashboard/             # React dashboard application
+│   ├── src/               # Dashboard source code
+│   ├── package.json       # Dashboard dependencies
+│   └── README.md          # Dashboard setup guide
+└── model/                 # Data model and database artifacts
+    ├── schema.sql         # Database schema definition
+    ├── DATA_MODEL.md      # Data model documentation
+    ├── example-queries.graphql  # Sample GraphQL queries
+    └── hasura-metadata/   # Hasura metadata configuration
+```
+
+### Key Files
+
+- **`plugin.ts`**: Main plugin implementation with all hook handlers
+- **`model/schema.sql`**: PostgreSQL schema for observability tables
+- **`model/hasura-metadata/`**: Hasura configuration for GraphQL API
+- **`dashboard/`**: Complete React application for visualization
+- **`model/DATA_MODEL.md`**: Detailed data model documentation
+
 ## Quick Start
 
 ### 1. Database Setup
@@ -57,7 +84,7 @@ CREATE DATABASE hasura_event_detector_observability;
 Run the schema migration:
 
 ```bash
-psql -d hasura_event_detector_observability -f example-plugins/observability/schema.sql
+psql -d hasura_event_detector_observability -f example-plugins/observability/model/schema.sql
 ```
 
 ### 2. Hasura Configuration
@@ -69,7 +96,7 @@ Add the observability database to your Hasura instance and apply the metadata:
 hasura metadata apply --database-name observability
 
 # Apply table and relationship metadata
-hasura metadata apply --from-file example-plugins/observability/hasura-metadata/
+hasura metadata apply --from-file example-plugins/observability/model/hasura-metadata/
 ```
 
 ### 3. Plugin Registration
@@ -230,38 +257,62 @@ query PerformanceAnalytics($timeRange: timestamptz!) {
 
 ## Visual Flow Interface
 
-The React dashboard provides interactive event flow visualization:
+The React dashboard provides comprehensive monitoring and visualization capabilities:
 
-### React Flow Features
-- **Node-based diagrams** showing event cascades and job sequences
-- **Connected arrows** indicating flow direction and correlation relationships
-- **Interactive nodes** for drilling into execution details
-- **Correlation highlighting** to trace related events across the system
+### Dashboard Features
+- **Real-time Monitoring**: Live updates of event processing with configurable polling
+- **Interactive Flow Diagrams**: Node-based visualization showing event cascades and job sequences
+- **Correlation Chain Tracing**: Complete end-to-end tracking of related events
+- **Performance Analytics**: Historical trends and bottleneck identification
+- **Error Analysis**: Detailed failure tracking and debugging information
 
-### Flow Structure
-- **Root node**: Original database event trigger with correlation ID
-- **Child nodes**: Subsequent jobs and updates triggered by correlation ID
-- **Visual representation**: Complete event lifecycle and downstream impacts
+### Key Visualizations
+- **Overview Dashboard**: System health, recent invocations, and performance trends
+- **Event Flow Diagrams**: Interactive nodes showing execution paths and timing
+- **Correlation Mapping**: Visual representation of event relationships across functions
+- **Performance Charts**: Time-series analysis with hourly aggregations
 
-### Setup
+### Quick Setup
 
 ```bash
 cd dashboard
+
+# Copy and configure environment
+cp .env.example .env
+# Edit .env with your Hasura endpoint and credentials
+
+# Install dependencies and start
 npm install
-npm start
+npm run dev
 ```
 
-Configure the GraphQL endpoint:
+The dashboard will be available at `http://localhost:3000`
 
-```javascript
-// dashboard/src/config.js
-export const config = {
-  graphqlEndpoint: 'http://localhost:8080/v1/graphql',
-  headers: {
-    'x-hasura-admin-secret': 'your-admin-secret'
-  }
-};
+### Configuration
+
+Set up your environment variables in `dashboard/.env`:
+
+```env
+# Required: GraphQL connection
+REACT_APP_GRAPHQL_ENDPOINT=http://localhost:8080/v1/graphql
+REACT_APP_HASURA_ADMIN_SECRET=your-admin-secret
+
+# Optional: Feature flags and display settings
+REACT_APP_SHOW_CORRELATION_CHAINS=true
+REACT_APP_SHOW_RAW_PAYLOADS=false
+REACT_APP_DEFAULT_TIME_RANGE=24
+REACT_APP_OVERVIEW_POLLING=30000
 ```
+
+### Dashboard Sections
+
+1. **Overview**: System health metrics and recent activity
+2. **Invocations**: Detailed execution breakdown for each `listenTo()` call
+3. **Event Flows**: Interactive diagrams showing processing chains
+4. **Correlation Chains**: Multi-step event relationship tracking
+5. **Analytics**: Performance trends and failure analysis
+
+For detailed dashboard setup and configuration, see [dashboard/README.md](dashboard/README.md).
 
 ## Correlation ID Implementation
 
