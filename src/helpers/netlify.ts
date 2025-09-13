@@ -6,8 +6,8 @@
  * event logs.
  */
 
-import type { ListenToResponse } from '@/types/index.js';
-import { logError } from './log.js';
+import type { ListenToResponse } from '@/types/index';
+import { logError } from './log';
 
 export interface NetlifyResponse {
   statusCode: number;

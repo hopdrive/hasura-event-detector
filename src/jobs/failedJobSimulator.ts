@@ -1,4 +1,4 @@
-import type { EventName, HasuraEventPayload, JobOptions } from '@/types/index.js';
+import type { EventName, HasuraEventPayload, JobOptions } from '@/types/index';
 
 export const failedJobSimulator = async (
   event: EventName, 

@@ -1,4 +1,4 @@
-import { logError } from './log.js';
+import { logError } from './log';
 
 /**
  * Safely convert an object to a serializable representation for logging

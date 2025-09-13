@@ -104,7 +104,7 @@ hasura metadata apply --from-file example-plugins/observability/model/hasura-met
 Register the observability plugin with your event detector:
 
 ```typescript
-import { pluginManager } from '@/plugin.js';
+import { pluginManager } from '@hopdrive/hasura-event-detector';
 import { ObservabilityPlugin } from './example-plugins/observability/plugin.js';
 
 const observabilityPlugin = new ObservabilityPlugin({

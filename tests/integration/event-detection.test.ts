@@ -5,16 +5,16 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
-import { listenTo } from '../../src/detector.js';
-import { emailNotificationJob, analyticsTrackingJob } from '../../src/jobs/index.js';
-import { job } from '../../src/handler.js';
+import { listenTo } from '../../src/detector';
+import { emailNotificationJob, analyticsTrackingJob } from '../../src/jobs/index';
+import { job } from '../../src/handler';
 import { 
   createMockHasuraEvent, 
   createTestConfig, 
   createTempDir, 
   cleanupTempDir,
   createMockEventModule
-} from '../test-utils.js';
+} from '../test-utils';
 import fs from 'fs';
 import path from 'path';
 

@@ -36,7 +36,7 @@ const updatedByCorrelation = new UpdatedByCorrelationPlugin({
 ## Usage
 
 ```typescript
-import { pluginManager } from '@/plugin.js';
+import { pluginManager } from '@hopdrive/hasura-event-detector';
 import { UpdatedByCorrelationPlugin } from './example-plugins/updated-by-correlation/plugin.js';
 
 // Register the plugin

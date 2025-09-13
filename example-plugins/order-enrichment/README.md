@@ -47,7 +47,7 @@ const orderEnrichment = new OrderEnrichmentPlugin({
 ## Usage
 
 ```typescript
-import { pluginManager } from '@/plugin.js';
+import { pluginManager } from '@hopdrive/hasura-event-detector';
 import { OrderEnrichmentPlugin } from './example-plugins/order-enrichment/plugin.js';
 
 // Register the plugin

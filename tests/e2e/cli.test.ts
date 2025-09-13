@@ -6,7 +6,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { spawn, ChildProcess } from 'child_process';
-import { createTempDir, cleanupTempDir } from '../test-utils.js';
+import { createTempDir, cleanupTempDir } from '../test-utils';
 import fs from 'fs';
 import path from 'path';
 

@@ -5,9 +5,9 @@
  */
 
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
-import { listenTo } from '../detector.js';
-import { createMockHasuraEvent, createTestConfig, createTempDir, cleanupTempDir, createMockEventModule } from '../../tests/test-utils.js';
-import type { HasuraEventPayload, ListenToOptions } from '../types/index.js';
+import { listenTo } from '../detector';
+import { createMockHasuraEvent, createTestConfig, createTempDir, cleanupTempDir, createMockEventModule } from '../../tests/test-utils';
+import type { HasuraEventPayload, ListenToOptions } from '../types/index';
 
 describe('Event Detector', () => {
   let tempDir: string;

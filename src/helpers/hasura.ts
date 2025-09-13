@@ -10,8 +10,8 @@ import type {
   ParsedHasuraEvent,
   HasuraEventData,
   HasuraOperation
-} from '@/types/index.js';
-import { logError } from './log.js';
+} from '@/types/index';
+import { logError } from './log';
 
 /**
  * Safely extract from the Hasura Event specific items if they are present

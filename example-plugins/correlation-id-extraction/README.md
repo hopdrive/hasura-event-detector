@@ -42,7 +42,7 @@ const correlationExtractor = new CorrelationIdExtractionPlugin({
 ## Usage
 
 ```typescript
-import { pluginManager } from '@/plugin.js';
+import { pluginManager } from '@hopdrive/hasura-event-detector';
 import { CorrelationIdExtractionPlugin } from './example-plugins/correlation-id-extraction/plugin.js';
 
 // Register the plugin

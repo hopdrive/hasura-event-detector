@@ -131,7 +131,7 @@ Plugins enable:
 ### 1. Basic Plugin Usage
 
 ```typescript
-import { pluginManager } from '@/plugin.js';
+import { pluginManager } from '@hopdrive/hasura-event-detector';
 import { SimpleLoggingPlugin } from './example-plugins/simple-logging/plugin.js';
 
 // Create and configure plugin
@@ -153,7 +153,7 @@ await listenTo(hasuraEvent, options);
 ### 2. Multiple Plugin Usage
 
 ```typescript
-import { pluginManager } from '@/plugin.js';
+import { pluginManager } from '@hopdrive/hasura-event-detector';
 import { SimpleLoggingPlugin } from './example-plugins/simple-logging/plugin.js';
 import { ConsoleInterceptorPlugin } from './example-plugins/console-interceptor/plugin.js';
 import { CorrelationIdExtractionPlugin } from './example-plugins/correlation-id-extraction/plugin.js';
@@ -212,8 +212,8 @@ await pluginManager.initialize();
 ### 1. Basic Plugin Structure
 
 ```typescript
-import { BasePlugin } from '@/plugin.js';
-import type { PluginConfig, HasuraEventPayload, ListenToOptions } from '@/types/index.js';
+import { BasePlugin } from '@hopdrive/hasura-event-detector';
+import type { PluginConfig, HasuraEventPayload, ListenToOptions } from '@hopdrive/hasura-event-detector';
 
 interface MyPluginConfig extends PluginConfig {
   customOption: string;
@@ -548,14 +548,14 @@ export class UpdatedByCorrelationPlugin extends BasePlugin {
 Plugins have full TypeScript support with proper type checking:
 
 ```typescript
-import { BasePlugin } from '@/plugin.js';
+import { BasePlugin } from '@hopdrive/hasura-event-detector';
 import type {
   PluginConfig,
   HasuraEventPayload,
   CorrelationId,
   JobResult,
   ListenToOptions
-} from '@/types/index.js';
+} from '@hopdrive/hasura-event-detector';
 ```
 
 ### Testing Plugins

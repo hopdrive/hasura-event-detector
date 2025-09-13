@@ -1,6 +1,6 @@
-import { log } from '@/helpers/log.js';
-import { getObjectSafely } from '@/helpers/object.js';
-import { pluginManager } from '@/plugin.js';
+import { log } from '@/helpers/log';
+import { getObjectSafely } from '@/helpers/object';
+import { pluginManager } from '@/plugin';
 import type {
   HasuraEventPayload,
   EventName,
@@ -10,7 +10,7 @@ import type {
   JobResult,
   Job,
   CorrelationId
-} from '@/types/index.js';
+} from '@/types/index';
 
 export const job = <T = any>(func: JobFunction<T>, options?: JobOptions): Job<T> => {
   return options ? { func, options } : { func };

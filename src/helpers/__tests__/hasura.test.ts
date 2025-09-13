@@ -5,9 +5,9 @@
  */
 
 import { describe, it, expect, beforeEach } from '@jest/globals';
-import { parseHasuraEvent, columnHasChanged } from '../hasura.js';
-import { createMockHasuraEvent } from '../../../tests/test-utils.js';
-import type { HasuraEventData } from '../../types/index.js';
+import { parseHasuraEvent, columnHasChanged } from '../hasura';
+import { createMockHasuraEvent } from '../../../tests/test-utils';
+import type { HasuraEventData } from '../../types/index';
 
 describe('Hasura Helpers', () => {
   describe('parseHasuraEvent', () => {

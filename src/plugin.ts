@@ -6,7 +6,7 @@
  * various events during execution (invocation start/end, event detection, job execution, etc.)
  */
 
-import { log, logError, logWarn } from '@/helpers/log.js';
+import { log, logError, logWarn } from '@/helpers/log';
 import type {
   PluginConfig,
   PluginName,
@@ -23,7 +23,7 @@ import type {
   BasePluginInterface,
   PluginManagerInterface,
   PluginLifecycleHooks
-} from '@/types/index.js';
+} from '@/types/index';
 import { v4 as uuidv4 } from 'uuid';
 
 /**

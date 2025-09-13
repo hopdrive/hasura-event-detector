@@ -36,7 +36,7 @@ const simpleLogger = new SimpleLoggingPlugin({
 ## Usage
 
 ```typescript
-import { pluginManager } from '@/plugin.js';
+import { pluginManager } from '@hopdrive/hasura-event-detector';
 import { SimpleLoggingPlugin } from './example-plugins/simple-logging/plugin.js';
 
 // Register the plugin

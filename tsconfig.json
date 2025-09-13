@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2023",
     "module": "ESNext",
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "declaration": true,
     "strict": true,
     "esModuleInterop": true,
@@ -27,7 +27,6 @@
       "@/*": ["*"],
       "@/types": ["types"],
       "@/helpers": ["helpers"],
-      "@/plugins": ["plugins"],
       "@/jobs": ["jobs"]
     }
   },

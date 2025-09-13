@@ -1,8 +1,8 @@
 // Test/Demo Jobs
-export { jobSimulator } from './jobSimulator.js';
-export { failedJobSimulator } from './failedJobSimulator.js';
+export { jobSimulator } from './jobSimulator';
+export { failedJobSimulator } from './failedJobSimulator';
 
 // Realistic Job Examples
-export { emailNotificationJob } from './emailNotificationJob.js';
-export { analyticsTrackingJob, analyticsService } from './analyticsTrackingJob.js';
-export { webhookNotificationJob } from './webhookNotificationJob.js';
+export { emailNotificationJob } from './emailNotificationJob';
+export { analyticsTrackingJob, analyticsService } from './analyticsTrackingJob';
+export { webhookNotificationJob } from './webhookNotificationJob';

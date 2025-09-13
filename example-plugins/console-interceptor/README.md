@@ -31,7 +31,7 @@ const consoleInterceptor = new ConsoleInterceptorPlugin({
 ## Usage
 
 ```typescript
-import { pluginManager } from '@/plugin.js';
+import { pluginManager } from '@hopdrive/hasura-event-detector';
 import { ConsoleInterceptorPlugin } from './example-plugins/console-interceptor/plugin.js';
 
 // Register the plugin

@@ -6,8 +6,8 @@
 
 import fs from 'fs';
 import path from 'path';
-import { listenTo } from '../detector.js';
-import type { HasuraEventPayload, EventName } from '../types/index.js';
+import { listenTo } from '../detector';
+import type { HasuraEventPayload, EventName } from '../types/index';
 
 interface TestEventOptions {
   file?: string;

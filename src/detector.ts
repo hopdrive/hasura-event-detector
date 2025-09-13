@@ -1,7 +1,7 @@
-import { log, logError, logWarn, setPluginManager } from '@/helpers/log.js';
-import { getObjectSafely } from '@/helpers/object.js';
-import { parseHasuraEvent } from '@/helpers/hasura.js';
-import { pluginManager, CorrelationIdUtils } from '@/plugin.js';
+import { log, logError, logWarn, setPluginManager } from '@/helpers/log';
+import { getObjectSafely } from '@/helpers/object';
+import { parseHasuraEvent } from '@/helpers/hasura';
+import { pluginManager, CorrelationIdUtils } from '@/plugin';
 import { promises as fs } from 'fs';
 import path from 'path';
 import type {
@@ -15,7 +15,7 @@ import type {
   HandlerFunction,
   EventModule,
   JobResult,
-} from '@/types/index.js';
+} from '@/types/index';
 
 /**
  * Runtime validation for Hasura event payload

@@ -11,7 +11,7 @@ import type {
   JobOptions,
   JobResult,
   ListenToOptions 
-} from '../src/types/index.js';
+} from '../src/types/index';
 
 /**
  * Create a mock Hasura event payload

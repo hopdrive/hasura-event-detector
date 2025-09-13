@@ -4,7 +4,7 @@
  * A realistic example of sending email notifications with proper TypeScript typing.
  */
 
-import type { EventName, HasuraEventPayload, JobOptions } from '@/types/index.js';
+import type { EventName, HasuraEventPayload, JobOptions } from '@/types/index';
 
 interface EmailTemplate {
   subject: string;

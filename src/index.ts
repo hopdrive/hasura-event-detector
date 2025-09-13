@@ -1,16 +1,30 @@
-export { listenTo } from './detector.js';
-export { parseHasuraEvent, columnHasChanged, log, logError, logWarn, handleSuccess, handleFailure, getObjectSafely, type NetlifyResponse } from './helpers/index.js';
-export { run, job } from './handler.js';
-export { 
-  jobSimulator, 
-  failedJobSimulator, 
+// Core event detection functionality
+export { listenTo } from './detector';
+
+// Plugin system for extensibility
+export {
+  BasePlugin,
+  PluginManager,
+  pluginManager,
+  CorrelationIdUtils
+} from './plugin';
+
+// Utility functions for event processing and job handling
+export { parseHasuraEvent, columnHasChanged, log, logError, logWarn, handleSuccess, handleFailure, getObjectSafely, type NetlifyResponse } from './helpers/index';
+export { run, job } from './handler';
+
+// Example jobs (for reference and testing)
+export {
+  jobSimulator,
+  failedJobSimulator,
   emailNotificationJob,
   analyticsTrackingJob,
-  webhookNotificationJob 
-} from './jobs/index.js';
+  webhookNotificationJob
+} from './jobs/index';
 
 // Export types for external consumption
 export type {
+  // Core event detection types
   HasuraEventPayload,
   ParsedHasuraEvent,
   HasuraEventData,
@@ -26,5 +40,13 @@ export type {
   CorrelationId,
   DetectorFunction,
   HandlerFunction,
-  EventModule
-} from './types/index.js';
+  EventModule,
+
+  // Plugin system types
+  PluginConfig,
+  PluginName,
+  PluginLifecycleHooks,
+  BasePluginInterface,
+  PluginManagerInterface,
+  CorrelationIdParts
+} from './types/index';
