@@ -36,7 +36,7 @@ const simpleLogger = new SimpleLoggingPlugin({
 ## Usage
 
 ```typescript
-import { pluginManager } from '@/plugins/plugin-system.js';
+import { pluginManager } from '@/plugin.js';
 import { SimpleLoggingPlugin } from './example-plugins/simple-logging/plugin.js';
 
 // Register the plugin

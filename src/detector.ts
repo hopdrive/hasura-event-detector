@@ -1,7 +1,7 @@
 import { log, logError, logWarn, setPluginManager } from '@/helpers/log.js';
 import { getObjectSafely } from '@/helpers/object.js';
 import { parseHasuraEvent } from '@/helpers/hasura.js';
-import { pluginManager, CorrelationIdUtils } from '@/plugins/plugin-system.js';
+import { pluginManager, CorrelationIdUtils } from '@/plugin.js';
 import { promises as fs } from 'fs';
 import path from 'path';
 import type {

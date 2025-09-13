@@ -5,7 +5,7 @@
  * consistent logging behavior across the entire system.
  */
 
-import type { PluginManager } from '@/plugins/plugin-system.js';
+import type { PluginManager } from '@/plugin.js';
 
 let pluginManager: PluginManager | null = null;
 

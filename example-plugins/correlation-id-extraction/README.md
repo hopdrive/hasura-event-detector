@@ -42,7 +42,7 @@ const correlationExtractor = new CorrelationIdExtractionPlugin({
 ## Usage
 
 ```typescript
-import { pluginManager } from '@/plugins/plugin-system.js';
+import { pluginManager } from '@/plugin.js';
 import { CorrelationIdExtractionPlugin } from './example-plugins/correlation-id-extraction/plugin.js';
 
 // Register the plugin

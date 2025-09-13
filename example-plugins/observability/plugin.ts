@@ -1,6 +1,6 @@
 import { Pool, PoolClient } from 'pg';
 import { v4 as uuidv4 } from 'uuid';
-import { BasePlugin } from './plugin-system.js';
+import { BasePlugin } from '../../src/plugin.js';
 import { log, logError } from '@/helpers/log.js';
 import type {
   PluginConfig,

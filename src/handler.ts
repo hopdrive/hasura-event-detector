@@ -1,6 +1,6 @@
 import { log } from '@/helpers/log.js';
 import { getObjectSafely } from '@/helpers/object.js';
-import { pluginManager } from '@/plugins/plugin-system.js';
+import { pluginManager } from '@/plugin.js';
 import type {
   HasuraEventPayload,
   EventName,

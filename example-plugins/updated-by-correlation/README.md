@@ -36,7 +36,7 @@ const updatedByCorrelation = new UpdatedByCorrelationPlugin({
 ## Usage
 
 ```typescript
-import { pluginManager } from '@/plugins/plugin-system.js';
+import { pluginManager } from '@/plugin.js';
 import { UpdatedByCorrelationPlugin } from './example-plugins/updated-by-correlation/plugin.js';
 
 // Register the plugin

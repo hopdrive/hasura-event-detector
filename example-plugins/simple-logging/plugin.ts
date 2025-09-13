@@ -1,4 +1,4 @@
-import { BasePlugin } from './plugin-system.js';
+import { BasePlugin } from '../../src/plugin.js';
 import type {
   PluginConfig,
   CorrelationId,

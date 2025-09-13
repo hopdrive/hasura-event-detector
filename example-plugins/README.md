@@ -131,7 +131,7 @@ Plugins enable:
 ### 1. Basic Plugin Usage
 
 ```typescript
-import { pluginManager } from '@/plugins/plugin-system.js';
+import { pluginManager } from '@/plugin.js';
 import { SimpleLoggingPlugin } from './example-plugins/simple-logging/plugin.js';
 
 // Create and configure plugin
@@ -153,7 +153,7 @@ await listenTo(hasuraEvent, options);
 ### 2. Multiple Plugin Usage
 
 ```typescript
-import { pluginManager } from '@/plugins/plugin-system.js';
+import { pluginManager } from '@/plugin.js';
 import { SimpleLoggingPlugin } from './example-plugins/simple-logging/plugin.js';
 import { ConsoleInterceptorPlugin } from './example-plugins/console-interceptor/plugin.js';
 import { CorrelationIdExtractionPlugin } from './example-plugins/correlation-id-extraction/plugin.js';
@@ -212,7 +212,7 @@ await pluginManager.initialize();
 ### 1. Basic Plugin Structure
 
 ```typescript
-import { BasePlugin } from '@/plugins/plugin-system.js';
+import { BasePlugin } from '@/plugin.js';
 import type { PluginConfig, HasuraEventPayload, ListenToOptions } from '@/types/index.js';
 
 interface MyPluginConfig extends PluginConfig {
@@ -548,7 +548,7 @@ export class UpdatedByCorrelationPlugin extends BasePlugin {
 Plugins have full TypeScript support with proper type checking:
 
 ```typescript
-import { BasePlugin } from '@/plugins/plugin-system.js';
+import { BasePlugin } from '@/plugin.js';
 import type {
   PluginConfig,
   HasuraEventPayload,
