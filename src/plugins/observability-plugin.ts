@@ -90,7 +90,7 @@ export interface ObservabilityQueryVariables {
 
 interface ObservabilityConfig extends PluginConfig {
   database: DatabaseConfig & {
-    connectionString?: string;
+    connectionString?: string | undefined;
   };
   schema: string;
   captureJobOptions: boolean;
@@ -255,7 +255,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       this.isInitialized = true;
       log('ObservabilityPlugin', 'Initialized successfully');
     } catch (error) {
-      logError('ObservabilityPlugin', 'Failed to initialize', error);
+      logError('ObservabilityPlugin', 'Failed to initialize', error as Error);
       this.config.enabled = false;
       throw error;
     }
@@ -281,7 +281,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   /**
    * Record the start of an invocation (call to listenTo)
    */
-  async recordInvocationStart(data) {
+  async recordInvocationStart(data: any): Promise<string | null> {
     if (!this.config.enabled) return null;
 
     const id = uuidv4();
@@ -318,7 +318,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   /**
    * Update invocation with completion data
    */
-  async recordInvocationEnd(invocationId, data) {
+  async recordInvocationEnd(invocationId: string | null, data: any): Promise<void> {
     if (!this.config.enabled || !invocationId) return;
 
     const record = this.buffer.invocations.get(invocationId);
@@ -342,7 +342,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   /**
    * Record event execution (detector + handler)
    */
-  async recordEventExecution(invocationId, data) {
+  async recordEventExecution(invocationId: string | null, data: any): Promise<string | null> {
     if (!this.config.enabled || !invocationId) return null;
 
     const id = uuidv4();
@@ -374,7 +374,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   /**
    * Record job execution
    */
-  async recordJobExecution(invocationId, eventExecutionId, data) {
+  async recordJobExecution(invocationId: string | null, eventExecutionId: string | null, data: any): Promise<string | null> {
     if (!this.config.enabled || !invocationId || !eventExecutionId) return null;
 
     const id = uuidv4();
@@ -436,7 +436,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       await client.query('COMMIT');
     } catch (error) {
       if (client) await client.query('ROLLBACK');
-      logError('ObservabilityPlugin', 'Flush failed', error);
+      logError('ObservabilityPlugin', 'Flush failed', error as Error);
 
       // Retry logic could be added here
       throw error;
@@ -448,7 +448,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   /**
    * Bulk insert/update invocations
    */
-  async bulkUpsertInvocations(client, records) {
+  async bulkUpsertInvocations(client: PoolClient, records: BufferedInvocation[]): Promise<void> {
     if (records.length === 0) return;
 
     const columns = [
@@ -477,15 +477,15 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       'updated_at',
     ];
 
-    const values = records.map(record => columns.map(col => this.serializeValue(record[col])));
+    const values = records.map((record: any) => columns.map((col: string) => this.serializeValue(record[col])));
 
     const placeholders = values
-      .map((_, i) => `(${columns.map((_, j) => `$${i * columns.length + j + 1}`).join(', ')})`)
+      .map((_: any, i: number) => `(${columns.map((_: string, j: number) => `$${i * columns.length + j + 1}`).join(', ')})`)
       .join(', ');
 
     const updateSet = columns
-      .filter(col => col !== 'id' && col !== 'created_at')
-      .map(col => `${col} = EXCLUDED.${col}`)
+      .filter((col: string) => col !== 'id' && col !== 'created_at')
+      .map((col: string) => `${col} = EXCLUDED.${col}`)
       .join(', ');
 
     const query = `
@@ -500,7 +500,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   /**
    * Bulk insert event executions
    */
-  async bulkInsertEventExecutions(client, records) {
+  async bulkInsertEventExecutions(client: PoolClient, records: BufferedEventExecution[]): Promise<void> {
     if (records.length === 0) return;
 
     const columns = [
@@ -524,10 +524,10 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       'updated_at',
     ];
 
-    const values = records.map(record => columns.map(col => this.serializeValue(record[col])));
+    const values = records.map((record: any) => columns.map((col: string) => this.serializeValue(record[col])));
 
     const placeholders = values
-      .map((_, i) => `(${columns.map((_, j) => `$${i * columns.length + j + 1}`).join(', ')})`)
+      .map((_: any, i: number) => `(${columns.map((_: string, j: number) => `$${i * columns.length + j + 1}`).join(', ')})`)
       .join(', ');
 
     const query = `
@@ -542,7 +542,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   /**
    * Bulk insert job executions
    */
-  async bulkInsertJobExecutions(client, records) {
+  async bulkInsertJobExecutions(client: PoolClient, records: BufferedJobExecution[]): Promise<void> {
     if (records.length === 0) return;
 
     const columns = [
@@ -562,10 +562,10 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       'updated_at',
     ];
 
-    const values = records.map(record => columns.map(col => this.serializeValue(record[col])));
+    const values = records.map((record: any) => columns.map((col: string) => this.serializeValue(record[col])));
 
     const placeholders = values
-      .map((_, i) => `(${columns.map((_, j) => `$${i * columns.length + j + 1}`).join(', ')})`)
+      .map((_: any, i: number) => `(${columns.map((_: string, j: number) => `$${i * columns.length + j + 1}`).join(', ')})`)
       .join(', ');
 
     const query = `
@@ -580,7 +580,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   /**
    * Serialize values for database insertion
    */
-  serializeValue(value) {
+  serializeValue(value: any): any {
     if (value === undefined || value === null) return null;
     if (typeof value === 'object' && !(value instanceof Date)) {
       return JSON.stringify(value);
