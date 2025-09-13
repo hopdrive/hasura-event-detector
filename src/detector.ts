@@ -169,12 +169,11 @@ export const listenTo = async (
     };
   }
 
-  const detectedEventNames: EventName[] = [];
   const eventHandlersToRun: Promise<JobResult[]>[] = [];
+  const detectedEventNames: EventName[] = [];
+
   for (const eventName of resolvedOptions.listenedEvents || []) {
-    const detectionStart = Date.now();
     try {
-      // Run detector with hooks. It will either return the event handler or throw an error.
       const eventHandler = runDetectorWithHooks(
         eventName,
         hasuraEvent,
@@ -184,8 +183,6 @@ export const listenTo = async (
       eventHandlersToRun.push(eventHandler);
       detectedEventNames.push(eventName);
     } catch (error) {
-      const detectionDuration = Date.now() - detectionStart;
-      // Call plugin hook for error
       await pluginManager.callHook('onError', error as Error, 'event_detection', finalCorrelationId);
       logError(eventName, 'Error detecting events', error as Error);
     }
@@ -280,7 +277,7 @@ const runDetectorWithHooks = async (
 
   if (!eventHandler || typeof eventHandler !== 'function') throw new Error('Event handler not defined');
 
-  return runEventHandlerWithHooks(eventName, hasuraEvent, eventHandler, correlationId);
+  return runEventHandlerWithHooks(eventHandler, eventName, hasuraEvent, correlationId);
 };
 
 /**
@@ -293,9 +290,9 @@ const runDetectorWithHooks = async (
  * @returns Promise resolving to job execution results
  */
 const runEventHandlerWithHooks = async (
+  eventHandler: HandlerFunction,
   eventName: EventName,
   hasuraEvent: HasuraEventPayload,
-  eventHandler: HandlerFunction,
   correlationId: CorrelationId
 ): Promise<JobResult[]> => {
   const handlerStart = Date.now();
