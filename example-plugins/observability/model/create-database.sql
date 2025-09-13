@@ -1,4 +1,4 @@
--- Database Creation Script for Hasura Event Detector Observability
+-- Database Creation Script for Event Detector Observability
 -- This script creates a new PostgreSQL database on the same RDS server
 -- for isolated observability data storage
 
@@ -6,7 +6,7 @@
 -- Usage: psql -h your-rds-endpoint -U postgres -f create-database.sql
 
 -- Create the observability database
-CREATE DATABASE hasura_event_detector_observability
+CREATE DATABASE event_detector_observability
     WITH
     OWNER = postgres
     ENCODING = 'UTF8'
@@ -48,15 +48,15 @@ CREATE ROLE observability_readonly WITH
     PASSWORD 'CHANGE_THIS_PASSWORD_IN_PRODUCTION';
 
 -- Grant database connection permissions
-GRANT CONNECT ON DATABASE hasura_event_detector_observability TO observability_admin;
-GRANT CONNECT ON DATABASE hasura_event_detector_observability TO observability_app;
-GRANT CONNECT ON DATABASE hasura_event_detector_observability TO observability_readonly;
+GRANT CONNECT ON DATABASE event_detector_observability TO observability_admin;
+GRANT CONNECT ON DATABASE event_detector_observability TO observability_app;
+GRANT CONNECT ON DATABASE event_detector_observability TO observability_readonly;
 
 -- Switch to the new database context for remaining operations
-\c hasura_event_detector_observability
+\c event_detector_observability
 
 -- Grant schema creation permissions to admin
-GRANT ALL PRIVILEGES ON DATABASE hasura_event_detector_observability TO observability_admin;
+GRANT ALL PRIVILEGES ON DATABASE event_detector_observability TO observability_admin;
 
 -- Create default schema (public is sufficient since we have our own database)
 -- Grant permissions on public schema
@@ -79,7 +79,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO observabilit
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO observability_app;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO observability_readonly;
 
-COMMENT ON DATABASE hasura_event_detector_observability IS 'Dedicated database for Hasura Event Detector observability data - execution metadata, performance metrics, and debugging information';
+COMMENT ON DATABASE event_detector_observability IS 'Dedicated database for Event Detector observability data - execution metadata, performance metrics, and debugging information';
 
 -- Create connection information view for reference
 CREATE OR REPLACE VIEW connection_info AS
@@ -97,7 +97,7 @@ COMMENT ON VIEW connection_info IS 'Database connection and version information 
 DO $$
 BEGIN
     RAISE NOTICE 'Observability database setup completed successfully!';
-    RAISE NOTICE 'Database: hasura_event_detector_observability';
+    RAISE NOTICE 'Database: event_detector_observability';
     RAISE NOTICE 'Users created: observability_admin, observability_app, observability_readonly';
     RAISE NOTICE 'Next step: Run schema.sql to create tables and indexes';
     RAISE NOTICE 'IMPORTANT: Change default passwords before production use!';

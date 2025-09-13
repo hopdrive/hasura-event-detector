@@ -1,17 +1,17 @@
--- Hasura Event Detector Observability Database Schema
+-- Event Detector Observability Database Schema
 -- This schema captures detailed execution metadata for event detection and job processing
 -- to provide comprehensive observability and debugging capabilities.
 --
 -- Prerequisites:
 -- 1. Run create-database.sql first to create the observability database
--- 2. Connect to hasura_event_detector_observability database before running this script
--- Usage: psql -h your-rds-endpoint -U observability_admin -d hasura_event_detector_observability -f schema.sql
+-- 2. Connect to event_detector_observability database before running this script
+-- Usage: psql -h your-rds-endpoint -U observability_admin -d event_detector_observability -f schema.sql
 
 -- Verify we're connected to the correct database
 DO $$
 BEGIN
-    IF current_database() != 'hasura_event_detector_observability' THEN
-        RAISE EXCEPTION 'This script must be run on the hasura_event_detector_observability database. Current database: %', current_database();
+    IF current_database() != 'event_detector_observability' THEN
+        RAISE EXCEPTION 'This script must be run on the event_detector_observability database. Current database: %', current_database();
     END IF;
     RAISE NOTICE 'Creating schema in database: %', current_database();
 END $$;
@@ -29,16 +29,17 @@ CREATE TABLE invocations (
     correlation_id TEXT, -- Format: {source_function}.{uuid} for chaining related events
     
     -- Source context
-    source_function TEXT NOT NULL, -- netlify function name
-    source_table TEXT, -- hasura table that triggered the event
+    source_function TEXT NOT NULL, -- function name (netlify, lambda, etc.)
+    source_table TEXT, -- database table that triggered the event
     source_operation TEXT, -- INSERT, UPDATE, DELETE, MANUAL
-    
-    -- Hasura event details
-    hasura_event_id UUID,
-    hasura_event_payload JSONB NOT NULL,
-    hasura_event_time TIMESTAMPTZ,
-    hasura_user_email TEXT,
-    hasura_user_role TEXT,
+    source_system TEXT, -- event source system (hasura, supabase, custom, etc.)
+
+    -- Source event details
+    source_event_id UUID, -- original event ID from the source system
+    source_event_payload JSONB NOT NULL, -- full event data from source system
+    source_event_time TIMESTAMPTZ, -- timestamp from source system
+    source_user_email TEXT, -- user who triggered the event
+    source_user_role TEXT, -- user's role in source system
     
     -- Execution metadata
     total_duration_ms INTEGER,
@@ -151,8 +152,9 @@ CREATE TABLE metrics_hourly (
 -- Performance indexes
 CREATE INDEX idx_invocations_created_at ON invocations(created_at DESC);
 CREATE INDEX idx_invocations_source_function ON invocations(source_function);
+CREATE INDEX idx_invocations_source_system ON invocations(source_system);
 CREATE INDEX idx_invocations_status ON invocations(status);
-CREATE INDEX idx_invocations_hasura_event_id ON invocations(hasura_event_id);
+CREATE INDEX idx_invocations_source_event_id ON invocations(source_event_id);
 CREATE INDEX idx_invocations_correlation_id ON invocations(correlation_id);
 
 CREATE INDEX idx_event_executions_invocation_id ON event_executions(invocation_id);
@@ -263,8 +265,8 @@ $$ LANGUAGE plpgsql;
 -- Note: This requires pg_cron extension in production
 -- SELECT cron.schedule('refresh-dashboard-stats', '*/5 * * * *', 'SELECT refresh_dashboard_stats();');
 
-COMMENT ON DATABASE hasura_event_detector_observability IS 'Dedicated observability database for Hasura Event Detector - captures execution metadata for monitoring and debugging';
-COMMENT ON TABLE invocations IS 'Each call to listenTo() function with context and results';
+COMMENT ON DATABASE event_detector_observability IS 'Dedicated observability database for Event Detector - captures execution metadata for monitoring and debugging';
+COMMENT ON TABLE invocations IS 'Each call to listenTo() function with context and results from any event source system';
 COMMENT ON TABLE event_executions IS 'Each event module checked during an invocation';
 COMMENT ON TABLE job_executions IS 'Each async job executed for detected events';
 COMMENT ON TABLE metrics_hourly IS 'Pre-aggregated hourly metrics for dashboard performance';

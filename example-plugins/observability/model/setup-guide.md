@@ -1,6 +1,6 @@
 # Observability Database Setup Guide
 
-This guide walks you through setting up a dedicated PostgreSQL database for Hasura Event Detector observability on the same RDS server as your main application.
+This guide walks you through setting up a dedicated PostgreSQL database for Event Detector observability on the same RDS server as your main application.
 
 ## Overview
 
@@ -29,7 +29,7 @@ psql -h your-rds-endpoint.region.rds.amazonaws.com -U postgres -f create-databas
 ```
 
 This script will:
-- Create the `hasura_event_detector_observability` database
+- Create the `event_detector_observability` database
 - Create three dedicated users with appropriate permissions:
   - `observability_admin` - Full database management access
   - `observability_app` - Read/write access for the plugin
@@ -45,7 +45,7 @@ Connect to the new observability database and create the schema:
 # Connect to the observability database as the admin user
 psql -h your-rds-endpoint.region.rds.amazonaws.com \
      -U observability_admin \
-     -d hasura_event_detector_observability \
+     -d event_detector_observability \
      -f schema.sql
 ```
 
@@ -63,7 +63,7 @@ Add these environment variables to your Netlify function or application:
 # Observability Database Configuration
 OBSERVABILITY_DB_HOST=your-rds-endpoint.region.rds.amazonaws.com
 OBSERVABILITY_DB_PORT=5432
-OBSERVABILITY_DB_NAME=hasura_event_detector_observability
+OBSERVABILITY_DB_NAME=event_detector_observability
 OBSERVABILITY_DB_USER=observability_app
 OBSERVABILITY_DB_PASSWORD=your-secure-password-here
 
@@ -280,11 +280,11 @@ FROM pg_tables
 WHERE schemaname = 'public'
 ORDER BY size_mb DESC;
 
--- Check recent activity
-SELECT source_function, count(*), max(created_at) as latest
+-- Check recent activity by source system
+SELECT source_system, source_function, count(*), max(created_at) as latest
 FROM invocations
 WHERE created_at >= NOW() - INTERVAL '1 hour'
-GROUP BY source_function;
+GROUP BY source_system, source_function;
 ```
 
 ## Security Best Practices
@@ -306,4 +306,4 @@ After completing the setup:
 4. **Plan Maintenance**: Schedule regular cleanup and materialized view refreshes
 5. **Document Access**: Share readonly credentials with team members who need dashboard access
 
-The observability database is now ready to capture detailed execution metadata from your Hasura Event Detector system!
+The observability database is now ready to capture detailed execution metadata from your Event Detector system, regardless of the event source (Hasura, Supabase, custom webhooks, etc.)!

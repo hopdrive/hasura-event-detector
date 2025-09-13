@@ -1,8 +1,8 @@
 /**
- * Database Connection Configuration for Hasura Event Detector Observability
+ * Database Connection Configuration for Event Detector Observability
  *
  * This module provides connection configuration for the separate observability database.
- * It supports multiple environments and connection methods.
+ * It supports multiple environments and connection methods for any event source system.
  */
 
 /**
@@ -13,7 +13,7 @@ const defaultConfig = {
   // Database connection details
   host: process.env.OBSERVABILITY_DB_HOST || process.env.DATABASE_URL?.match(/postgresql:\/\/[^@]+@([^:]+)/)?.[1] || 'localhost',
   port: parseInt(process.env.OBSERVABILITY_DB_PORT || process.env.DATABASE_URL?.match(/:(\d+)\//)?.[1] || '5432'),
-  database: process.env.OBSERVABILITY_DB_NAME || 'hasura_event_detector_observability',
+  database: process.env.OBSERVABILITY_DB_NAME || 'event_detector_observability',
 
   // User credentials - use dedicated observability user
   username: process.env.OBSERVABILITY_DB_USER || 'observability_app',
@@ -164,7 +164,7 @@ const exampleEnvVars = `
 # Database connection (use your RDS endpoint)
 OBSERVABILITY_DB_HOST=your-rds-endpoint.region.rds.amazonaws.com
 OBSERVABILITY_DB_PORT=5432
-OBSERVABILITY_DB_NAME=hasura_event_detector_observability
+OBSERVABILITY_DB_NAME=event_detector_observability
 
 # Database credentials (created by create-database.sql)
 OBSERVABILITY_DB_USER=observability_app

@@ -1,6 +1,6 @@
 # Observability System Data Model
 
-This document explains the data model, table relationships, and transaction flow for the Hasura Event Detector observability system.
+This document explains the data model, table relationships, and transaction flow for the Event Detector observability system.
 
 ## Table of Contents
 - [Overview](#overview)
@@ -11,10 +11,10 @@ This document explains the data model, table relationships, and transaction flow
 
 ## Overview
 
-The observability system uses a **dedicated PostgreSQL database** (`hasura_event_detector_observability`) on your existing RDS server and a hierarchical data model that mirrors the execution flow of your event detector:
+The observability system uses a **dedicated PostgreSQL database** (`event_detector_observability`) on your existing RDS server and a hierarchical data model that mirrors the execution flow of your event detector:
 
 ```
-📞 Netlify Function Call
+📞 Function Call (Netlify, Lambda, etc.)
   ↓
 🔄 Invocation (listenTo)
   ↓
@@ -27,7 +27,7 @@ The observability system uses a **dedicated PostgreSQL database** (`hasura_event
 
 ## Database Schema
 
-The observability data is stored in a dedicated database (`hasura_event_detector_observability`) rather than a schema within your main application database. This provides:
+The observability data is stored in a dedicated database (`event_detector_observability`) rather than a schema within your main application database. This provides:
 - **Isolation**: Observability operations don't impact main application performance
 - **Scalability**: Independent connection pools and resource allocation
 - **Security**: Granular access control for observability data
@@ -108,12 +108,13 @@ erDiagram
 -- Core identification
 id                      UUID PRIMARY KEY
 source_function         TEXT NOT NULL  -- e.g., 'event-detector-moves'
+source_system          TEXT           -- e.g., 'hasura', 'supabase', 'custom'
 created_at             TIMESTAMPTZ
 
--- Hasura context
-hasura_event_payload    JSONB          -- Full Hasura event data
-hasura_user_email      TEXT           -- Who triggered the change
-hasura_user_role       TEXT           -- User's role
+-- Source event context
+source_event_payload    JSONB          -- Full event data from source system
+source_user_email      TEXT           -- Who triggered the change
+source_user_role       TEXT           -- User's role in source system
 
 -- Execution results
 status                 TEXT           -- 'running', 'completed', 'failed'
@@ -272,10 +273,11 @@ Let's trace through a complete example with your `move.pickup.successful` event:
 
 #### Step 1: Invocation Starts
 ```javascript
-// Netlify function: event-detector-moves.js
+// Function: event-detector-moves.js (could be Netlify, Lambda, etc.)
 exports.handler = async (event, context) => {
   const res = await listenTo(JSON.parse(event.body), {
     sourceFunction: 'event-detector-moves',
+    sourceSystem: 'hasura', // or 'supabase', 'custom', etc.
     observability: { enabled: true, ... }
   });
 ```
@@ -284,11 +286,12 @@ exports.handler = async (event, context) => {
 ```sql
 -- Creates root transaction record
 INSERT INTO invocations (
-  id, source_function, hasura_event_payload, hasura_user_email, 
+  id, source_function, source_system, source_event_payload, source_user_email,
   status, created_at
 ) VALUES (
   '550e8400-e29b-41d4-a716-446655440000',
   'event-detector-moves',
+  'hasura',
   '{"event": {"data": {"new": {"status": "pickup successful"}}}}',
   'driver@company.com',
   'running',
@@ -301,8 +304,8 @@ The system checks each `.js` file in your `/events` directory:
 
 ```javascript
 // Checking: move.pickup.successful.js
-module.exports.detector = async (event, hasuraEvent) => {
-  const { dbEvent, operation } = parseHasuraEvent(hasuraEvent);
+module.exports.detector = async (event, sourceEvent) => {
+  const { dbEvent, operation } = parseEvent(sourceEvent); // Generic parser
   const statusChanged = columnHasChanged('status', dbEvent);
   const isThisEvent = dbEvent?.new?.status === 'pickup successful';
   return statusChanged && isThisEvent; // Returns true - event detected!
@@ -326,10 +329,10 @@ INSERT INTO event_executions (
 For detected events, the handler runs:
 
 ```javascript
-module.exports.handler = async (event, hasuraEvent) => {
-  const { dbEvent } = parseHasuraEvent(hasuraEvent);
-  
-  return await run(event, hasuraEvent, [
+module.exports.handler = async (event, sourceEvent) => {
+  const { dbEvent } = parseEvent(sourceEvent); // Generic parser
+
+  return await run(event, sourceEvent, [
     job(reapplySlaDuration, { move: dbEvent?.new, updateEarliestAvailableTime: false }),
     job(sendNotification, { moveId: dbEvent?.new?.id, type: 'pickup_complete' }),
     job(updateAnalytics, { event: 'pickup_successful', moveId: dbEvent?.new?.id })
@@ -352,9 +355,9 @@ INSERT INTO job_executions (
 As jobs execute, their console output is captured:
 
 ```javascript
-const sendNotification = async (event, hasuraEvent, options) => {
+const sendNotification = async (event, sourceEvent, options) => {
   console.log(`Sending pickup notification for move ${options.moveId}`);
-  
+
   try {
     await notificationService.send({...});
     console.log('Notification sent successfully');
