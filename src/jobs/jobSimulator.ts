@@ -1,4 +1,4 @@
-import type { EventName, HasuraEventPayload, JobOptions } from '@/types/index';
+import type { EventName, HasuraEventPayload, JobOptions } from "../types";
 
 export const jobSimulator = async (
   event: EventName, 

@@ -10,7 +10,7 @@ import type {
   ParsedHasuraEvent,
   HasuraEventData,
   HasuraOperation
-} from '@/types/index';
+} from "../types";
 import { logError } from './log';
 
 /**

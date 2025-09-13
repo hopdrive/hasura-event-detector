@@ -6,7 +6,7 @@
  * event logs.
  */
 
-import type { ListenToResponse } from '@/types/index';
+import type { ListenToResponse } from "../types";
 import { logError } from './log';
 
 export interface NetlifyResponse {

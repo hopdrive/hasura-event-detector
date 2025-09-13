@@ -15,7 +15,7 @@ import type {
   HandlerFunction,
   EventModule,
   JobResult,
-} from '@/types/index';
+} from "./types";
 
 /**
  * Runtime validation for Hasura event payload

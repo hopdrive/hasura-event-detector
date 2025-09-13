@@ -6,7 +6,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import type { ListenToOptions } from '../types/index';
+import type { ListenToOptions } from "../types";
 
 interface ValidateConfigOptions {
   config: string;

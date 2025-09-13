@@ -7,7 +7,7 @@
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import { run, job } from '../handler';
 import { createMockHasuraEvent, createMockJob, createTestJobOptions } from '../../tests/test-utils';
-import type { EventName, HasuraEventPayload, JobFunction, JobOptions } from '../types/index';
+import type { EventName, HasuraEventPayload, JobFunction, JobOptions } from "../types";
 
 describe('Job Handler', () => {
   let mockConsole: ReturnType<typeof global.testUtils.mockConsole>;

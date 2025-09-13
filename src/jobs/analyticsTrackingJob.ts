@@ -4,7 +4,7 @@
  * A realistic example of tracking business events with proper TypeScript typing.
  */
 
-import type { EventName, HasuraEventPayload, JobOptions } from '@/types/index';
+import type { EventName, HasuraEventPayload, JobOptions } from "../types";
 
 interface AnalyticsEvent {
   userId?: string;

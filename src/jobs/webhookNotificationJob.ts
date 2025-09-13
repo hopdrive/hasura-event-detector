@@ -4,7 +4,7 @@
  * A realistic example of sending webhook notifications with proper retry logic.
  */
 
-import type { EventName, HasuraEventPayload, JobOptions } from '@/types/index';
+import type { EventName, HasuraEventPayload, JobOptions } from "../types";
 
 interface WebhookPayload {
   event: EventName;

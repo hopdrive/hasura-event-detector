@@ -10,7 +10,7 @@ import type {
   JobResult,
   Job,
   CorrelationId
-} from '@/types/index';
+} from "./types";
 
 export const job = <T = any>(func: JobFunction<T>, options?: JobOptions): Job<T> => {
   return options ? { func, options } : { func };

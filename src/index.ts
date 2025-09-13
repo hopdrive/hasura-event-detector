@@ -54,4 +54,4 @@ export type {
   DatabaseConfig,
   LogEntry,
   HasuraOperation
-} from './types/index';
+} from "./types";

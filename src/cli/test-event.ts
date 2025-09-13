@@ -7,7 +7,7 @@
 import fs from 'fs';
 import path from 'path';
 import { listenTo } from '../detector';
-import type { HasuraEventPayload, EventName } from '../types/index';
+import type { HasuraEventPayload, EventName } from "../types";
 
 interface TestEventOptions {
   file?: string;
