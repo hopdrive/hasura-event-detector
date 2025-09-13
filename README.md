@@ -94,37 +94,134 @@ Each event module consists of two functions:
 - **Detector**: Determines if a business event occurred
 - **Handler**: Executes jobs when the event is detected
 
+#### Basic Structure
 ```typescript
+import type {
+  EventName,
+  HasuraEventPayload,
+  DetectorFunction,
+  HandlerFunction
+} from '@hopdrive/hasura-event-detector';
 import { parseHasuraEvent, columnHasChanged, job, run } from '@hopdrive/hasura-event-detector';
 
-// Detect user activation
-export const detector = async (event, hasuraEvent) => {
-  const { dbEvent, operation } = parseHasuraEvent(hasuraEvent);
-  
-  return operation === 'UPDATE' && 
-         columnHasChanged('active', dbEvent) &&
-         dbEvent?.new?.active === true;
+export const detector: DetectorFunction = async (event, hasuraEvent) => {
+  // Detection logic here
+  return true; // or false
 };
 
-// Handle user activation
-export const handler = async (event, hasuraEvent) => {
-  const { dbEvent } = parseHasuraEvent(hasuraEvent);
-  
+export const handler: HandlerFunction = async (event, hasuraEvent) => {
   const jobs = [
-    job(async () => {
-      await sendWelcomeEmail(dbEvent.new.email);
-      return { action: 'welcome_email_sent' };
-    }),
-    
-    job(async () => {
-      await trackAnalytics('User Activated', { userId: dbEvent.new.id });
-      return { action: 'analytics_tracked' };
-    })
+    // Define your jobs here
   ];
-  
-  return await run(event, hasuraEvent, jobs);
+  return await run(event, hasuraEvent, jobs) || [];
+};
+
+export default { detector, handler };
+```
+
+#### Detection Patterns
+
+**Column Change Detection:**
+```typescript
+export const detector: DetectorFunction = async (event, hasuraEvent) => {
+  const { dbEvent, operation } = parseHasuraEvent(hasuraEvent);
+
+  // Only process UPDATE operations
+  if (operation !== 'UPDATE') return false;
+
+  // Check if specific column changed
+  if (!columnHasChanged('status', dbEvent)) return false;
+
+  // Check specific value transition
+  const oldStatus = dbEvent?.old?.status;
+  const newStatus = dbEvent?.new?.status;
+
+  return oldStatus === 'pending' && newStatus === 'approved';
 };
 ```
+
+**Insert Detection:**
+```typescript
+export const detector: DetectorFunction = async (event, hasuraEvent) => {
+  const { operation, dbEvent } = parseHasuraEvent(hasuraEvent);
+
+  // Detect new record insertion
+  if (operation !== 'INSERT') return false;
+
+  // Optional: Add conditions based on the inserted data
+  const newRecord = dbEvent?.new;
+  return newRecord?.type === 'premium_user';
+};
+```
+
+#### Job Patterns
+
+**External API Integration:**
+```typescript
+job(async (event, hasuraEvent, options) => {
+  const { dbEvent } = parseHasuraEvent(hasuraEvent);
+  const record = dbEvent?.new;
+
+  // Sync with external CRM
+  const crmResponse = await crmApi.createContact({
+    email: record?.email,
+    name: record?.name,
+    source: 'hasura_event'
+  });
+
+  return {
+    action: 'crm_sync_completed',
+    crmId: crmResponse.id,
+    userId: record?.id
+  };
+}, {
+  timeout: 10000,
+  retries: 2
+})
+```
+
+**Error Handling:**
+```typescript
+job(async (event, hasuraEvent, options) => {
+  try {
+    await externalService.call(data);
+    return { action: 'success' };
+  } catch (error) {
+    console.error('External service failed:', error);
+
+    // Optionally rethrow for retry logic
+    if (error.code === 'RATE_LIMIT') {
+      throw error; // Will trigger retry
+    }
+
+    // Or handle gracefully
+    return {
+      action: 'failed_gracefully',
+      error: error.message,
+      willRetry: false
+    };
+  }
+}, {
+  retries: 3,
+  timeout: 8000
+})
+```
+
+#### File Naming Convention
+
+Event modules should be placed in the `events/` directory with descriptive names:
+- `events/user-activation.js` - User becomes active
+- `events/order-completed.js` - Order status changes to completed
+- `events/subscription-renewed.js` - Subscription renewal
+- `events/payment-failed.js` - Payment processing failure
+
+#### Best Practices
+
+1. **Keep Detectors Simple and Fast** - Use early returns for quick filtering
+2. **Make Jobs Idempotent** - Jobs may be retried, ensure they can run multiple times safely
+3. **Use Correlation IDs** - Always pass correlation IDs to track related operations
+4. **Handle Failures Gracefully** - Set appropriate timeouts and retry counts
+5. **Monitor and Observe** - Return meaningful results from jobs
 
 ### Built-in Job Functions
 
@@ -421,11 +518,7 @@ hasura-event-detector test user-activation --dry-run
 
 ## 📚 Documentation
 
-- [API Reference](./docs/API.md) - Complete API documentation
-- [Event Modules Guide](./docs/EVENT_MODULES.md) - How to create event modules
-- [Context System Guide](./docs/CONTEXT_EXAMPLES.md) - Using context for metadata injection
-- [Correlation ID Guide](./docs/CORRELATION_ID_GUIDE.md) - Tracing business processes with correlation IDs
-- [Plugin System Guide](./docs/PLUGIN_SYSTEM.md) - Create plugins for observability and customization
+- [Plugin System Guide](./example-plugins/README.md) - Create plugins for observability and customization
 - [Templates](./templates/) - Ready-to-use templates
 
 ## 🎨 Templates
