@@ -185,10 +185,10 @@ const EventNode = ({ data, selected }: NodeProps) => {
 const JobNode = ({ data, selected }: NodeProps) => {
   const statusColors = {
     completed: {
-      border: 'border-green-500',
-      accent: 'bg-green-500',
-      text: 'text-green-600 dark:text-green-400',
-      ring: 'ring-green-400'
+      border: 'border-purple-500',
+      accent: 'bg-purple-500',
+      text: 'text-purple-600 dark:text-purple-400',
+      ring: 'ring-purple-400'
     },
     failed: {
       border: 'border-red-500',
