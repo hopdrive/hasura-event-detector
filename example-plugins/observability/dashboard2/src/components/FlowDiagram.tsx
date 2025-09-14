@@ -91,6 +91,8 @@ const InvocationNode = ({ data, selected }: NodeProps) => {
 
 const EventNode = ({ data, selected }: NodeProps) => {
   const isDetected = data.detected;
+  const hasFailedJobs = data.hasFailedJobs;
+  const hasErrors = isDetected && hasFailedJobs;
 
   return (
     <motion.div
@@ -99,23 +101,32 @@ const EventNode = ({ data, selected }: NodeProps) => {
       transition={{ duration: 0.3, delay: 0.1 }}
       className={`
         relative bg-white dark:bg-gray-800 rounded-lg border-2
-        ${isDetected ? 'border-green-500' : 'border-gray-300 opacity-60'}
-        ${selected ? 'ring-4 ring-green-400 ring-opacity-50' : ''}
+        ${hasErrors ? 'border-red-500' : isDetected ? 'border-green-500' : 'border-gray-300 opacity-60'}
+        ${selected ? `ring-4 ${hasErrors ? 'ring-red-400' : 'ring-green-400'} ring-opacity-50` : ''}
         shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer
         min-w-[220px]
       `}
     >
       <Handle type='target' position={Position.Left} className='w-3 h-3' />
 
-      {/* Green accent strip */}
-      <div className='absolute left-0 top-0 bottom-0 w-1 bg-green-500 rounded-l-lg' />
+      {/* Status-colored accent strip */}
+      <div className={`absolute left-0 top-0 bottom-0 w-1 ${hasErrors ? 'bg-red-500' : 'bg-green-500'} rounded-l-lg`} />
 
       <div className='p-3 pl-4'>
         <div className='flex items-center justify-between mb-1'>
-          <span className='text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide'>
+          <span className={`text-xs font-semibold ${hasErrors ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'} uppercase tracking-wide`}>
             Event
           </span>
-          {isDetected && (
+          {isDetected && hasErrors && (
+            <svg className='w-4 h-4 text-red-500' fill='currentColor' viewBox='0 0 20 20'>
+              <path
+                fillRule='evenodd'
+                d='M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z'
+                clipRule='evenodd'
+              />
+            </svg>
+          )}
+          {isDetected && !hasErrors && (
             <svg className='w-4 h-4 text-green-500' fill='currentColor' viewBox='0 0 20 20'>
               <path
                 fillRule='evenodd'
@@ -128,12 +139,26 @@ const EventNode = ({ data, selected }: NodeProps) => {
 
         <p className='font-medium text-gray-900 dark:text-white text-sm'>{data.eventName}</p>
         <div className='mt-1 flex items-center space-x-2'>
-          <span className='inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'>
+          <span
+            className='relative inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors group'
+            title={`Detection took ${formatDuration(data.detectionDuration)}`}
+          >
             {formatDuration(data.detectionDuration)}
+            <div className='absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50'>
+              Detection took {formatDuration(data.detectionDuration)}
+              <div className='absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900'></div>
+            </div>
           </span>
           {isDetected && data.handlerDuration && (
-            <span className='inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'>
+            <span
+              className='relative inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors group'
+              title={`Handler took ${formatDuration(data.handlerDuration)}`}
+            >
               {formatDuration(data.handlerDuration)}
+              <div className='absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50'>
+                Handler took {formatDuration(data.handlerDuration)}
+                <div className='absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900'></div>
+              </div>
             </span>
           )}
           {!isDetected && (
@@ -159,12 +184,30 @@ const EventNode = ({ data, selected }: NodeProps) => {
 
 const JobNode = ({ data, selected }: NodeProps) => {
   const statusColors = {
-    completed: 'border-green-500',
-    failed: 'border-red-500',
-    running: 'border-blue-500',
+    completed: {
+      border: 'border-green-500',
+      accent: 'bg-green-500',
+      text: 'text-green-600 dark:text-green-400',
+      ring: 'ring-green-400'
+    },
+    failed: {
+      border: 'border-red-500',
+      accent: 'bg-red-500',
+      text: 'text-red-600 dark:text-red-400',
+      ring: 'ring-red-400'
+    },
+    running: {
+      border: 'border-blue-500',
+      accent: 'bg-blue-500',
+      text: 'text-blue-600 dark:text-blue-400',
+      ring: 'ring-blue-400'
+    },
   };
 
   const hasRecursion = data.triggersInvocation;
+  const status = data.status || 'completed';
+  const colors = statusColors[status as keyof typeof statusColors] || statusColors.completed;
+  const isFailed = status === 'failed';
 
   return (
     <motion.div
@@ -172,33 +215,53 @@ const JobNode = ({ data, selected }: NodeProps) => {
       animate={{ scale: 1, opacity: 1 }}
       transition={{ duration: 0.3, delay: 0.2 }}
       className={`
-        relative bg-white dark:bg-gray-800 rounded-lg border-2 border-purple-500
-        ${selected ? 'ring-4 ring-purple-400 ring-opacity-50' : ''}
-        ${hasRecursion ? 'ring-2 ring-purple-500 ring-offset-2' : ''}
+        relative bg-white dark:bg-gray-800 rounded-lg border-2 ${colors.border}
+        ${selected ? `ring-4 ${colors.ring} ring-opacity-50` : ''}
+        ${hasRecursion ? `ring-2 ${colors.border.replace('border-', 'ring-')} ring-offset-2` : ''}
         shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer
         min-w-[180px]
       `}
     >
       <Handle type='target' position={Position.Left} className='w-3 h-3' />
 
-      {/* Purple accent strip */}
-      <div className='absolute left-0 top-0 bottom-0 w-1 bg-purple-500 rounded-l-lg' />
+      {/* Status-colored accent strip */}
+      <div className={`absolute left-0 top-0 bottom-0 w-1 ${colors.accent} rounded-l-lg`} />
 
       <div className='p-3 pl-4'>
         <div className='flex items-center justify-between mb-1'>
-          <span className='text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide'>
+          <span className={`text-xs font-semibold ${colors.text} uppercase tracking-wide`}>
             Job
           </span>
-          {hasRecursion && (
-            <svg className='w-4 h-4 text-purple-500' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-              <path
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                strokeWidth={2}
-                d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'
-              />
-            </svg>
-          )}
+          <div className='flex items-center space-x-1'>
+            {isFailed && (
+              <svg className='w-4 h-4 text-red-500' fill='currentColor' viewBox='0 0 20 20'>
+                <path
+                  fillRule='evenodd'
+                  d='M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z'
+                  clipRule='evenodd'
+                />
+              </svg>
+            )}
+            {status === 'completed' && !isFailed && (
+              <svg className='w-4 h-4 text-green-500' fill='currentColor' viewBox='0 0 20 20'>
+                <path
+                  fillRule='evenodd'
+                  d='M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z'
+                  clipRule='evenodd'
+                />
+              </svg>
+            )}
+            {hasRecursion && (
+              <svg className='w-4 h-4 text-purple-500' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'
+                />
+              </svg>
+            )}
+          </div>
         </div>
 
         <p className='font-medium text-gray-900 dark:text-white text-sm'>{data.jobName}</p>
@@ -482,6 +545,7 @@ const FlowDiagramContent = () => {
               detectionDuration: event.detection_duration_ms,
               handlerDuration: event.handler_duration_ms,
               jobsCount: event.jobs_count,
+              hasFailedJobs: (event.job_executions || []).some((job: any) => job.status === 'failed'),
             },
           };
           nodes.push(eventNode);
@@ -604,6 +668,7 @@ const FlowDiagramContent = () => {
               detectionDuration: event.detection_duration_ms,
               handlerDuration: event.handler_duration_ms,
               jobsCount: event.jobs_count,
+              hasFailedJobs: (event.job_executions || []).some((job: any) => job.status === 'failed'),
             },
           };
           nodes.push(eventNode);
