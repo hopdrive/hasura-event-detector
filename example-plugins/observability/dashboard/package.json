@@ -32,7 +32,8 @@
     "lint": "eslint . --ext js,jsx,ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --ext js,jsx,ts,tsx --fix",
     "clean": "rm -rf dist node_modules/.vite",
-    "analyze": "vite build --mode analyze"
+    "analyze": "vite build --mode analyze",
+    "serve": "node -e \"const http=require('http'); const fs=require('fs'); const path=require('path'); const server=http.createServer((req,res)=>{res.setHeader('Access-Control-Allow-Origin','*'); res.setHeader('Access-Control-Allow-Methods','GET,POST,PUT,DELETE,OPTIONS'); res.setHeader('Access-Control-Allow-Headers','Content-Type,Authorization'); if(req.method==='OPTIONS') return res.end(); const filePath=req.url==='/'?'simple-dashboard-cors-fix.html':req.url.slice(1); const fullPath=path.join(__dirname,filePath); if(fs.existsSync(fullPath)&&fs.statSync(fullPath).isFile()) {const ext=path.extname(fullPath); const contentType={'html':'text/html','css':'text/css','js':'text/javascript','json':'application/json'}[ext.slice(1)]||'text/plain'; res.writeHead(200,{'Content-Type':contentType}); fs.createReadStream(fullPath).pipe(res);} else {res.writeHead(404); res.end('Not found');}}); server.listen(8900,()=>console.log('Dashboard server running at http://localhost:8900'));\""
   },
   "keywords": [
     "hasura",

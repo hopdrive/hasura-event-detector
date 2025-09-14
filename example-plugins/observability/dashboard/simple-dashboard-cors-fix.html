@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Detector Observability Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .config-bar {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .config-bar input, .config-bar select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .config-toggle {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            transition: background-color 0.2s;
+            font-size: 14px;
+            color: #495057;
+        }
+
+        .config-toggle:hover {
+            background: #e9ecef;
+        }
+
+        .config-toggle.expanded {
+            background: #667eea;
+            color: white;
+        }
+
+        .collapsible-config {
+            display: none;
+            margin-top: 10px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+
+        .collapsible-config.show {
+            display: block;
+        }
+
+        .cors-notice {
+            background: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ffeaa7;
+        }
+
+        .cors-notice strong {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .cors-notice code {
+            background: #f8f9fa;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        .metric-value {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #667eea;
+            margin: 10px 0;
+        }
+
+        .metric-label {
+            color: #666;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .table-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f3f4f6;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        tr:hover {
+            background: #f9fafb;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-completed {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-failed {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-running {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .error pre {
+            margin-top: 10px;
+            font-size: 12px;
+            overflow-x: auto;
+            background: #fef2f2;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .refresh-btn, .test-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s ease;
+            margin-right: 10px;
+        }
+
+        .refresh-btn:hover, .test-btn:hover {
+            background: #5a67d8;
+        }
+
+        .test-btn {
+            background: #48bb78;
+        }
+
+        .test-btn:hover {
+            background: #38a169;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .time-filter {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .connection-mode {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .success {
+            color: #065f46;
+            font-weight: bold;
+        }
+
+        .proxy-notice {
+            background: #e6fffa;
+            color: #234e52;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Event Detector Observability Dashboard</h1>
+
+        <div class="cors-notice" id="corsNotice" style="display: none;">
+            <strong>CORS Issue Detected!</strong>
+            <p>To fix this issue, please:</p>
+            <ol>
+                <li>Serve this file with a local web server instead of opening directly</li>
+                <li>Run: <code>python3 -m http.server 8000</code> in the dashboard directory</li>
+                <li>Then open: <code>http://localhost:8000/simple-dashboard-cors-fix.html</code></li>
+            </ol>
+            <div class="proxy-notice">
+                <strong>Alternative:</strong> The dashboard will attempt to use a CORS proxy for testing purposes.
+            </div>
+        </div>
+
+        <div class="config-bar">
+            <input type="text" id="hasuraEndpoint" placeholder="Enter your Hasura GraphQL endpoint (e.g., http://localhost:8080/v1/graphql)" />
+
+            <div class="config-toggle" onclick="toggleAdvancedConfig()" id="configToggle">
+                🔧 Advanced Configuration (Click to expand)
+            </div>
+
+            <div class="collapsible-config" id="advancedConfig">
+                <input type="password" id="adminSecret" placeholder="Hasura Admin Secret (optional)" />
+                <small style="color: #666; display: block; margin-bottom: 10px;">
+                    Leave empty if no admin secret is required. The default is: local-docker-hasura-secret
+                </small>
+                <select class="connection-mode" id="connectionMode">
+                    <option value="direct">Direct Connection</option>
+                    <option value="proxy">Use CORS Proxy (for file:// URLs)</option>
+                </select>
+            </div>
+
+            <div class="controls">
+                <select class="time-filter" id="timeFilter">
+                    <option value="1">Last Hour</option>
+                    <option value="24" selected>Last 24 Hours</option>
+                    <option value="168">Last Week</option>
+                    <option value="720">Last Month</option>
+                </select>
+                <button class="test-btn" onclick="testConnection()">Test Connection</button>
+                <button class="refresh-btn" onclick="refreshDashboard()">Refresh Dashboard</button>
+            </div>
+        </div>
+
+        <div id="connectionTest" style="display: none;"></div>
+        <div id="loading" class="loading">Configure your GraphQL endpoint above to get started</div>
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="dashboard" style="display: none;">
+            <div class="dashboard-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Total Invocations</div>
+                    <div class="metric-value" id="totalInvocations">-</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Success Rate</div>
+                    <div class="metric-value" id="successRate">-</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Avg Duration</div>
+                    <div class="metric-value" id="avgDuration">-</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Total Jobs</div>
+                    <div class="metric-value" id="totalJobs">-</div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-title">Invocation Trends</div>
+                <canvas id="trendsChart" width="400" height="200"></canvas>
+            </div>
+
+            <div class="table-container">
+                <div class="chart-title">Recent Invocations</div>
+                <table id="invocationsTable">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Function</th>
+                            <th>System</th>
+                            <th>Status</th>
+                            <th>Duration (ms)</th>
+                            <th>Events</th>
+                            <th>Jobs</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invocationsBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        let HASURA_ENDPOINT = localStorage.getItem('hasuraEndpoint') || '';
+        let ADMIN_SECRET = localStorage.getItem('adminSecret') || 'local-docker-hasura-secret';
+
+        document.getElementById('hasuraEndpoint').value = HASURA_ENDPOINT;
+        document.getElementById('adminSecret').value = ADMIN_SECRET;
+
+        // Charts
+        let trendsChart;
+
+        // Toggle advanced configuration
+        function toggleAdvancedConfig() {
+            const toggle = document.getElementById('configToggle');
+            const config = document.getElementById('advancedConfig');
+
+            if (config.classList.contains('show')) {
+                config.classList.remove('show');
+                toggle.classList.remove('expanded');
+                toggle.textContent = '🔧 Advanced Configuration (Click to expand)';
+            } else {
+                config.classList.add('show');
+                toggle.classList.add('expanded');
+                toggle.textContent = '🔧 Advanced Configuration (Click to hide)';
+            }
+        }
+
+        // Detect if running from file:// URL
+        if (window.location.protocol === 'file:') {
+            document.getElementById('corsNotice').style.display = 'block';
+            document.getElementById('connectionMode').value = 'proxy';
+        }
+
+        // Save endpoint when changed
+        document.getElementById('hasuraEndpoint').addEventListener('change', (e) => {
+            HASURA_ENDPOINT = e.target.value;
+            localStorage.setItem('hasuraEndpoint', HASURA_ENDPOINT);
+        });
+
+        // Save admin secret when changed
+        document.getElementById('adminSecret').addEventListener('change', (e) => {
+            ADMIN_SECRET = e.target.value;
+            localStorage.setItem('adminSecret', ADMIN_SECRET);
+        });
+
+        // GraphQL Query
+        const getDashboardQuery = (hours) => `
+            query GetDashboard {
+                invocations_aggregate(where: {created_at: {_gte: "${new Date(Date.now() - hours * 3600000).toISOString()}"}}) {
+                    aggregate {
+                        count
+                        avg { total_duration_ms }
+                        sum {
+                            total_jobs_run
+                            total_jobs_succeeded
+                            total_jobs_failed
+                        }
+                    }
+                    nodes {
+                        status
+                    }
+                }
+
+                recent: invocations(
+                    where: {created_at: {_gte: "${new Date(Date.now() - hours * 3600000).toISOString()}"}}
+                    order_by: {created_at: desc}
+                    limit: 20
+                ) {
+                    id
+                    created_at
+                    source_function
+                    source_system
+                    status
+                    total_duration_ms
+                    events_detected_count
+                    total_jobs_run
+                }
+            }
+        `;
+
+        async function makeRequest(url, body, useCorsProxy = false) {
+            const actualUrl = useCorsProxy ?
+                `https://cors-anywhere.herokuapp.com/${url}` : url;
+
+            const headers = {
+                'Content-Type': 'application/json',
+            };
+
+            if (ADMIN_SECRET && ADMIN_SECRET.trim() !== '') {
+                headers['x-hasura-admin-secret'] = ADMIN_SECRET;
+            }
+
+            if (useCorsProxy) {
+                headers['X-Requested-With'] = 'XMLHttpRequest';
+            }
+
+            return fetch(actualUrl, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(body)
+            });
+        }
+
+        async function testConnection() {
+            const testDiv = document.getElementById('connectionTest');
+            const connectionMode = document.getElementById('connectionMode').value;
+
+            if (!HASURA_ENDPOINT) {
+                testDiv.innerHTML = '<div class="error">Please enter a GraphQL endpoint first.</div>';
+                testDiv.style.display = 'block';
+                return;
+            }
+
+            testDiv.innerHTML = '<div class="loading">Testing connection...</div>';
+            testDiv.style.display = 'block';
+
+            try {
+                const testQuery = `
+                    query TestConnection {
+                        __schema {
+                            queryType {
+                                name
+                            }
+                        }
+                    }
+                `;
+
+                const response = await makeRequest(HASURA_ENDPOINT, {
+                    query: testQuery
+                }, connectionMode === 'proxy');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                if (data.errors) {
+                    throw new Error(data.errors[0].message);
+                }
+
+                testDiv.innerHTML = '<div class="success">✓ Connection successful!</div>';
+
+                // Check if observability tables exist
+                const checkTablesQuery = `
+                    query CheckTables {
+                        invocations_aggregate {
+                            aggregate {
+                                count
+                            }
+                        }
+                    }
+                `;
+
+                const tableResponse = await makeRequest(HASURA_ENDPOINT, {
+                    query: checkTablesQuery
+                }, connectionMode === 'proxy');
+
+                const tableData = await tableResponse.json();
+
+                if (tableData.errors) {
+                    testDiv.innerHTML += '<div class="error" style="margin-top: 10px;">⚠️ Observability tables not found in GraphQL schema. Make sure to track the tables in Hasura Console.</div>';
+                } else {
+                    testDiv.innerHTML += '<div class="success">✓ Observability tables are accessible!</div>';
+                }
+
+            } catch (error) {
+                testDiv.innerHTML = `
+                    <div class="error">
+                        <strong>Connection failed:</strong> ${error.message}
+                        <pre>Endpoint: ${HASURA_ENDPOINT}
+Mode: ${connectionMode}
+Protocol: ${window.location.protocol}</pre>
+                    </div>
+                `;
+
+                if (error.message.includes('CORS') || error.message.includes('fetch')) {
+                    testDiv.innerHTML += `
+                        <div class="proxy-notice">
+                            <strong>CORS Error Solutions:</strong>
+                            <br>1. Serve this page with a web server (recommended)
+                            <br>2. Try switching to "Use CORS Proxy" mode above
+                            <br>3. Configure Hasura CORS settings to allow your origin
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        async function fetchDashboardData() {
+            if (!HASURA_ENDPOINT) {
+                throw new Error('Please enter your Hasura GraphQL endpoint');
+            }
+
+            const hours = parseInt(document.getElementById('timeFilter').value);
+            const connectionMode = document.getElementById('connectionMode').value;
+
+            const response = await makeRequest(HASURA_ENDPOINT, {
+                query: getDashboardQuery(hours)
+            }, connectionMode === 'proxy');
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            if (data.errors) {
+                throw new Error(data.errors[0].message);
+            }
+
+            return data.data;
+        }
+
+        function updateMetrics(data) {
+            const agg = data.invocations_aggregate.aggregate;
+            const nodes = data.invocations_aggregate.nodes;
+
+            // Total Invocations
+            document.getElementById('totalInvocations').textContent = agg.count || 0;
+
+            // Success Rate
+            const completed = nodes.filter(n => n.status === 'completed').length;
+            const successRate = agg.count > 0 ? ((completed / agg.count) * 100).toFixed(1) : 0;
+            document.getElementById('successRate').textContent = successRate + '%';
+
+            // Average Duration
+            const avgDuration = agg.avg?.total_duration_ms || 0;
+            document.getElementById('avgDuration').textContent = Math.round(avgDuration) + 'ms';
+
+            // Total Jobs
+            const totalJobs = agg.sum?.total_jobs_run || 0;
+            document.getElementById('totalJobs').textContent = totalJobs;
+        }
+
+        function updateTable(invocations) {
+            const tbody = document.getElementById('invocationsBody');
+            tbody.innerHTML = '';
+
+            if (invocations.length === 0) {
+                const row = tbody.insertRow();
+                row.innerHTML = '<td colspan="7" style="text-align: center; color: #666; padding: 20px;">No invocations found. Make sure the observability plugin is enabled and working.</td>';
+                return;
+            }
+
+            invocations.forEach(inv => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${new Date(inv.created_at).toLocaleString()}</td>
+                    <td>${inv.source_function || '-'}</td>
+                    <td>${inv.source_system || '-'}</td>
+                    <td><span class="status-badge status-${inv.status}">${inv.status}</span></td>
+                    <td>${inv.total_duration_ms || '-'}</td>
+                    <td>${inv.events_detected_count || 0}</td>
+                    <td>${inv.total_jobs_run || 0}</td>
+                `;
+            });
+        }
+
+        function createCharts(data) {
+            // Destroy existing chart
+            if (trendsChart) trendsChart.destroy();
+
+            // Simple trend chart
+            const ctx = document.getElementById('trendsChart').getContext('2d');
+            const recentData = data.recent.slice(0, 10).reverse(); // Last 10, oldest first
+
+            trendsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: recentData.map((_, i) => `Invocation ${i + 1}`),
+                    datasets: [{
+                        label: 'Duration (ms)',
+                        data: recentData.map(r => r.total_duration_ms || 0),
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Duration (ms)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function refreshDashboard() {
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const dashboard = document.getElementById('dashboard');
+
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            dashboard.style.display = 'none';
+
+            try {
+                const data = await fetchDashboardData();
+
+                updateMetrics(data);
+                updateTable(data.recent);
+                createCharts(data);
+
+                loading.style.display = 'none';
+                dashboard.style.display = 'block';
+
+                // Clear any connection test results on successful refresh
+                document.getElementById('connectionTest').style.display = 'none';
+
+            } catch (err) {
+                loading.style.display = 'none';
+                error.style.display = 'block';
+                error.innerHTML = `
+                    <strong>Error loading dashboard:</strong> ${err.message}
+                    <pre>Endpoint: ${HASURA_ENDPOINT}
+Time: ${new Date().toISOString()}
+Connection Mode: ${document.getElementById('connectionMode').value}</pre>
+                    <p><strong>Troubleshooting:</strong></p>
+                    <ul>
+                        <li>Click "Test Connection" to verify your endpoint</li>
+                        <li>Make sure observability tables are tracked in Hasura</li>
+                        <li>Check that there's data in the observability database</li>
+                        <li>Try switching connection modes if using file:// URL</li>
+                    </ul>
+                `;
+            }
+        }
+
+        // Auto-refresh every 30 seconds (only when dashboard is visible)
+        setInterval(() => {
+            if (document.getElementById('dashboard').style.display !== 'none') {
+                refreshDashboard();
+            }
+        }, 30000);
+
+        // Load saved endpoint
+        if (HASURA_ENDPOINT) {
+            document.getElementById('loading').textContent = 'Ready to load dashboard. Click "Test Connection" or "Refresh Dashboard" to begin.';
+        }
+    </script>
+</body>
+</html>
