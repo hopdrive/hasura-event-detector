@@ -95,7 +95,7 @@ const InvocationsTable = () => {
 
   const handleRowClick = (invocation: Invocation) => {
     // Navigate to Flow Diagram with auto-focus on this invocation
-    navigate(`/flow?invocationId=${invocation.id}&autoFocus=true&correlationId=${encodeURIComponent(invocation.correlationId)}`);
+    navigate(`/flow?invocationId=${invocation.id}&autoFocus=true`);
   };
 
   const handleViewDetails = (invocation: Invocation, event: React.MouseEvent) => {

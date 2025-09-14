@@ -35071,6 +35071,10 @@ export type Invocations = {
   __typename?: 'invocations';
   auto_load_modules?: Maybe<Scalars['Boolean']['output']>;
   context_data?: Maybe<Scalars['jsonb']['output']>;
+  /** An array relationship */
+  correlated_invocations: Array<Invocations>;
+  /** An aggregate relationship */
+  correlated_invocations_aggregate: Invocations_Aggregate;
   correlation_id?: Maybe<Scalars['String']['output']>;
   created_at: Scalars['timestamptz']['output'];
   error_message?: Maybe<Scalars['String']['output']>;
@@ -35110,6 +35114,26 @@ export type Invocations = {
 /** Each call to listenTo() function with context and results from any event source system */
 export type InvocationsContext_DataArgs = {
   path?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+/** Each call to listenTo() function with context and results from any event source system */
+export type InvocationsCorrelated_InvocationsArgs = {
+  distinct_on?: InputMaybe<Array<Invocations_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Invocations_Order_By>>;
+  where?: InputMaybe<Invocations_Bool_Exp>;
+};
+
+
+/** Each call to listenTo() function with context and results from any event source system */
+export type InvocationsCorrelated_Invocations_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Invocations_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Invocations_Order_By>>;
+  where?: InputMaybe<Invocations_Bool_Exp>;
 };
 
 
@@ -35165,6 +35189,33 @@ export type Invocations_Aggregate = {
   nodes: Array<Invocations>;
 };
 
+export type Invocations_Aggregate_Bool_Exp = {
+  bool_and?: InputMaybe<Invocations_Aggregate_Bool_Exp_Bool_And>;
+  bool_or?: InputMaybe<Invocations_Aggregate_Bool_Exp_Bool_Or>;
+  count?: InputMaybe<Invocations_Aggregate_Bool_Exp_Count>;
+};
+
+export type Invocations_Aggregate_Bool_Exp_Bool_And = {
+  arguments: Invocations_Select_Column_Invocations_Aggregate_Bool_Exp_Bool_And_Arguments_Columns;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<Invocations_Bool_Exp>;
+  predicate: Boolean_Comparison_Exp;
+};
+
+export type Invocations_Aggregate_Bool_Exp_Bool_Or = {
+  arguments: Invocations_Select_Column_Invocations_Aggregate_Bool_Exp_Bool_Or_Arguments_Columns;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<Invocations_Bool_Exp>;
+  predicate: Boolean_Comparison_Exp;
+};
+
+export type Invocations_Aggregate_Bool_Exp_Count = {
+  arguments?: InputMaybe<Array<Invocations_Select_Column>>;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<Invocations_Bool_Exp>;
+  predicate: Int_Comparison_Exp;
+};
+
 /** aggregate fields of "invocations" */
 export type Invocations_Aggregate_Fields = {
   __typename?: 'invocations_aggregate_fields';
@@ -35188,10 +35239,32 @@ export type Invocations_Aggregate_FieldsCountArgs = {
   distinct?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
+/** order by aggregate values of table "invocations" */
+export type Invocations_Aggregate_Order_By = {
+  avg?: InputMaybe<Invocations_Avg_Order_By>;
+  count?: InputMaybe<Order_By>;
+  max?: InputMaybe<Invocations_Max_Order_By>;
+  min?: InputMaybe<Invocations_Min_Order_By>;
+  stddev?: InputMaybe<Invocations_Stddev_Order_By>;
+  stddev_pop?: InputMaybe<Invocations_Stddev_Pop_Order_By>;
+  stddev_samp?: InputMaybe<Invocations_Stddev_Samp_Order_By>;
+  sum?: InputMaybe<Invocations_Sum_Order_By>;
+  var_pop?: InputMaybe<Invocations_Var_Pop_Order_By>;
+  var_samp?: InputMaybe<Invocations_Var_Samp_Order_By>;
+  variance?: InputMaybe<Invocations_Variance_Order_By>;
+};
+
 /** append existing jsonb value of filtered columns with new jsonb value */
 export type Invocations_Append_Input = {
   context_data?: InputMaybe<Scalars['jsonb']['input']>;
   source_event_payload?: InputMaybe<Scalars['jsonb']['input']>;
+};
+
+/** input type for inserting array relation for remote table "invocations" */
+export type Invocations_Arr_Rel_Insert_Input = {
+  data: Array<Invocations_Insert_Input>;
+  /** upsert condition */
+  on_conflict?: InputMaybe<Invocations_On_Conflict>;
 };
 
 /** aggregate avg on columns */
@@ -35204,6 +35277,15 @@ export type Invocations_Avg_Fields = {
   total_jobs_succeeded?: Maybe<Scalars['Float']['output']>;
 };
 
+/** order by avg() on columns of table "invocations" */
+export type Invocations_Avg_Order_By = {
+  events_detected_count?: InputMaybe<Order_By>;
+  total_duration_ms?: InputMaybe<Order_By>;
+  total_jobs_failed?: InputMaybe<Order_By>;
+  total_jobs_run?: InputMaybe<Order_By>;
+  total_jobs_succeeded?: InputMaybe<Order_By>;
+};
+
 /** Boolean expression to filter rows from the table "invocations". All fields are combined with a logical 'AND'. */
 export type Invocations_Bool_Exp = {
   _and?: InputMaybe<Array<Invocations_Bool_Exp>>;
@@ -35211,6 +35293,8 @@ export type Invocations_Bool_Exp = {
   _or?: InputMaybe<Array<Invocations_Bool_Exp>>;
   auto_load_modules?: InputMaybe<Boolean_Comparison_Exp>;
   context_data?: InputMaybe<Jsonb_Comparison_Exp>;
+  correlated_invocations?: InputMaybe<Invocations_Bool_Exp>;
+  correlated_invocations_aggregate?: InputMaybe<Invocations_Aggregate_Bool_Exp>;
   correlation_id?: InputMaybe<String_Comparison_Exp>;
   created_at?: InputMaybe<Timestamptz_Comparison_Exp>;
   error_message?: InputMaybe<String_Comparison_Exp>;
@@ -35278,6 +35362,7 @@ export type Invocations_Inc_Input = {
 export type Invocations_Insert_Input = {
   auto_load_modules?: InputMaybe<Scalars['Boolean']['input']>;
   context_data?: InputMaybe<Scalars['jsonb']['input']>;
+  correlated_invocations?: InputMaybe<Invocations_Arr_Rel_Insert_Input>;
   correlation_id?: InputMaybe<Scalars['String']['input']>;
   created_at?: InputMaybe<Scalars['timestamptz']['input']>;
   error_message?: InputMaybe<Scalars['String']['input']>;
@@ -35333,6 +35418,32 @@ export type Invocations_Max_Fields = {
   updated_at?: Maybe<Scalars['timestamptz']['output']>;
 };
 
+/** order by max() on columns of table "invocations" */
+export type Invocations_Max_Order_By = {
+  correlation_id?: InputMaybe<Order_By>;
+  created_at?: InputMaybe<Order_By>;
+  error_message?: InputMaybe<Order_By>;
+  error_stack?: InputMaybe<Order_By>;
+  event_modules_directory?: InputMaybe<Order_By>;
+  events_detected_count?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  source_event_id?: InputMaybe<Order_By>;
+  source_event_time?: InputMaybe<Order_By>;
+  source_function?: InputMaybe<Order_By>;
+  source_job_id?: InputMaybe<Order_By>;
+  source_operation?: InputMaybe<Order_By>;
+  source_system?: InputMaybe<Order_By>;
+  source_table?: InputMaybe<Order_By>;
+  source_user_email?: InputMaybe<Order_By>;
+  source_user_role?: InputMaybe<Order_By>;
+  status?: InputMaybe<Order_By>;
+  total_duration_ms?: InputMaybe<Order_By>;
+  total_jobs_failed?: InputMaybe<Order_By>;
+  total_jobs_run?: InputMaybe<Order_By>;
+  total_jobs_succeeded?: InputMaybe<Order_By>;
+  updated_at?: InputMaybe<Order_By>;
+};
+
 /** aggregate min on columns */
 export type Invocations_Min_Fields = {
   __typename?: 'invocations_min_fields';
@@ -35358,6 +35469,32 @@ export type Invocations_Min_Fields = {
   total_jobs_run?: Maybe<Scalars['Int']['output']>;
   total_jobs_succeeded?: Maybe<Scalars['Int']['output']>;
   updated_at?: Maybe<Scalars['timestamptz']['output']>;
+};
+
+/** order by min() on columns of table "invocations" */
+export type Invocations_Min_Order_By = {
+  correlation_id?: InputMaybe<Order_By>;
+  created_at?: InputMaybe<Order_By>;
+  error_message?: InputMaybe<Order_By>;
+  error_stack?: InputMaybe<Order_By>;
+  event_modules_directory?: InputMaybe<Order_By>;
+  events_detected_count?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  source_event_id?: InputMaybe<Order_By>;
+  source_event_time?: InputMaybe<Order_By>;
+  source_function?: InputMaybe<Order_By>;
+  source_job_id?: InputMaybe<Order_By>;
+  source_operation?: InputMaybe<Order_By>;
+  source_system?: InputMaybe<Order_By>;
+  source_table?: InputMaybe<Order_By>;
+  source_user_email?: InputMaybe<Order_By>;
+  source_user_role?: InputMaybe<Order_By>;
+  status?: InputMaybe<Order_By>;
+  total_duration_ms?: InputMaybe<Order_By>;
+  total_jobs_failed?: InputMaybe<Order_By>;
+  total_jobs_run?: InputMaybe<Order_By>;
+  total_jobs_succeeded?: InputMaybe<Order_By>;
+  updated_at?: InputMaybe<Order_By>;
 };
 
 /** response of any mutation on the table "invocations" */
@@ -35387,6 +35524,7 @@ export type Invocations_On_Conflict = {
 export type Invocations_Order_By = {
   auto_load_modules?: InputMaybe<Order_By>;
   context_data?: InputMaybe<Order_By>;
+  correlated_invocations_aggregate?: InputMaybe<Invocations_Aggregate_Order_By>;
   correlation_id?: InputMaybe<Order_By>;
   created_at?: InputMaybe<Order_By>;
   error_message?: InputMaybe<Order_By>;
@@ -35480,6 +35618,18 @@ export enum Invocations_Select_Column {
   UpdatedAt = 'updated_at'
 }
 
+/** select "invocations_aggregate_bool_exp_bool_and_arguments_columns" columns of table "invocations" */
+export enum Invocations_Select_Column_Invocations_Aggregate_Bool_Exp_Bool_And_Arguments_Columns {
+  /** column name */
+  AutoLoadModules = 'auto_load_modules'
+}
+
+/** select "invocations_aggregate_bool_exp_bool_or_arguments_columns" columns of table "invocations" */
+export enum Invocations_Select_Column_Invocations_Aggregate_Bool_Exp_Bool_Or_Arguments_Columns {
+  /** column name */
+  AutoLoadModules = 'auto_load_modules'
+}
+
 /** input type for updating data in table "invocations" */
 export type Invocations_Set_Input = {
   auto_load_modules?: InputMaybe<Scalars['Boolean']['input']>;
@@ -35519,6 +35669,15 @@ export type Invocations_Stddev_Fields = {
   total_jobs_succeeded?: Maybe<Scalars['Float']['output']>;
 };
 
+/** order by stddev() on columns of table "invocations" */
+export type Invocations_Stddev_Order_By = {
+  events_detected_count?: InputMaybe<Order_By>;
+  total_duration_ms?: InputMaybe<Order_By>;
+  total_jobs_failed?: InputMaybe<Order_By>;
+  total_jobs_run?: InputMaybe<Order_By>;
+  total_jobs_succeeded?: InputMaybe<Order_By>;
+};
+
 /** aggregate stddev_pop on columns */
 export type Invocations_Stddev_Pop_Fields = {
   __typename?: 'invocations_stddev_pop_fields';
@@ -35529,6 +35688,15 @@ export type Invocations_Stddev_Pop_Fields = {
   total_jobs_succeeded?: Maybe<Scalars['Float']['output']>;
 };
 
+/** order by stddev_pop() on columns of table "invocations" */
+export type Invocations_Stddev_Pop_Order_By = {
+  events_detected_count?: InputMaybe<Order_By>;
+  total_duration_ms?: InputMaybe<Order_By>;
+  total_jobs_failed?: InputMaybe<Order_By>;
+  total_jobs_run?: InputMaybe<Order_By>;
+  total_jobs_succeeded?: InputMaybe<Order_By>;
+};
+
 /** aggregate stddev_samp on columns */
 export type Invocations_Stddev_Samp_Fields = {
   __typename?: 'invocations_stddev_samp_fields';
@@ -35537,6 +35705,15 @@ export type Invocations_Stddev_Samp_Fields = {
   total_jobs_failed?: Maybe<Scalars['Float']['output']>;
   total_jobs_run?: Maybe<Scalars['Float']['output']>;
   total_jobs_succeeded?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by stddev_samp() on columns of table "invocations" */
+export type Invocations_Stddev_Samp_Order_By = {
+  events_detected_count?: InputMaybe<Order_By>;
+  total_duration_ms?: InputMaybe<Order_By>;
+  total_jobs_failed?: InputMaybe<Order_By>;
+  total_jobs_run?: InputMaybe<Order_By>;
+  total_jobs_succeeded?: InputMaybe<Order_By>;
 };
 
 /** Streaming cursor of the table "invocations" */
@@ -35584,6 +35761,15 @@ export type Invocations_Sum_Fields = {
   total_jobs_failed?: Maybe<Scalars['Int']['output']>;
   total_jobs_run?: Maybe<Scalars['Int']['output']>;
   total_jobs_succeeded?: Maybe<Scalars['Int']['output']>;
+};
+
+/** order by sum() on columns of table "invocations" */
+export type Invocations_Sum_Order_By = {
+  events_detected_count?: InputMaybe<Order_By>;
+  total_duration_ms?: InputMaybe<Order_By>;
+  total_jobs_failed?: InputMaybe<Order_By>;
+  total_jobs_run?: InputMaybe<Order_By>;
+  total_jobs_succeeded?: InputMaybe<Order_By>;
 };
 
 /** update columns of table "invocations" */
@@ -35669,6 +35855,15 @@ export type Invocations_Var_Pop_Fields = {
   total_jobs_succeeded?: Maybe<Scalars['Float']['output']>;
 };
 
+/** order by var_pop() on columns of table "invocations" */
+export type Invocations_Var_Pop_Order_By = {
+  events_detected_count?: InputMaybe<Order_By>;
+  total_duration_ms?: InputMaybe<Order_By>;
+  total_jobs_failed?: InputMaybe<Order_By>;
+  total_jobs_run?: InputMaybe<Order_By>;
+  total_jobs_succeeded?: InputMaybe<Order_By>;
+};
+
 /** aggregate var_samp on columns */
 export type Invocations_Var_Samp_Fields = {
   __typename?: 'invocations_var_samp_fields';
@@ -35679,6 +35874,15 @@ export type Invocations_Var_Samp_Fields = {
   total_jobs_succeeded?: Maybe<Scalars['Float']['output']>;
 };
 
+/** order by var_samp() on columns of table "invocations" */
+export type Invocations_Var_Samp_Order_By = {
+  events_detected_count?: InputMaybe<Order_By>;
+  total_duration_ms?: InputMaybe<Order_By>;
+  total_jobs_failed?: InputMaybe<Order_By>;
+  total_jobs_run?: InputMaybe<Order_By>;
+  total_jobs_succeeded?: InputMaybe<Order_By>;
+};
+
 /** aggregate variance on columns */
 export type Invocations_Variance_Fields = {
   __typename?: 'invocations_variance_fields';
@@ -35687,6 +35891,15 @@ export type Invocations_Variance_Fields = {
   total_jobs_failed?: Maybe<Scalars['Float']['output']>;
   total_jobs_run?: Maybe<Scalars['Float']['output']>;
   total_jobs_succeeded?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by variance() on columns of table "invocations" */
+export type Invocations_Variance_Order_By = {
+  events_detected_count?: InputMaybe<Order_By>;
+  total_duration_ms?: InputMaybe<Order_By>;
+  total_jobs_failed?: InputMaybe<Order_By>;
+  total_jobs_run?: InputMaybe<Order_By>;
+  total_jobs_succeeded?: InputMaybe<Order_By>;
 };
 
 /** Each async job executed for detected events */
@@ -35709,6 +35922,10 @@ export type Job_Executions = {
   job_options?: Maybe<Scalars['jsonb']['output']>;
   result?: Maybe<Scalars['jsonb']['output']>;
   status: Scalars['String']['output'];
+  /** An array relationship */
+  triggered_invocations: Array<Invocations>;
+  /** An aggregate relationship */
+  triggered_invocations_aggregate: Invocations_Aggregate;
   updated_at: Scalars['timestamptz']['output'];
 };
 
@@ -35722,6 +35939,26 @@ export type Job_ExecutionsJob_OptionsArgs = {
 /** Each async job executed for detected events */
 export type Job_ExecutionsResultArgs = {
   path?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+/** Each async job executed for detected events */
+export type Job_ExecutionsTriggered_InvocationsArgs = {
+  distinct_on?: InputMaybe<Array<Invocations_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Invocations_Order_By>>;
+  where?: InputMaybe<Invocations_Bool_Exp>;
+};
+
+
+/** Each async job executed for detected events */
+export type Job_ExecutionsTriggered_Invocations_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Invocations_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Invocations_Order_By>>;
+  where?: InputMaybe<Invocations_Bool_Exp>;
 };
 
 /** aggregated selection of "job_executions" */
@@ -35824,6 +36061,8 @@ export type Job_Executions_Bool_Exp = {
   job_options?: InputMaybe<Jsonb_Comparison_Exp>;
   result?: InputMaybe<Jsonb_Comparison_Exp>;
   status?: InputMaybe<String_Comparison_Exp>;
+  triggered_invocations?: InputMaybe<Invocations_Bool_Exp>;
+  triggered_invocations_aggregate?: InputMaybe<Invocations_Aggregate_Bool_Exp>;
   updated_at?: InputMaybe<Timestamptz_Comparison_Exp>;
 };
 
@@ -35873,6 +36112,7 @@ export type Job_Executions_Insert_Input = {
   job_options?: InputMaybe<Scalars['jsonb']['input']>;
   result?: InputMaybe<Scalars['jsonb']['input']>;
   status?: InputMaybe<Scalars['String']['input']>;
+  triggered_invocations?: InputMaybe<Invocations_Arr_Rel_Insert_Input>;
   updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
 };
 
@@ -35982,6 +36222,7 @@ export type Job_Executions_Order_By = {
   job_options?: InputMaybe<Order_By>;
   result?: InputMaybe<Order_By>;
   status?: InputMaybe<Order_By>;
+  triggered_invocations_aggregate?: InputMaybe<Invocations_Aggregate_Order_By>;
   updated_at?: InputMaybe<Order_By>;
 };
 
@@ -88892,26 +89133,12 @@ export type InvocationsRealtimeSubscriptionVariables = Exact<{ [key: string]: ne
 
 export type InvocationsRealtimeSubscription = { __typename?: 'subscription_root', invocations: Array<{ __typename?: 'invocations', id: string, created_at: string, source_function: string, status: string, total_duration_ms?: number | null, events_detected_count?: number | null, total_jobs_run?: number | null, total_jobs_succeeded?: number | null, total_jobs_failed?: number | null, correlation_id?: string | null }> };
 
-export type EventFlowQueryVariables = Exact<{
+export type InvocationFlowQueryVariables = Exact<{
   invocationId: Scalars['uuid']['input'];
 }>;
 
 
-export type EventFlowQuery = { __typename?: 'query_root', invocations_by_pk?: { __typename?: 'invocations', id: string, source_function: string, status: string, total_duration_ms?: number | null, events_detected_count?: number | null, correlation_id?: string | null, source_job_id?: string | null, source_job_execution?: { __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, invocation_id: string, event_execution_id: string, correlation_id?: string | null } | null, event_executions: Array<{ __typename?: 'event_executions', id: string, event_name: string, detected: boolean, status: string, detection_duration_ms?: number | null, handler_duration_ms?: number | null, jobs_count?: number | null, job_executions: Array<{ __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, result?: object | null, error_message?: string | null }> }> } | null };
-
-export type CorrelationChainsListQueryVariables = Exact<{
-  limit?: InputMaybe<Scalars['Int']['input']>;
-}>;
-
-
-export type CorrelationChainsListQuery = { __typename?: 'query_root', invocations: Array<{ __typename?: 'invocations', correlation_id?: string | null, created_at: string, source_function: string }> };
-
-export type CorrelationChainFlowQueryVariables = Exact<{
-  correlationId: Scalars['String']['input'];
-}>;
-
-
-export type CorrelationChainFlowQuery = { __typename?: 'query_root', invocations: Array<{ __typename?: 'invocations', id: string, source_function: string, created_at: string, status: string, total_duration_ms?: number | null, events_detected_count?: number | null, correlation_id?: string | null, source_job_id?: string | null, source_job_execution?: { __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, invocation_id: string, event_execution_id: string, correlation_id?: string | null } | null, event_executions: Array<{ __typename?: 'event_executions', id: string, event_name: string, detected: boolean, status: string, detection_duration_ms?: number | null, handler_duration_ms?: number | null, jobs_count?: number | null, jobs_succeeded?: number | null, jobs_failed?: number | null, job_executions: Array<{ __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, result?: object | null, error_message?: string | null, correlation_id?: string | null, created_at: string }> }> }> };
+export type InvocationFlowQuery = { __typename?: 'query_root', invocations_by_pk?: { __typename?: 'invocations', id: string, source_function: string, status: string, total_duration_ms?: number | null, events_detected_count?: number | null, correlation_id?: string | null, source_job_id?: string | null, total_jobs_run?: number | null, total_jobs_succeeded?: number | null, total_jobs_failed?: number | null, source_job_execution?: { __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, invocation_id: string, event_execution_id: string, correlation_id?: string | null } | null, event_executions: Array<{ __typename?: 'event_executions', id: string, event_name: string, detected: boolean, status: string, detection_duration_ms?: number | null, handler_duration_ms?: number | null, jobs_count?: number | null, jobs_succeeded?: number | null, jobs_failed?: number | null, job_executions: Array<{ __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, result?: object | null, error_message?: string | null, correlation_id?: string | null }> }> } | null };
 
 export type InvocationsListQueryVariables = Exact<{
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -89194,8 +89421,8 @@ export function useInvocationsRealtimeSubscription(baseOptions?: Apollo.Subscrip
       }
 export type InvocationsRealtimeSubscriptionHookResult = ReturnType<typeof useInvocationsRealtimeSubscription>;
 export type InvocationsRealtimeSubscriptionResult = Apollo.SubscriptionResult<InvocationsRealtimeSubscription>;
-export const EventFlowDocument = gql`
-    query EventFlow($invocationId: uuid!) {
+export const InvocationFlowDocument = gql`
+    query InvocationFlow($invocationId: uuid!) {
   invocations_by_pk(id: $invocationId) {
     id
     source_function
@@ -89204,131 +89431,9 @@ export const EventFlowDocument = gql`
     events_detected_count
     correlation_id
     source_job_id
-    source_job_execution {
-      id
-      job_name
-      job_function_name
-      status
-      duration_ms
-      invocation_id
-      event_execution_id
-      correlation_id
-    }
-    event_executions {
-      id
-      event_name
-      detected
-      status
-      detection_duration_ms
-      handler_duration_ms
-      jobs_count
-      job_executions {
-        id
-        job_name
-        job_function_name
-        status
-        duration_ms
-        result
-        error_message
-      }
-    }
-  }
-}
-    `;
-
-/**
- * __useEventFlowQuery__
- *
- * To run a query within a React component, call `useEventFlowQuery` and pass it any options that fit your needs.
- * When your component renders, `useEventFlowQuery` returns an object from Apollo Client that contains loading, error, and data properties
- * you can use to render your UI.
- *
- * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
- *
- * @example
- * const { data, loading, error } = useEventFlowQuery({
- *   variables: {
- *      invocationId: // value for 'invocationId'
- *   },
- * });
- */
-export function useEventFlowQuery(baseOptions: Apollo.QueryHookOptions<EventFlowQuery, EventFlowQueryVariables> & ({ variables: EventFlowQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<EventFlowQuery, EventFlowQueryVariables>(EventFlowDocument, options);
-      }
-export function useEventFlowLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<EventFlowQuery, EventFlowQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<EventFlowQuery, EventFlowQueryVariables>(EventFlowDocument, options);
-        }
-export function useEventFlowSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<EventFlowQuery, EventFlowQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<EventFlowQuery, EventFlowQueryVariables>(EventFlowDocument, options);
-        }
-export type EventFlowQueryHookResult = ReturnType<typeof useEventFlowQuery>;
-export type EventFlowLazyQueryHookResult = ReturnType<typeof useEventFlowLazyQuery>;
-export type EventFlowSuspenseQueryHookResult = ReturnType<typeof useEventFlowSuspenseQuery>;
-export type EventFlowQueryResult = Apollo.QueryResult<EventFlowQuery, EventFlowQueryVariables>;
-export const CorrelationChainsListDocument = gql`
-    query CorrelationChainsList($limit: Int = 20) {
-  invocations(
-    where: {correlation_id: {_is_null: false}}
-    distinct_on: correlation_id
-    order_by: [{correlation_id: asc}, {created_at: desc}]
-    limit: $limit
-  ) {
-    correlation_id
-    created_at
-    source_function
-  }
-}
-    `;
-
-/**
- * __useCorrelationChainsListQuery__
- *
- * To run a query within a React component, call `useCorrelationChainsListQuery` and pass it any options that fit your needs.
- * When your component renders, `useCorrelationChainsListQuery` returns an object from Apollo Client that contains loading, error, and data properties
- * you can use to render your UI.
- *
- * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
- *
- * @example
- * const { data, loading, error } = useCorrelationChainsListQuery({
- *   variables: {
- *      limit: // value for 'limit'
- *   },
- * });
- */
-export function useCorrelationChainsListQuery(baseOptions?: Apollo.QueryHookOptions<CorrelationChainsListQuery, CorrelationChainsListQueryVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<CorrelationChainsListQuery, CorrelationChainsListQueryVariables>(CorrelationChainsListDocument, options);
-      }
-export function useCorrelationChainsListLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<CorrelationChainsListQuery, CorrelationChainsListQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<CorrelationChainsListQuery, CorrelationChainsListQueryVariables>(CorrelationChainsListDocument, options);
-        }
-export function useCorrelationChainsListSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<CorrelationChainsListQuery, CorrelationChainsListQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<CorrelationChainsListQuery, CorrelationChainsListQueryVariables>(CorrelationChainsListDocument, options);
-        }
-export type CorrelationChainsListQueryHookResult = ReturnType<typeof useCorrelationChainsListQuery>;
-export type CorrelationChainsListLazyQueryHookResult = ReturnType<typeof useCorrelationChainsListLazyQuery>;
-export type CorrelationChainsListSuspenseQueryHookResult = ReturnType<typeof useCorrelationChainsListSuspenseQuery>;
-export type CorrelationChainsListQueryResult = Apollo.QueryResult<CorrelationChainsListQuery, CorrelationChainsListQueryVariables>;
-export const CorrelationChainFlowDocument = gql`
-    query CorrelationChainFlow($correlationId: String!) {
-  invocations(
-    where: {correlation_id: {_eq: $correlationId}}
-    order_by: {created_at: asc}
-  ) {
-    id
-    source_function
-    created_at
-    status
-    total_duration_ms
-    events_detected_count
-    correlation_id
-    source_job_id
+    total_jobs_run
+    total_jobs_succeeded
+    total_jobs_failed
     source_job_execution {
       id
       job_name
@@ -89358,7 +89463,6 @@ export const CorrelationChainFlowDocument = gql`
         result
         error_message
         correlation_id
-        created_at
       }
     }
   }
@@ -89366,37 +89470,37 @@ export const CorrelationChainFlowDocument = gql`
     `;
 
 /**
- * __useCorrelationChainFlowQuery__
+ * __useInvocationFlowQuery__
  *
- * To run a query within a React component, call `useCorrelationChainFlowQuery` and pass it any options that fit your needs.
- * When your component renders, `useCorrelationChainFlowQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * To run a query within a React component, call `useInvocationFlowQuery` and pass it any options that fit your needs.
+ * When your component renders, `useInvocationFlowQuery` returns an object from Apollo Client that contains loading, error, and data properties
  * you can use to render your UI.
  *
  * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
  *
  * @example
- * const { data, loading, error } = useCorrelationChainFlowQuery({
+ * const { data, loading, error } = useInvocationFlowQuery({
  *   variables: {
- *      correlationId: // value for 'correlationId'
+ *      invocationId: // value for 'invocationId'
  *   },
  * });
  */
-export function useCorrelationChainFlowQuery(baseOptions: Apollo.QueryHookOptions<CorrelationChainFlowQuery, CorrelationChainFlowQueryVariables> & ({ variables: CorrelationChainFlowQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+export function useInvocationFlowQuery(baseOptions: Apollo.QueryHookOptions<InvocationFlowQuery, InvocationFlowQueryVariables> & ({ variables: InvocationFlowQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
         const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<CorrelationChainFlowQuery, CorrelationChainFlowQueryVariables>(CorrelationChainFlowDocument, options);
+        return Apollo.useQuery<InvocationFlowQuery, InvocationFlowQueryVariables>(InvocationFlowDocument, options);
       }
-export function useCorrelationChainFlowLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<CorrelationChainFlowQuery, CorrelationChainFlowQueryVariables>) {
+export function useInvocationFlowLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<InvocationFlowQuery, InvocationFlowQueryVariables>) {
           const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<CorrelationChainFlowQuery, CorrelationChainFlowQueryVariables>(CorrelationChainFlowDocument, options);
+          return Apollo.useLazyQuery<InvocationFlowQuery, InvocationFlowQueryVariables>(InvocationFlowDocument, options);
         }
-export function useCorrelationChainFlowSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<CorrelationChainFlowQuery, CorrelationChainFlowQueryVariables>) {
+export function useInvocationFlowSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<InvocationFlowQuery, InvocationFlowQueryVariables>) {
           const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<CorrelationChainFlowQuery, CorrelationChainFlowQueryVariables>(CorrelationChainFlowDocument, options);
+          return Apollo.useSuspenseQuery<InvocationFlowQuery, InvocationFlowQueryVariables>(InvocationFlowDocument, options);
         }
-export type CorrelationChainFlowQueryHookResult = ReturnType<typeof useCorrelationChainFlowQuery>;
-export type CorrelationChainFlowLazyQueryHookResult = ReturnType<typeof useCorrelationChainFlowLazyQuery>;
-export type CorrelationChainFlowSuspenseQueryHookResult = ReturnType<typeof useCorrelationChainFlowSuspenseQuery>;
-export type CorrelationChainFlowQueryResult = Apollo.QueryResult<CorrelationChainFlowQuery, CorrelationChainFlowQueryVariables>;
+export type InvocationFlowQueryHookResult = ReturnType<typeof useInvocationFlowQuery>;
+export type InvocationFlowLazyQueryHookResult = ReturnType<typeof useInvocationFlowLazyQuery>;
+export type InvocationFlowSuspenseQueryHookResult = ReturnType<typeof useInvocationFlowSuspenseQuery>;
+export type InvocationFlowQueryResult = Apollo.QueryResult<InvocationFlowQuery, InvocationFlowQueryVariables>;
 export const InvocationsListDocument = gql`
     query InvocationsList($limit: Int = 20, $offset: Int = 0, $where: invocations_bool_exp = {}, $order_by: [invocations_order_by!] = {created_at: desc}) {
   invocations(limit: $limit, offset: $offset, where: $where, order_by: $order_by) {

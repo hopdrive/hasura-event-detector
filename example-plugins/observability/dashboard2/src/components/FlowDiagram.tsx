@@ -20,10 +20,7 @@ import ReactFlow, {
 } from 'reactflow';
 import { motion, AnimatePresence } from 'framer-motion';
 import InvocationDetailDrawer from './InvocationDetailDrawer';
-import {
-  useCorrelationChainFlowQuery,
-  useInvocationDetailQuery,
-} from '../types/generated';
+import { useInvocationFlowQuery } from '../types/generated';
 import 'reactflow/dist/style.css';
 import JobDetailDrawer from './JobDetailDrawer';
 import EventDetailDrawer from './EventDetailDrawer';
@@ -186,59 +183,6 @@ const JobNode = ({ data, selected }: NodeProps) => {
   );
 };
 
-// Correlation Chain Overview Node
-const CorrelationChainNode = ({ data, selected }: NodeProps) => {
-  return (
-    <motion.div
-      initial={{ scale: 0.8, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={{ duration: 0.3, delay: 0.1 }}
-      className={`
-        relative bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl border-2 border-purple-400
-        ${selected ? 'ring-4 ring-purple-400 ring-opacity-50 shadow-xl' : 'shadow-lg'}
-        hover:shadow-xl transition-all duration-200 cursor-pointer
-        min-w-[320px] text-white
-      `}
-    >
-      <Handle type='target' position={Position.Left} className='w-3 h-3' />
-
-      <div className='p-6'>
-        <div className='flex items-center justify-between mb-3'>
-          <span className='text-xs font-semibold text-purple-200 uppercase tracking-wider'>Correlation Chain</span>
-          <div className='flex items-center space-x-1'>
-            <div
-              className={`w-3 h-3 rounded-full ${
-                data.status === 'completed' ? 'bg-green-400' : data.status === 'failed' ? 'bg-red-400' : 'bg-yellow-400'
-              }`}
-            />
-          </div>
-        </div>
-
-        <div className='space-y-2'>
-          <p className='font-bold text-lg'>{data.chainId}</p>
-          <p className='text-purple-100 text-sm'>
-            {data.totalInvocations} invocations • {data.totalJobs} jobs
-          </p>
-
-          <div className='flex items-center justify-between text-sm'>
-            <span className='text-purple-200'>Duration: {data.totalDuration}ms</span>
-            <span className='text-purple-200'>
-              Success: {Math.round((data.successfulJobs / data.totalJobs) * 100)}%
-            </span>
-          </div>
-
-          {data.recursive && (
-            <div className='mt-3 px-3 py-1 bg-purple-400/30 rounded-full'>
-              <span className='text-xs font-medium'>🔄 Recursive Chain</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <Handle type='source' position={Position.Right} className='w-3 h-3' />
-    </motion.div>
-  );
-};
 
 // Grouped Events Node (for minimizing undetected events)
 const GroupedEventsNode = ({ data, selected }: NodeProps) => {
@@ -337,7 +281,6 @@ const nodeTypes = {
   invocation: InvocationNode,
   event: EventNode,
   job: JobNode,
-  correlationChain: CorrelationChainNode,
   groupedEvents: GroupedEventsNode,
 };
 
@@ -353,34 +296,25 @@ const FlowDiagramContent = () => {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState<'flow' | 'correlation'>('flow');
-  const [highlightCorrelation, setHighlightCorrelation] = useState<string | null>(null);
   const [autoFocusCompleted, setAutoFocusCompleted] = useState(false);
 
   // URL Parameters
   const invocationId = searchParams.get('invocationId');
   const autoFocus = searchParams.get('autoFocus') === 'true';
-  const correlationId = searchParams.get('correlationId');
 
-  // GraphQL Queries for real data
-  const { data: invocationData, loading: invocationLoading } = useInvocationDetailQuery({
-    variables: { id: invocationId || '' },
+  // GraphQL Query for invocation flow
+  const { data, loading, error } = useInvocationFlowQuery({
+    variables: { invocationId: invocationId || '' },
     skip: !invocationId,
     fetchPolicy: 'cache-first',
     errorPolicy: 'all',
   });
 
-  const { data: correlationData, loading: correlationLoading } = useCorrelationChainFlowQuery({
-    variables: { correlationId: correlationId || '' },
-    skip: !correlationId,
-    fetchPolicy: 'cache-first',
-    errorPolicy: 'all',
-  });
 
-  // Generate nodes and edges from real data with smart grouping
+  // Generate nodes and edges from invocation data with smart grouping
   const { generatedNodes, generatedEdges } = useMemo(() => {
-    if (invocationData?.invocations_by_pk) {
-      const invocation = invocationData.invocations_by_pk;
+    if (data?.invocations_by_pk) {
+      const invocation = data.invocations_by_pk;
       const nodes: Node[] = [];
       const edges: Edge[] = [];
 
@@ -615,178 +549,10 @@ const FlowDiagramContent = () => {
       return { generatedNodes: nodes, generatedEdges: edges };
     }
 
-    // Use correlation chain data if available
-    if (correlationData?.invocations && correlationData.invocations.length > 0) {
-      const nodes: Node[] = [];
-      const edges: Edge[] = [];
-
-      // Build parent-child mapping using source_job_id
-      const invocationsByParentJob = new Map<string, (typeof correlationData.invocations)[0][]>();
-      const rootInvocations: (typeof correlationData.invocations)[0][] = [];
-      const allJobNodes = new Map<string, Node>();
-
-      // First pass: categorize invocations and collect all job nodes
-      correlationData.invocations.forEach(inv => {
-        if (inv.source_job_id && inv.source_job_execution) {
-          // This invocation was triggered by a job
-          const parentJobId = inv.source_job_id;
-          if (!invocationsByParentJob.has(parentJobId)) {
-            invocationsByParentJob.set(parentJobId, []);
-          }
-          invocationsByParentJob.get(parentJobId)!.push(inv);
-        } else {
-          // This is a root invocation (no parent job)
-          rootInvocations.push(inv);
-        }
-
-        // Collect all job nodes from this invocation
-        inv.event_executions?.forEach(event => {
-          event.job_executions?.forEach(job => {
-            const jobNodeId = `job-${job.id}`;
-            allJobNodes.set(job.id, {
-              id: jobNodeId,
-              type: 'job',
-              position: { x: 0, y: 0 }, // Will be positioned later
-              data: {
-                jobName: job.job_name,
-                functionName: job.job_function_name,
-                correlationId: job.correlation_id,
-                status: job.status,
-                duration: job.duration_ms,
-                result: job.result,
-                error: job.error_message,
-                triggersInvocation: invocationsByParentJob.has(job.id), // Mark if this job triggers children
-              },
-            });
-          });
-        });
-      });
-
-      // Recursive function to build tree structure
-      const buildInvocationTree = (
-        invocations: typeof correlationData.invocations,
-        startX: number,
-        startY: number,
-        level: number = 0
-      ) => {
-        let currentY = startY;
-        const levelSpacing = 600; // Horizontal spacing between levels
-
-        invocations.forEach((inv, invIndex) => {
-          // Create invocation node
-          const invocationNode: Node = {
-            id: inv.id,
-            type: 'invocation',
-            position: { x: startX, y: currentY },
-            data: {
-              sourceFunction: inv.source_function,
-              correlationId: inv.correlation_id,
-              status: inv.status,
-              duration: inv.total_duration_ms,
-              eventsCount: inv.events_detected_count,
-              parentJobId: inv.source_job_id,
-            },
-          };
-          nodes.push(invocationNode);
-
-          // If this invocation has a parent job, connect it
-          if (inv.source_job_id && inv.source_job_execution) {
-            const parentJobNodeId = `job-${inv.source_job_id}`;
-            edges.push({
-              id: `job-to-inv-${inv.id}`,
-              source: parentJobNodeId,
-              target: inv.id,
-              markerEnd: { type: MarkerType.ArrowClosed },
-              style: { stroke: '#8b5cf6', strokeWidth: 2 },
-            });
-          }
-
-          // Build events and jobs for this invocation
-          let eventY = currentY + 100;
-          inv.event_executions?.forEach((event, eventIndex) => {
-            if (event.detected) {
-              // Create event node
-              const eventNode: Node = {
-                id: `event-${event.id}`,
-                type: 'event',
-                position: { x: startX + 350, y: eventY },
-                data: {
-                  eventName: event.event_name,
-                  correlationId: event.correlation_id,
-                  detected: event.detected,
-                  status: event.status,
-                  detectionDuration: event.detection_duration_ms,
-                  handlerDuration: event.handler_duration_ms,
-                  jobsCount: event.jobs_count,
-                },
-              };
-              nodes.push(eventNode);
-
-              // Connect invocation to event
-              edges.push({
-                id: `inv-to-event-${event.id}`,
-                source: inv.id,
-                target: `event-${event.id}`,
-                markerEnd: { type: MarkerType.ArrowClosed },
-                style: { stroke: '#10b981', strokeWidth: 2 },
-              });
-
-              // Create job nodes
-              let jobY = eventY;
-              event.job_executions?.forEach((job, jobIndex) => {
-                const jobNode = allJobNodes.get(job.id);
-                if (jobNode) {
-                  // Position the job node
-                  jobNode.position = { x: startX + 700, y: jobY };
-                  // Update the position in the map for child invocation positioning
-                  allJobNodes.set(job.id, jobNode);
-                  nodes.push(jobNode);
-
-                  // Connect event to job
-                  edges.push({
-                    id: `event-to-job-${job.id}`,
-                    source: `event-${event.id}`,
-                    target: `job-${job.id}`,
-                    markerEnd: { type: MarkerType.ArrowClosed },
-                    style: { stroke: job.status === 'completed' ? '#10b981' : '#ef4444' },
-                  });
-
-                  jobY += 120;
-                }
-              });
-
-              eventY = Math.max(eventY + 150, jobY);
-            }
-          });
-
-          // Build child invocations recursively
-          inv.event_executions?.forEach(event => {
-            event.job_executions?.forEach((job, jobIndex) => {
-              const childInvocations = invocationsByParentJob.get(job.id);
-              if (childInvocations && childInvocations.length > 0) {
-                // Position child invocations to the right of the job that triggers them
-                const jobNodePosition = allJobNodes.get(job.id)?.position;
-                const childStartX = jobNodePosition ? jobNodePosition.x + 300 : startX + levelSpacing;
-                const childStartY = jobNodePosition ? jobNodePosition.y : currentY;
-
-                buildInvocationTree(childInvocations, childStartX, childStartY, level + 1);
-              }
-            });
-          });
-
-          currentY = Math.max(currentY + 400, eventY + 100);
-        });
-      };
-
-      // Start building from root invocations
-      buildInvocationTree(rootInvocations, 50, 100);
-
-      return { generatedNodes: nodes, generatedEdges: edges };
-    }
 
     // Return empty if no data
     return { generatedNodes: [], generatedEdges: [] };
-  }, [invocationData, correlationData]);
+  }, [data]);
 
   // Auto-focus functionality
   useEffect(() => {
@@ -800,10 +566,6 @@ const FlowDiagramContent = () => {
           duration: 800,
         });
 
-        // Highlight the correlation chain
-        if (correlationId) {
-          setHighlightCorrelation(correlationId);
-        }
 
         // Update URL to remove autoFocus flag
         const newSearchParams = new URLSearchParams(searchParams);
@@ -819,7 +581,6 @@ const FlowDiagramContent = () => {
     reactFlowInstance,
     generatedNodes,
     autoFocusCompleted,
-    correlationId,
     searchParams,
     setSearchParams,
   ]);
@@ -869,68 +630,10 @@ const FlowDiagramContent = () => {
       }));
     }
 
-    // Apply correlation highlighting
-    if (highlightCorrelation) {
-      filteredNodes = filteredNodes.map(node => ({
-        ...node,
-        style: {
-          ...node.style,
-          opacity: node.data.correlationId?.includes(highlightCorrelation) ? 1 : 0.3,
-        },
-      }));
-    }
-
     return filteredNodes;
-  }, [nodes, searchTerm, highlightCorrelation]);
+  }, [nodes, searchTerm]);
 
-  const filteredEdges = useMemo(() => {
-    if (!highlightCorrelation) return edges;
 
-    return edges.map(edge => {
-      const sourceNode = nodes.find(n => n.id === edge.source);
-      const targetNode = nodes.find(n => n.id === edge.target);
-      const isHighlighted =
-        sourceNode?.data.correlationId?.includes(highlightCorrelation) ||
-        targetNode?.data.correlationId?.includes(highlightCorrelation);
-
-      return {
-        ...edge,
-        style: {
-          ...edge.style,
-          opacity: isHighlighted ? 1 : 0.2,
-        },
-      };
-    });
-  }, [edges, nodes, highlightCorrelation]);
-
-  // Extract unique correlation chains from nodes
-  const correlationChains = useMemo(() => {
-    const chains = new Map<string, { id: string; nodes: Node[]; totalJobs: number; status: string }>();
-
-    nodes.forEach(node => {
-      if (node.data.correlationId) {
-        const baseId = node.data.correlationId.split('.')[0];
-        if (!chains.has(baseId)) {
-          chains.set(baseId, {
-            id: baseId,
-            nodes: [],
-            totalJobs: 0,
-            status: 'completed',
-          });
-        }
-        const chain = chains.get(baseId)!;
-        chain.nodes.push(node);
-        if (node.type === 'job') {
-          chain.totalJobs++;
-          if (node.data.status === 'failed') {
-            chain.status = 'failed';
-          }
-        }
-      }
-    });
-
-    return Array.from(chains.values());
-  }, [nodes]);
 
   return (
     <div className='h-full flex flex-col'>
@@ -938,37 +641,13 @@ const FlowDiagramContent = () => {
       <div className='bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4'>
         <div className='flex items-center justify-between'>
           <div>
-            <h2 className='text-xl font-semibold text-gray-900 dark:text-white'>Event Flow Visualization</h2>
+            <h2 className='text-xl font-semibold text-gray-900 dark:text-white'>Invocation Flow</h2>
             <p className='mt-1 text-sm text-gray-600 dark:text-gray-400'>
-              Interactive correlation chain diagram with recursive invocations
+              {invocationId ? `Viewing flow for invocation ${invocationId.substring(0, 8)}...` : 'No invocation selected'}
             </p>
           </div>
 
           <div className='flex items-center space-x-4'>
-            {/* View Mode Toggle */}
-            <div className='flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1'>
-              <button
-                onClick={() => setViewMode('flow')}
-                className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                  viewMode === 'flow'
-                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                }`}
-              >
-                Flow View
-              </button>
-              <button
-                onClick={() => setViewMode('correlation')}
-                className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                  viewMode === 'correlation'
-                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                }`}
-              >
-                Correlation Chains
-              </button>
-            </div>
-
             <input
               type='text'
               placeholder='Filter nodes...'
@@ -976,21 +655,6 @@ const FlowDiagramContent = () => {
               onChange={e => setSearchTerm(e.target.value)}
               className='px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500'
             />
-
-            {viewMode === 'correlation' && (
-              <select
-                value={highlightCorrelation || 'none'}
-                onChange={e => setHighlightCorrelation(e.target.value === 'none' ? null : e.target.value)}
-                className='px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100'
-              >
-                <option value='none'>Show All</option>
-                {correlationChains.map(chain => (
-                  <option key={chain.id} value={chain.id}>
-                    {chain.id} ({chain.nodes.length} nodes)
-                  </option>
-                ))}
-              </select>
-            )}
 
             <div className='flex items-center space-x-2 text-sm'>
               <div className='flex items-center'>
@@ -1010,56 +674,20 @@ const FlowDiagramContent = () => {
         </div>
       </div>
 
-      {/* Correlation Chains Stats Panel */}
-      {viewMode === 'correlation' && (
-        <div className='bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4'>
-          <div className='flex items-center justify-between'>
-            <h3 className='text-sm font-medium text-gray-700 dark:text-gray-300'>Correlation Chains</h3>
-            <span className='text-xs text-gray-500'>{correlationChains.length} chains found</span>
-          </div>
-          <div className='mt-3 flex flex-wrap gap-2'>
-            {correlationChains.slice(0, 5).map(chain => (
-              <button
-                key={chain.id}
-                onClick={() => setHighlightCorrelation(highlightCorrelation === chain.id ? null : chain.id)}
-                className={`px-3 py-2 text-xs rounded-lg border transition-colors ${
-                  highlightCorrelation === chain.id
-                    ? 'bg-purple-100 border-purple-300 text-purple-800 dark:bg-purple-900/30 dark:border-purple-600 dark:text-purple-400'
-                    : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600'
-                }`}
-              >
-                <div className='flex items-center space-x-1'>
-                  <div
-                    className={`w-2 h-2 rounded-full ${chain.status === 'completed' ? 'bg-green-500' : 'bg-red-500'}`}
-                  />
-                  <span className='font-medium'>{chain.id}</span>
-                  <span className='text-gray-500 dark:text-gray-400'>({chain.totalJobs})</span>
-                </div>
-              </button>
-            ))}
-            {correlationChains.length > 5 && (
-              <span className='px-3 py-2 text-xs text-gray-500 dark:text-gray-400'>
-                +{correlationChains.length - 5} more
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Loading States */}
-      {(invocationLoading || correlationLoading) && (
+      {loading && (
         <div className='absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50'>
           <div className='bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg'>
             <div className='flex items-center space-x-3'>
               <div className='animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600'></div>
-              <span className='text-gray-900 dark:text-white'>Loading flow diagram...</span>
+              <span className='text-gray-900 dark:text-white'>Loading invocation flow...</span>
             </div>
           </div>
         </div>
       )}
 
       {/* Breadcrumb Navigation */}
-      {(invocationId || correlationId) && (
+      {invocationId && (
         <div className='bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800 px-6 py-3'>
           <nav className='flex items-center space-x-2 text-sm'>
             <button
@@ -1076,12 +704,6 @@ const FlowDiagramContent = () => {
                 <span className='font-medium text-gray-900 dark:text-white'>{invocationId.split('-')[0]}...</span>
               </>
             )}
-            {correlationId && (
-              <>
-                <span className='text-gray-400 dark:text-gray-600'>/</span>
-                <span className='font-medium text-purple-700 dark:text-purple-400'>Chain: {correlationId}</span>
-              </>
-            )}
           </nav>
         </div>
       )}
@@ -1090,7 +712,7 @@ const FlowDiagramContent = () => {
       <div className='flex-1 bg-gray-50 dark:bg-gray-900'>
         <ReactFlow
           nodes={filteredNodes}
-          edges={filteredEdges}
+          edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onNodeClick={onNodeClick}
