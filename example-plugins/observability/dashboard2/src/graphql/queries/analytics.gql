@@ -1,0 +1,76 @@
+query AnalyticsOverview($timeRange: timestamptz!) {
+  invocations_aggregate(where: { created_at: { _gte: $timeRange } }) {
+    aggregate {
+      count
+      avg {
+        total_duration_ms
+      }
+      sum {
+        total_jobs_run
+        total_jobs_succeeded
+        total_jobs_failed
+      }
+    }
+  }
+
+  job_executions(
+    where: {
+      created_at: { _gte: $timeRange }
+      status: { _eq: "failed" }
+    }
+    order_by: { created_at: desc }
+    limit: 10
+  ) {
+    id
+    job_name
+    error_message
+    created_at
+    duration_ms
+    correlation_id
+
+    invocation {
+      source_function
+      source_user_email
+    }
+
+    event_execution {
+      event_name
+    }
+  }
+
+  event_executions_aggregate(where: { created_at: { _gte: $timeRange } }) {
+    aggregate {
+      count
+    }
+    nodes {
+      event_name
+      detected
+    }
+  }
+}
+
+query SystemHealth($timeRange: timestamptz!) {
+  invocations_aggregate(where: { created_at: { _gte: $timeRange } }) {
+    aggregate {
+      count
+      avg {
+        total_duration_ms
+      }
+    }
+  }
+
+  job_executions_aggregate(where: { created_at: { _gte: $timeRange } }) {
+    aggregate {
+      count
+      avg {
+        duration_ms
+      }
+    }
+  }
+
+  event_executions_aggregate(where: { created_at: { _gte: $timeRange } }) {
+    aggregate {
+      count
+    }
+  }
+}
