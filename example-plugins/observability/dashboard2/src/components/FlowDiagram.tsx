@@ -1,5 +1,6 @@
 import React, { useCallback, useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { ChevronRightIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import ReactFlow, {
   Node,
   Edge,
@@ -43,15 +44,14 @@ const InvocationNode = ({ data, selected }: NodeProps) => {
       animate={{ scale: 1, opacity: 1 }}
       transition={{ duration: 0.3 }}
       className={`
-        relative bg-white dark:bg-gray-800 rounded-lg border-2 
-        ${statusColors[data.status as keyof typeof statusColors]}
+        relative bg-white dark:bg-gray-800 rounded-lg border-2 border-blue-500
         ${selected ? 'ring-4 ring-blue-400 ring-opacity-50' : ''}
         shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer
         min-w-[240px]
       `}
     >
-      <Handle type="target" position={Position.Top} className="w-3 h-3" />
-      
+      <Handle type="target" position={Position.Left} className="w-3 h-3" />
+
       {/* Blue accent strip */}
       <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-l-lg" />
       
@@ -75,15 +75,16 @@ const InvocationNode = ({ data, selected }: NodeProps) => {
           </p>
         </div>
       </div>
-      
-      <Handle type="source" position={Position.Bottom} className="w-3 h-3" />
+
+      <Handle type="source" position={Position.Right} id="right" className="w-3 h-3" />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="w-3 h-3" />
     </motion.div>
   );
 };
 
 const EventNode = ({ data, selected }: NodeProps) => {
   const isDetected = data.detected;
-  
+
   return (
     <motion.div
       initial={{ scale: 0.8, opacity: 0 }}
@@ -91,16 +92,16 @@ const EventNode = ({ data, selected }: NodeProps) => {
       transition={{ duration: 0.3, delay: 0.1 }}
       className={`
         relative bg-white dark:bg-gray-800 rounded-lg border-2
-        ${isDetected 
-          ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
-          : 'border-gray-300 bg-gray-50 dark:bg-gray-900/20 opacity-60'
+        ${isDetected
+          ? 'border-green-500'
+          : 'border-gray-300 opacity-60'
         }
         ${selected ? 'ring-4 ring-green-400 ring-opacity-50' : ''}
         shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer
         min-w-[200px]
       `}
     >
-      <Handle type="target" position={Position.Top} className="w-3 h-3" />
+      <Handle type="target" position={Position.Left} className="w-3 h-3" />
       
       {/* Green accent strip */}
       <div className="absolute left-0 top-0 bottom-0 w-1 bg-green-500 rounded-l-lg" />
@@ -125,7 +126,7 @@ const EventNode = ({ data, selected }: NodeProps) => {
         </p>
       </div>
       
-      {isDetected && <Handle type="source" position={Position.Bottom} className="w-3 h-3" />}
+      {isDetected && <Handle type="source" position={Position.Right} className="w-3 h-3" />}
     </motion.div>
   );
 };
@@ -136,24 +137,23 @@ const JobNode = ({ data, selected }: NodeProps) => {
     failed: 'border-red-500',
     running: 'border-blue-500'
   };
-  
+
   const hasRecursion = data.triggersInvocation;
-  
+
   return (
     <motion.div
       initial={{ scale: 0.8, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       transition={{ duration: 0.3, delay: 0.2 }}
       className={`
-        relative bg-white dark:bg-gray-800 rounded-lg border-2
-        ${statusColors[data.status as keyof typeof statusColors]}
+        relative bg-white dark:bg-gray-800 rounded-lg border-2 border-purple-500
         ${selected ? 'ring-4 ring-purple-400 ring-opacity-50' : ''}
         ${hasRecursion ? 'ring-2 ring-purple-500 ring-offset-2' : ''}
         shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer
         min-w-[180px]
       `}
     >
-      <Handle type="target" position={Position.Top} className="w-3 h-3" />
+      <Handle type="target" position={Position.Left} className="w-3 h-3" />
       
       {/* Purple accent strip */}
       <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500 rounded-l-lg" />
@@ -183,7 +183,7 @@ const JobNode = ({ data, selected }: NodeProps) => {
         )}
       </div>
       
-      {hasRecursion && <Handle type="source" position={Position.Bottom} className="w-3 h-3" />}
+      {hasRecursion && <Handle type="source" position={Position.Right} className="w-3 h-3" />}
     </motion.div>
   );
 };
@@ -202,7 +202,7 @@ const CorrelationChainNode = ({ data, selected }: NodeProps) => {
         min-w-[320px] text-white
       `}
     >
-      <Handle type="target" position={Position.Top} className="w-3 h-3" />
+      <Handle type="target" position={Position.Left} className="w-3 h-3" />
 
       <div className="p-6">
         <div className="flex items-center justify-between mb-3">
@@ -240,7 +240,119 @@ const CorrelationChainNode = ({ data, selected }: NodeProps) => {
         </div>
       </div>
 
-      <Handle type="source" position={Position.Bottom} className="w-3 h-3" />
+      <Handle type="source" position={Position.Right} className="w-3 h-3" />
+    </motion.div>
+  );
+};
+
+// Grouped Events Node (for minimizing undetected events)
+const GroupedEventsNode = ({ data, selected }: NodeProps) => {
+  const [expanded, setExpanded] = React.useState(false);
+  const hasDetectedEvents = data.detectedCount > 0;
+  const hasUndetectedEvents = data.undetectedCount > 0;
+
+  return (
+    <motion.div
+      initial={{ scale: 0.8, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ duration: 0.3 }}
+      className={`
+        relative bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-400 dark:border-gray-500
+        ${selected ? 'ring-4 ring-gray-400 ring-opacity-50' : ''}
+        shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer
+        ${expanded ? 'min-w-[280px]' : 'min-w-[200px]'}
+      `}
+      onClick={() => setExpanded(!expanded)}
+    >
+      <Handle type="target" position={Position.Top} id="top" className="w-3 h-3" />
+
+      {/* Gray accent strip */}
+      <div className="absolute left-0 top-0 bottom-0 w-1 bg-gray-400 dark:bg-gray-500 rounded-l-lg" />
+
+      <div className="p-4 pl-5">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+            Event Group
+          </span>
+          <div className="flex items-center space-x-1">
+            {expanded ? (
+              <ChevronDownIcon className="h-4 w-4 text-gray-500" />
+            ) : (
+              <ChevronRightIcon className="h-4 w-4 text-gray-500" />
+            )}
+          </div>
+        </div>
+
+        {!expanded ? (
+          // Collapsed View - Compact Summary
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                {data.totalCount} Events
+              </span>
+            </div>
+            <div className="flex items-center space-x-3 text-xs">
+              {hasDetectedEvents && (
+                <div className="flex items-center space-x-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full" />
+                  <span className="text-green-600 dark:text-green-400 font-medium">
+                    {data.detectedCount} detected
+                  </span>
+                </div>
+              )}
+              {hasUndetectedEvents && (
+                <div className="flex items-center space-x-1">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full" />
+                  <span className="text-gray-500">
+                    {data.undetectedCount} not detected
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="text-xs text-gray-500">
+              Click to expand
+            </div>
+          </div>
+        ) : (
+          // Expanded View - Show Individual Events
+          <div className="space-y-3">
+            <div className="text-sm font-medium text-gray-900 dark:text-white mb-3">
+              Individual Events:
+            </div>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {data.events?.map((event: any, index: number) => (
+                <div
+                  key={index}
+                  className={`p-2 rounded border-l-3 ${
+                    event.detected
+                      ? 'border-l-green-400 bg-green-50 dark:bg-green-900/20'
+                      : 'border-l-gray-300 bg-gray-50 dark:bg-gray-900/20'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-gray-900 dark:text-white">
+                      {event.name}
+                    </span>
+                    <span className={`text-xs ${
+                      event.detected ? 'text-green-600 dark:text-green-400' : 'text-gray-500'
+                    }`}>
+                      {event.detected ? '✓' : '○'}
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    {event.duration}ms
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="text-xs text-gray-500 pt-2 border-t">
+              Click to collapse
+            </div>
+          </div>
+        )}
+      </div>
+
+      <Handle type="source" position={Position.Right} className="w-3 h-3" />
     </motion.div>
   );
 };
@@ -249,7 +361,150 @@ const nodeTypes = {
   invocation: InvocationNode,
   event: EventNode,
   job: JobNode,
-  correlationChain: CorrelationChainNode
+  correlationChain: CorrelationChainNode,
+  groupedEvents: GroupedEventsNode
+};
+
+// Enhanced mock data generator for testing grouping
+const generateEnhancedMockData = () => {
+  const nodes: Node[] = [];
+  const edges: Edge[] = [];
+
+  // Mock detected events (important - show individually)
+  const detectedEvents = [
+    { id: 'det-1', name: 'ride.status.change', detected: true, jobs: 2 },
+    { id: 'det-2', name: 'ride.pickup.successful', detected: true, jobs: 2 },
+  ];
+
+  // Main invocation node (centered on children)
+  const baseX = 50;
+  // Calculate total height needed for all detected events and their jobs
+  const totalEventsHeight = detectedEvents.length > 1 ? (detectedEvents.length - 1) * 200 : 0;
+  const invocationCenterOffset = -totalEventsHeight / 2;
+  const baseY = 300 + invocationCenterOffset;
+
+  const invocationNode: Node = {
+    id: 'main-invocation',
+    type: 'invocation',
+    position: { x: baseX, y: baseY },
+    data: {
+      sourceFunction: 'event-detector-rides',
+      correlationId: 'demo.correlation.123',
+      status: 'completed',
+      duration: 245,
+      eventsCount: 8,
+      jobsCount: 4,
+      successfulJobs: 3,
+      failedJobs: 1
+    }
+  };
+  nodes.push(invocationNode);
+
+  // Mock undetected events (many - should be grouped)
+  const undetectedEvents = [
+    { id: 'undet-1', name: 'ride.driver.assigned', detected: false },
+    { id: 'undet-2', name: 'ride.customer.notified', detected: false },
+    { id: 'undet-3', name: 'ride.payment.pending', detected: false },
+    { id: 'undet-4', name: 'ride.route.optimized', detected: false },
+    { id: 'undet-5', name: 'ride.eta.updated', detected: false },
+    { id: 'undet-6', name: 'ride.analytics.tracked', detected: false },
+  ];
+
+  // Create detected event nodes individually (fan-out positioning)
+  detectedEvents.forEach((event, index) => {
+    // Calculate vertical offset to center jobs under this event
+    const jobCount = event.jobs;
+    const jobStackHeight = jobCount > 1 ? (jobCount - 1) * 120 : 0;
+    const eventCenterOffset = -jobStackHeight / 2;
+
+    const eventNode: Node = {
+      id: event.id,
+      type: 'event',
+      position: { x: baseX + 584, y: baseY + 16 + (index * 200) + eventCenterOffset },
+      data: {
+        eventName: event.name,
+        correlationId: 'demo.correlation.123',
+        detected: event.detected,
+        status: 'completed',
+        detectionDuration: 15,
+        handlerDuration: 12,
+        jobsCount: event.jobs
+      }
+    };
+    nodes.push(eventNode);
+
+    // Connect invocation to detected event
+    edges.push({
+      id: `inv-to-${event.id}`,
+      source: 'main-invocation',
+      target: event.id,
+      markerEnd: { type: MarkerType.ArrowClosed },
+      style: { stroke: '#10b981', strokeWidth: 2 }
+    });
+
+    // Create job nodes for detected events (centered on parent event)
+    for (let jobIndex = 0; jobIndex < event.jobs; jobIndex++) {
+      const jobId = `${event.id}-job-${jobIndex}`;
+      const jobStackHeight = event.jobs > 1 ? (event.jobs - 1) * 120 : 0;
+      const jobCenterOffset = -jobStackHeight / 2;
+
+      const jobNode: Node = {
+        id: jobId,
+        type: 'job',
+        position: { x: baseX + 584 + 350, y: baseY + 16 + (index * 200) + jobCenterOffset + (jobIndex * 120) },
+        data: {
+          jobName: jobIndex === 0 ? 'sendNotification' : 'updateAnalytics',
+          functionName: jobIndex === 0 ? 'notifications.sendEmail' : 'analytics.recordEvent',
+          correlationId: 'demo.correlation.123',
+          status: jobIndex === 1 && index === 1 ? 'failed' : 'completed',
+          duration: jobIndex === 0 ? 120 : 45,
+          result: { success: true },
+          error: jobIndex === 1 && index === 1 ? 'Timeout after 3s' : null
+        }
+      };
+      nodes.push(jobNode);
+
+      // Connect event to job
+      edges.push({
+        id: `${event.id}-to-${jobId}`,
+        source: event.id,
+        target: jobId,
+        markerEnd: { type: MarkerType.ArrowClosed },
+        style: { stroke: jobNode.data.status === 'completed' ? '#10b981' : '#ef4444' }
+      });
+    }
+  });
+
+  // Create grouped node for undetected events (below invocation)
+  const groupedNode: Node = {
+    id: 'grouped-undetected',
+    type: 'groupedEvents',
+    position: { x: baseX + 89, y: baseY + 220 },
+    data: {
+      totalCount: undetectedEvents.length,
+      detectedCount: 0,
+      undetectedCount: undetectedEvents.length,
+      events: undetectedEvents.map(e => ({
+        name: e.name,
+        detected: e.detected,
+        duration: 8
+      }))
+    }
+  };
+  nodes.push(groupedNode);
+
+  // Connect invocation to grouped undetected events (bottom to top)
+  edges.push({
+    id: 'inv-to-grouped-undetected',
+    source: 'main-invocation',
+    target: 'grouped-undetected',
+    sourceHandle: 'bottom',
+    targetHandle: 'top',
+    markerEnd: { type: MarkerType.ArrowClosed },
+    style: { stroke: '#9ca3af', strokeWidth: 1, strokeDasharray: '5,5' }
+  });
+
+  return { generatedNodes: nodes, generatedEdges: edges };
 };
 
 // Inner component that uses ReactFlow hooks
@@ -287,18 +542,29 @@ const FlowDiagramContent = () => {
     errorPolicy: 'all'
   });
 
-  // Generate nodes and edges from real data
+  // Generate nodes and edges from real data with smart grouping
   const { generatedNodes, generatedEdges } = useMemo(() => {
     if (invocationData?.invocations_by_pk) {
       const invocation = invocationData.invocations_by_pk;
       const nodes: Node[] = [];
       const edges: Edge[] = [];
 
-      // Create invocation node
+      // Smart event grouping logic
+      const events = invocation.event_executions || [];
+      const detectedEvents = events.filter(e => e.detected);
+      const undetectedEvents = events.filter(e => !e.detected);
+
+      // Create invocation node (centered on children)
+      const baseX = 50;
+      // Calculate total height needed for all detected events
+      const totalEventsHeight = detectedEvents.length > 1 ? (detectedEvents.length - 1) * 200 : 0;
+      const invocationCenterOffset = -totalEventsHeight / 2;
+      const baseY = 300 + invocationCenterOffset;
+
       const invocationNode: Node = {
         id: invocation.id,
         type: 'invocation',
-        position: { x: 400, y: 50 },
+        position: { x: baseX, y: baseY },
         data: {
           sourceFunction: invocation.source_function,
           correlationId: invocation.correlation_id,
@@ -311,62 +577,176 @@ const FlowDiagramContent = () => {
         }
       };
       nodes.push(invocationNode);
+      const shouldGroupEvents = events.length > 6; // Group if more than 6 events
+      const shouldGroupUndetected = undetectedEvents.length > 3; // Group undetected if more than 3
 
-      // Create event nodes
-      invocation.event_executions?.forEach((event, eventIndex) => {
-        const eventNode: Node = {
-          id: `event-${event.id}`,
-          type: 'event',
-          position: { x: 200 + (eventIndex * 300), y: 250 },
-          data: {
-            eventName: event.event_name,
-            correlationId: event.correlation_id,
-            detected: event.detected,
-            status: event.status,
-            detectionDuration: event.detection_duration_ms,
-            handlerDuration: event.handler_duration_ms,
-            jobsCount: event.jobs_count
-          }
-        };
-        nodes.push(eventNode);
+      if (shouldGroupEvents || shouldGroupUndetected) {
+        // Show detected events individually (fan-out positioning)
+        detectedEvents.forEach((event, eventIndex) => {
+          // Calculate vertical offset to center jobs under this event
+          const jobCount = event.job_executions?.length || 0;
+          const jobStackHeight = jobCount > 1 ? (jobCount - 1) * 120 : 0;
+          const eventCenterOffset = -jobStackHeight / 2;
 
-        // Connect invocation to event
-        edges.push({
-          id: `inv-to-event-${event.id}`,
-          source: invocation.id,
-          target: `event-${event.id}`,
-          markerEnd: { type: MarkerType.ArrowClosed },
-          style: { stroke: event.detected ? '#10b981' : '#ef4444' }
-        });
-
-        // Create job nodes for each event
-        event.job_executions?.forEach((job, jobIndex) => {
-          const jobNode: Node = {
-            id: `job-${job.id}`,
-            type: 'job',
-            position: { x: 200 + (eventIndex * 300), y: 450 + (jobIndex * 120) },
+          const eventNode: Node = {
+            id: `event-${event.id}`,
+            type: 'event',
+            position: { x: baseX + 584, y: baseY + 16 + (eventIndex * 200) + eventCenterOffset },
             data: {
-              jobName: job.job_name,
-              functionName: job.job_function_name,
-              correlationId: job.correlation_id,
-              status: job.status,
-              duration: job.duration_ms,
-              result: job.result,
-              error: job.error_message
+              eventName: event.event_name,
+              correlationId: event.correlation_id,
+              detected: event.detected,
+              status: event.status,
+              detectionDuration: event.detection_duration_ms,
+              handlerDuration: event.handler_duration_ms,
+              jobsCount: event.jobs_count
             }
           };
-          nodes.push(jobNode);
+          nodes.push(eventNode);
 
-          // Connect event to job
+          // Connect invocation to detected event
           edges.push({
-            id: `event-to-job-${job.id}`,
-            source: `event-${event.id}`,
-            target: `job-${job.id}`,
+            id: `inv-to-event-${event.id}`,
+            source: invocation.id,
+            target: `event-${event.id}`,
             markerEnd: { type: MarkerType.ArrowClosed },
-            style: { stroke: job.status === 'completed' ? '#10b981' : '#ef4444' }
+            style: { stroke: '#10b981', strokeWidth: 2 } // Green for detected
+          });
+
+          // Create job nodes for detected events (centered on parent event)
+          event.job_executions?.forEach((job, jobIndex) => {
+            const jobCount = event.job_executions?.length || 0;
+            const jobStackHeight = jobCount > 1 ? (jobCount - 1) * 120 : 0;
+            const jobCenterOffset = -jobStackHeight / 2;
+
+            const jobNode: Node = {
+              id: `job-${job.id}`,
+              type: 'job',
+              position: { x: baseX + 584 + 350, y: baseY + 16 + (eventIndex * 200) + jobCenterOffset + (jobIndex * 120) },
+              data: {
+                jobName: job.job_name,
+                functionName: job.job_function_name,
+                correlationId: job.correlation_id,
+                status: job.status,
+                duration: job.duration_ms,
+                result: job.result,
+                error: job.error_message
+              }
+            };
+            nodes.push(jobNode);
+
+            // Connect event to job
+            edges.push({
+              id: `event-to-job-${job.id}`,
+              source: `event-${event.id}`,
+              target: `job-${job.id}`,
+              markerEnd: { type: MarkerType.ArrowClosed },
+              style: { stroke: job.status === 'completed' ? '#10b981' : '#ef4444' }
+            });
           });
         });
-      });
+
+        // Group undetected events (if any)
+        if (undetectedEvents.length > 0) {
+          const groupedNode: Node = {
+            id: 'grouped-undetected',
+            type: 'groupedEvents',
+            position: {
+              x: baseX + 89,
+              y: baseY + 220
+            },
+            data: {
+              totalCount: undetectedEvents.length,
+              detectedCount: 0,
+              undetectedCount: undetectedEvents.length,
+              events: undetectedEvents.map(e => ({
+                name: e.event_name,
+                detected: e.detected,
+                duration: e.detection_duration_ms || 0
+              }))
+            }
+          };
+          nodes.push(groupedNode);
+
+          // Connect invocation to grouped undetected events (bottom to top)
+          edges.push({
+            id: `inv-to-grouped-undetected`,
+            source: invocation.id,
+            target: 'grouped-undetected',
+            sourceHandle: 'bottom',
+            targetHandle: 'top',
+            markerEnd: { type: MarkerType.ArrowClosed },
+            style: { stroke: '#9ca3af', strokeWidth: 1, strokeDasharray: '5,5' } // Gray dashed for undetected
+          });
+        }
+      } else {
+        // Show all events individually if count is manageable (fan-out positioning)
+        events.forEach((event, eventIndex) => {
+          // Calculate vertical offset to center jobs under this event
+          const jobCount = event.job_executions?.length || 0;
+          const jobStackHeight = jobCount > 1 ? (jobCount - 1) * 120 : 0;
+          const eventCenterOffset = -jobStackHeight / 2;
+
+          const eventNode: Node = {
+            id: `event-${event.id}`,
+            type: 'event',
+            position: { x: baseX + 584, y: baseY + 16 + (eventIndex * 200) + eventCenterOffset },
+            data: {
+              eventName: event.event_name,
+              correlationId: event.correlation_id,
+              detected: event.detected,
+              status: event.status,
+              detectionDuration: event.detection_duration_ms,
+              handlerDuration: event.handler_duration_ms,
+              jobsCount: event.jobs_count
+            }
+          };
+          nodes.push(eventNode);
+
+          // Connect invocation to event
+          edges.push({
+            id: `inv-to-event-${event.id}`,
+            source: invocation.id,
+            target: `event-${event.id}`,
+            markerEnd: { type: MarkerType.ArrowClosed },
+            style: { stroke: event.detected ? '#10b981' : '#ef4444' }
+          });
+
+          // Create job nodes for each event (centered on parent event)
+          if (event.detected) {
+            event.job_executions?.forEach((job, jobIndex) => {
+              const jobCount = event.job_executions?.length || 0;
+              const jobStackHeight = jobCount > 1 ? (jobCount - 1) * 120 : 0;
+              const jobCenterOffset = -jobStackHeight / 2;
+
+              const jobNode: Node = {
+                id: `job-${job.id}`,
+                type: 'job',
+                position: { x: baseX + 584 + 350, y: baseY + 16 + (eventIndex * 200) + jobCenterOffset + (jobIndex * 120) },
+                data: {
+                  jobName: job.job_name,
+                  functionName: job.job_function_name,
+                  correlationId: job.correlation_id,
+                  status: job.status,
+                  duration: job.duration_ms,
+                  result: job.result,
+                  error: job.error_message
+                }
+              };
+              nodes.push(jobNode);
+
+              // Connect event to job
+              edges.push({
+                id: `event-to-job-${job.id}`,
+                source: `event-${event.id}`,
+                target: `job-${job.id}`,
+                markerEnd: { type: MarkerType.ArrowClosed },
+                style: { stroke: job.status === 'completed' ? '#10b981' : '#ef4444' }
+              });
+            });
+          }
+        });
+      }
 
       return { generatedNodes: nodes, generatedEdges: edges };
     }
@@ -377,10 +757,12 @@ const FlowDiagramContent = () => {
       const edges: Edge[] = [];
 
       correlationData.invocations.forEach((inv, invIndex) => {
+        const baseX = 50 + (invIndex * 600);
+        const baseY = 200;
         const invocationNode: Node = {
           id: inv.id,
           type: 'invocation',
-          position: { x: 400 + (invIndex * 500), y: 50 },
+          position: { x: baseX, y: baseY },
           data: {
             sourceFunction: inv.source_function,
             correlationId: inv.correlation_id,
@@ -406,8 +788,8 @@ const FlowDiagramContent = () => {
       return { generatedNodes: nodes, generatedEdges: edges };
     }
 
-    // Fallback to mock data
-    return { generatedNodes: mockFlowData.nodes, generatedEdges: mockFlowData.edges };
+    // Fallback to enhanced mock data with more events for testing grouping
+    return generateEnhancedMockData();
   }, [invocationData, correlationData]);
 
   // Auto-focus functionality
@@ -449,6 +831,18 @@ const FlowDiagramContent = () => {
     setSelectedNode(node);
     setDrawerOpen(true);
   }, []);
+
+  const onNodeDragStop = useCallback((event: React.MouseEvent, node: Node) => {
+    console.log(`Node dragged - Type: ${node.type}, ID: ${node.id}, Position: x=${node.position.x}, y=${node.position.y}`);
+
+    // Find the invocation node to calculate relative positioning
+    const invocationNode = nodes.find(n => n.type === 'invocation');
+    if (invocationNode && node.id !== invocationNode.id) {
+      const relativeX = node.position.x - invocationNode.position.x;
+      const relativeY = node.position.y - invocationNode.position.y;
+      console.log(`Relative to invocation - Type: ${node.type}, RelativeX: ${relativeX}, RelativeY: ${relativeY}`);
+    }
+  }, [nodes]);
 
   const filteredNodes = useMemo(() => {
     let filteredNodes = nodes;
@@ -694,6 +1088,7 @@ const FlowDiagramContent = () => {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onNodeClick={onNodeClick}
+          onNodeDragStop={onNodeDragStop}
           nodeTypes={nodeTypes}
           connectionMode={ConnectionMode.Loose}
           onInit={(instance) => {
@@ -701,7 +1096,7 @@ const FlowDiagramContent = () => {
             // This will be used in the auto-focus effect
           }}
           defaultEdgeOptions={{
-            type: 'smoothstep',
+            type: 'default', // Use bezier curves for smooth connections
             animated: true,
             style: { strokeWidth: 2 },
             markerEnd: {
