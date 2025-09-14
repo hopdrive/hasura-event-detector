@@ -1,4 +1,5 @@
-import React, { useCallback, useState, useMemo } from 'react';
+import React, { useCallback, useState, useMemo, useEffect, useRef } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import ReactFlow, {
   Node,
   Edge,
@@ -11,11 +12,15 @@ import ReactFlow, {
   Position,
   Handle,
   NodeProps,
-  ConnectionMode
+  ConnectionMode,
+  useReactFlow,
+  ReactFlowProvider,
+  ReactFlowInstance
 } from 'reactflow';
 import { motion, AnimatePresence } from 'framer-motion';
 import InvocationDetailDrawer from './InvocationDetailDrawer';
 import { mockFlowData } from '../data/mockData';
+import { useCorrelationChainFlowQuery, useInvocationDetailQuery } from '../types/generated';
 import 'reactflow/dist/style.css';
 
 // Custom Node Components
@@ -247,7 +252,12 @@ const nodeTypes = {
   correlationChain: CorrelationChainNode
 };
 
-const FlowDiagram = () => {
+// Inner component that uses ReactFlow hooks
+const FlowDiagramContent = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const reactFlowInstance = useReactFlow();
+
   const [nodes, setNodes, onNodesChange] = useNodesState(mockFlowData.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(mockFlowData.edges);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
@@ -255,6 +265,185 @@ const FlowDiagram = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'flow' | 'correlation'>('flow');
   const [highlightCorrelation, setHighlightCorrelation] = useState<string | null>(null);
+  const [autoFocusCompleted, setAutoFocusCompleted] = useState(false);
+
+  // URL Parameters
+  const invocationId = searchParams.get('invocationId');
+  const autoFocus = searchParams.get('autoFocus') === 'true';
+  const correlationId = searchParams.get('correlationId');
+
+  // GraphQL Queries for real data
+  const { data: invocationData, loading: invocationLoading } = useInvocationDetailQuery({
+    variables: { id: invocationId || '' },
+    skip: !invocationId,
+    fetchPolicy: 'cache-first',
+    errorPolicy: 'all'
+  });
+
+  const { data: correlationData, loading: correlationLoading } = useCorrelationChainFlowQuery({
+    variables: { correlationId: correlationId || '' },
+    skip: !correlationId,
+    fetchPolicy: 'cache-first',
+    errorPolicy: 'all'
+  });
+
+  // Generate nodes and edges from real data
+  const { generatedNodes, generatedEdges } = useMemo(() => {
+    if (invocationData?.invocations_by_pk) {
+      const invocation = invocationData.invocations_by_pk;
+      const nodes: Node[] = [];
+      const edges: Edge[] = [];
+
+      // Create invocation node
+      const invocationNode: Node = {
+        id: invocation.id,
+        type: 'invocation',
+        position: { x: 400, y: 50 },
+        data: {
+          sourceFunction: invocation.source_function,
+          correlationId: invocation.correlation_id,
+          status: invocation.status,
+          duration: invocation.total_duration_ms,
+          eventsCount: invocation.events_detected_count,
+          jobsCount: invocation.total_jobs_run,
+          successfulJobs: invocation.total_jobs_succeeded,
+          failedJobs: invocation.total_jobs_failed
+        }
+      };
+      nodes.push(invocationNode);
+
+      // Create event nodes
+      invocation.event_executions?.forEach((event, eventIndex) => {
+        const eventNode: Node = {
+          id: `event-${event.id}`,
+          type: 'event',
+          position: { x: 200 + (eventIndex * 300), y: 250 },
+          data: {
+            eventName: event.event_name,
+            correlationId: event.correlation_id,
+            detected: event.detected,
+            status: event.status,
+            detectionDuration: event.detection_duration_ms,
+            handlerDuration: event.handler_duration_ms,
+            jobsCount: event.jobs_count
+          }
+        };
+        nodes.push(eventNode);
+
+        // Connect invocation to event
+        edges.push({
+          id: `inv-to-event-${event.id}`,
+          source: invocation.id,
+          target: `event-${event.id}`,
+          markerEnd: { type: MarkerType.ArrowClosed },
+          style: { stroke: event.detected ? '#10b981' : '#ef4444' }
+        });
+
+        // Create job nodes for each event
+        event.job_executions?.forEach((job, jobIndex) => {
+          const jobNode: Node = {
+            id: `job-${job.id}`,
+            type: 'job',
+            position: { x: 200 + (eventIndex * 300), y: 450 + (jobIndex * 120) },
+            data: {
+              jobName: job.job_name,
+              functionName: job.job_function_name,
+              correlationId: job.correlation_id,
+              status: job.status,
+              duration: job.duration_ms,
+              result: job.result,
+              error: job.error_message
+            }
+          };
+          nodes.push(jobNode);
+
+          // Connect event to job
+          edges.push({
+            id: `event-to-job-${job.id}`,
+            source: `event-${event.id}`,
+            target: `job-${job.id}`,
+            markerEnd: { type: MarkerType.ArrowClosed },
+            style: { stroke: job.status === 'completed' ? '#10b981' : '#ef4444' }
+          });
+        });
+      });
+
+      return { generatedNodes: nodes, generatedEdges: edges };
+    }
+
+    // Use correlation chain data if available
+    if (correlationData?.invocations && correlationData.invocations.length > 0) {
+      const nodes: Node[] = [];
+      const edges: Edge[] = [];
+
+      correlationData.invocations.forEach((inv, invIndex) => {
+        const invocationNode: Node = {
+          id: inv.id,
+          type: 'invocation',
+          position: { x: 400 + (invIndex * 500), y: 50 },
+          data: {
+            sourceFunction: inv.source_function,
+            correlationId: inv.correlation_id,
+            status: inv.status,
+            duration: inv.total_duration_ms,
+            eventsCount: inv.events_detected_count
+          }
+        };
+        nodes.push(invocationNode);
+
+        // If this is a chain, connect invocations
+        if (invIndex > 0) {
+          edges.push({
+            id: `chain-${invIndex}`,
+            source: correlationData.invocations[invIndex - 1].id,
+            target: inv.id,
+            markerEnd: { type: MarkerType.ArrowClosed },
+            style: { stroke: '#8b5cf6', strokeWidth: 3 }
+          });
+        }
+      });
+
+      return { generatedNodes: nodes, generatedEdges: edges };
+    }
+
+    // Fallback to mock data
+    return { generatedNodes: mockFlowData.nodes, generatedEdges: mockFlowData.edges };
+  }, [invocationData, correlationData]);
+
+  // Auto-focus functionality
+  useEffect(() => {
+    if (autoFocus && invocationId && reactFlowInstance && generatedNodes.length > 0 && !autoFocusCompleted) {
+      const targetNode = generatedNodes.find(node => node.id === invocationId);
+      if (targetNode) {
+        // Center the view on the target node
+        reactFlowInstance.fitView({
+          nodes: [targetNode],
+          padding: 0.3,
+          duration: 800
+        });
+
+        // Highlight the correlation chain
+        if (correlationId) {
+          setHighlightCorrelation(correlationId);
+        }
+
+        // Update URL to remove autoFocus flag
+        const newSearchParams = new URLSearchParams(searchParams);
+        newSearchParams.delete('autoFocus');
+        setSearchParams(newSearchParams, { replace: true });
+
+        setAutoFocusCompleted(true);
+      }
+    }
+  }, [autoFocus, invocationId, reactFlowInstance, generatedNodes, autoFocusCompleted, correlationId, searchParams, setSearchParams]);
+
+  // Update nodes and edges when data changes
+  useEffect(() => {
+    if (generatedNodes.length > 0) {
+      setNodes(generatedNodes);
+      setEdges(generatedEdges);
+    }
+  }, [generatedNodes, generatedEdges, setNodes, setEdges]);
 
   const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
     setSelectedNode(node);
@@ -453,6 +642,50 @@ const FlowDiagram = () => {
         </div>
       )}
 
+      {/* Loading States */}
+      {(invocationLoading || correlationLoading) && (
+        <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
+            <div className="flex items-center space-x-3">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              <span className="text-gray-900 dark:text-white">Loading flow diagram...</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Breadcrumb Navigation */}
+      {(invocationId || correlationId) && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800 px-6 py-3">
+          <nav className="flex items-center space-x-2 text-sm">
+            <button
+              onClick={() => navigate('/invocations')}
+              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+            >
+              All Invocations
+            </button>
+            <span className="text-gray-400 dark:text-gray-600">/</span>
+            {invocationId && (
+              <>
+                <span className="text-gray-700 dark:text-gray-300">Invocation</span>
+                <span className="text-gray-400 dark:text-gray-600">/</span>
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {invocationId.split('-')[0]}...
+                </span>
+              </>
+            )}
+            {correlationId && (
+              <>
+                <span className="text-gray-400 dark:text-gray-600">/</span>
+                <span className="font-medium text-purple-700 dark:text-purple-400">
+                  Chain: {correlationId}
+                </span>
+              </>
+            )}
+          </nav>
+        </div>
+      )}
+
       {/* Flow Diagram */}
       <div className="flex-1 bg-gray-50 dark:bg-gray-900">
         <ReactFlow
@@ -463,8 +696,10 @@ const FlowDiagram = () => {
           onNodeClick={onNodeClick}
           nodeTypes={nodeTypes}
           connectionMode={ConnectionMode.Loose}
-          fitView
-          fitViewOptions={{ padding: 0.2 }}
+          onInit={(instance) => {
+            // Store the ReactFlow instance for later use
+            // This will be used in the auto-focus effect
+          }}
           defaultEdgeOptions={{
             type: 'smoothstep',
             animated: true,
@@ -478,7 +713,7 @@ const FlowDiagram = () => {
         >
           <Background gap={20} className="bg-gray-50 dark:bg-gray-900" />
           <Controls className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700" />
-          <MiniMap 
+          <MiniMap
             className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
             nodeColor={(node) => {
               if (node.type === 'invocation') return '#3b82f6';
@@ -501,6 +736,15 @@ const FlowDiagram = () => {
         )}
       </AnimatePresence>
     </div>
+  );
+};
+
+// Wrapper component that provides ReactFlow context
+const FlowDiagram = () => {
+  return (
+    <ReactFlowProvider>
+      <FlowDiagramContent />
+    </ReactFlowProvider>
   );
 };
 

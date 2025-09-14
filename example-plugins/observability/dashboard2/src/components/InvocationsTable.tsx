@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import {
   createColumnHelper,
   flexRender,
@@ -47,6 +48,7 @@ interface Invocation {
 const columnHelper = createColumnHelper<Invocation>();
 
 const InvocationsTable = () => {
+  const navigate = useNavigate();
   const [selectedInvocation, setSelectedInvocation] = useState<Node | null>(null);
 
   // GraphQL Query
@@ -92,6 +94,14 @@ const InvocationsTable = () => {
   });
 
   const handleRowClick = (invocation: Invocation) => {
+    // Navigate to Flow Diagram with auto-focus on this invocation
+    navigate(`/flow?invocationId=${invocation.id}&autoFocus=true&correlationId=${encodeURIComponent(invocation.correlationId)}`);
+  };
+
+  const handleViewDetails = (invocation: Invocation, event: React.MouseEvent) => {
+    // Stop propagation to prevent row click
+    event.stopPropagation();
+
     // Convert invocation data to Node format for the drawer
     const node: Node = {
       id: invocation.id,
@@ -254,10 +264,19 @@ const InvocationsTable = () => {
       columnHelper.display({
         id: 'actions',
         header: '',
-        cell: () => (
-          <ChevronRightIcon className="h-5 w-5 text-gray-400" />
+        cell: (info) => (
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={(e) => handleViewDetails(info.row.original, e)}
+              className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+              title="Quick Details"
+            >
+              <MagnifyingGlassIcon className="h-4 w-4" />
+            </button>
+            <ChevronRightIcon className="h-5 w-5 text-gray-400" title="View in Flow Diagram" />
+          </div>
         ),
-        size: 50,
+        size: 80,
       }),
     ],
     []

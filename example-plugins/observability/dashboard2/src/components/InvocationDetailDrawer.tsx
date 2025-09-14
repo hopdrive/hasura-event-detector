@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, ChevronRightIcon, ChevronDownIcon, PlayIcon } from '@heroicons/react/24/outline';
 import { JSONTree } from 'react-json-tree';
 import { create, formatters } from 'jsondiffpatch';
 import { Node } from 'reactflow';
@@ -110,12 +110,165 @@ const TabButton = ({ active, onClick, children }: any) => (
   </button>
 );
 
+// Expandable Event Tree Component
+const EventTreeNode = ({ event, eventIndex, expandedEvents, toggleEvent }: any) => {
+  const isExpanded = expandedEvents[eventIndex];
+  const hasJobs = event.jobs && event.jobs.length > 0;
+
+  return (
+    <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+      {/* Event Header */}
+      <div
+        className={`
+          p-4 cursor-pointer transition-colors
+          ${event.detected
+            ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800'
+            : 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700'
+          }
+          ${hasJobs ? 'hover:bg-opacity-80' : ''}
+        `}
+        onClick={() => hasJobs && toggleEvent(eventIndex)}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            {hasJobs && (
+              <div className="flex-shrink-0">
+                {isExpanded ? (
+                  <ChevronDownIcon className="h-5 w-5 text-gray-500 transition-transform" />
+                ) : (
+                  <ChevronRightIcon className="h-5 w-5 text-gray-500 transition-transform" />
+                )}
+              </div>
+            )}
+            <div>
+              <p className="font-medium text-gray-900 dark:text-white">
+                {event.name}
+              </p>
+              <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400 mt-1">
+                <span>Duration: {event.duration}ms</span>
+                {hasJobs && <span>{event.jobs.length} jobs</span>}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center space-x-3">
+            <span className={`
+              inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+              ${event.detected
+                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
+              }
+            `}>
+              {event.detected ? '✓ Detected' : '○ Not Detected'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Expandable Jobs Section */}
+      {hasJobs && isExpanded && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+        >
+          <div className="p-4 space-y-3">
+            <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              Jobs executed for this event:
+            </div>
+            {event.jobs.map((job: any, jobIndex: number) => (
+              <div
+                key={jobIndex}
+                className="ml-6 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border-l-4 border-l-purple-400"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2">
+                      <PlayIcon className="h-4 w-4 text-purple-500" />
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {job.name}
+                      </p>
+                    </div>
+                    <div className="ml-6 mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                      <div className="flex items-center space-x-4">
+                        <span>Duration: {job.duration}ms</span>
+                        {job.function && <span>Function: {job.function}</span>}
+                      </div>
+                      {job.error && (
+                        <p className="text-red-600 dark:text-red-400 mt-2">
+                          ❌ Error: {job.error}
+                        </p>
+                      )}
+                      {job.result && (
+                        <details className="mt-2">
+                          <summary className="cursor-pointer text-blue-600 dark:text-blue-400 hover:underline">
+                            View Result
+                          </summary>
+                          <pre className="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs overflow-auto">
+                            {JSON.stringify(job.result, null, 2)}
+                          </pre>
+                        </details>
+                      )}
+                      {job.triggersInvocation && (
+                        <div className="mt-2 p-2 bg-purple-50 dark:bg-purple-900/20 rounded border border-purple-200 dark:border-purple-800">
+                          <div className="flex items-center space-x-2 text-purple-700 dark:text-purple-400">
+                            <span className="text-xs">🔄 Recursive Chain</span>
+                            <button className="text-xs underline hover:no-underline">
+                              → View triggered invocation
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <span className={`
+                    ml-4 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium flex-shrink-0
+                    ${job.status === 'completed'
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                      : job.status === 'failed'
+                      ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                      : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                    }
+                  `}>
+                    {job.status}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+    </div>
+  );
+};
+
 const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
   node,
   isOpen,
   onClose
 }) => {
   const [activeTab, setActiveTab] = useState('summary');
+  const [expandedEvents, setExpandedEvents] = useState<Record<number, boolean>>({});
+
+  const toggleEvent = (eventIndex: number) => {
+    setExpandedEvents(prev => ({
+      ...prev,
+      [eventIndex]: !prev[eventIndex]
+    }));
+  };
+
+  const expandAllEvents = () => {
+    const newExpandedState: Record<number, boolean> = {};
+    mockInvocationData.events.forEach((_, index) => {
+      newExpandedState[index] = true;
+    });
+    setExpandedEvents(newExpandedState);
+  };
+
+  const collapseAllEvents = () => {
+    setExpandedEvents({});
+  };
 
   if (!node) return null;
 
@@ -167,9 +320,55 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
     },
     
     events: [
-      { name: 'ride.status.change', detected: true, duration: 15 },
-      { name: 'ride.pickup.successful', detected: true, duration: 12 },
-      { name: 'ride.driver.assigned', detected: false, duration: 8 }
+      {
+        name: 'ride.status.change',
+        detected: true,
+        duration: 15,
+        jobs: [
+          {
+            name: 'sendNotification',
+            status: 'completed',
+            duration: 120,
+            function: 'notifications.sendEmail',
+            result: { emailSent: true, messageId: 'msg_123' }
+          },
+          {
+            name: 'updateAnalytics',
+            status: 'completed',
+            duration: 45,
+            function: 'analytics.recordEvent',
+            result: { eventRecorded: true, analyticsId: 'evt_456' }
+          }
+        ]
+      },
+      {
+        name: 'ride.pickup.successful',
+        detected: true,
+        duration: 12,
+        jobs: [
+          {
+            name: 'recalculateSLA',
+            status: 'failed',
+            duration: 180,
+            function: 'sla.recalculate',
+            error: 'Timeout after 3s - External API not responding'
+          },
+          {
+            name: 'triggerWorkflow',
+            status: 'completed',
+            duration: 67,
+            function: 'workflow.trigger',
+            triggersInvocation: true,
+            result: { workflowId: 'wf_789', nextSteps: ['driver.rating', 'payment.process'] }
+          }
+        ]
+      },
+      {
+        name: 'ride.driver.assigned',
+        detected: false,
+        duration: 8,
+        jobs: [] // No jobs executed since event was not detected
+      }
     ],
     
     jobs: [
@@ -400,33 +599,45 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
         )}
 
         {activeTab === 'events' && (
-          <div className="space-y-3">
-            {mockInvocationData.events.map((event, index) => (
-              <div 
-                key={index}
-                className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-white">
-                      {event.name}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      Duration: {event.duration}ms
-                    </p>
-                  </div>
-                  <span className={`
-                    inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                    ${event.detected 
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
-                      : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
-                    }
-                  `}>
-                    {event.detected ? 'Detected' : 'Not Detected'}
-                  </span>
-                </div>
+          <div className="space-y-4">
+            {/* Header with controls */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-lg font-medium text-gray-900 dark:text-white">
+                  Event Execution Hierarchy
+                </h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  {mockInvocationData.events.length} events detected • Click to expand and view jobs
+                </p>
               </div>
-            ))}
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={expandAllEvents}
+                  className="px-3 py-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-400"
+                >
+                  Expand All
+                </button>
+                <button
+                  onClick={collapseAllEvents}
+                  className="px-3 py-1 text-xs bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg transition-colors dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300"
+                >
+                  Collapse All
+                </button>
+              </div>
+            </div>
+
+            {/* Event Tree */}
+            <div className="space-y-3">
+              {mockInvocationData.events.map((event, index) => (
+                <EventTreeNode
+                  key={index}
+                  event={event}
+                  eventIndex={index}
+                  expandedEvents={expandedEvents}
+                  toggleEvent={toggleEvent}
+                />
+              ))}
+            </div>
           </div>
         )}
 
