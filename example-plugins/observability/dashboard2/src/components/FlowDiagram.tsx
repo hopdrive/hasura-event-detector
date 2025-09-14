@@ -26,19 +26,21 @@ import {
   useInvocationDetailQuery,
 } from '../types/generated';
 import 'reactflow/dist/style.css';
+import JobDetailDrawer from './JobDetailDrawer';
+import EventDetailDrawer from './EventDetailDrawer';
 
 // Custom Node Components
 const InvocationNode = ({ data, selected }: NodeProps) => {
   const statusColors = {
     completed: 'border-green-500 bg-green-50 dark:bg-green-900/20',
     failed: 'border-red-500 bg-red-50 dark:bg-red-900/20',
-    running: 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+    running: 'border-blue-500 bg-blue-50 dark:bg-blue-900/20',
   };
 
   const statusDots = {
     completed: 'bg-green-500',
     failed: 'bg-red-500',
-    running: 'bg-blue-500 animate-pulse'
+    running: 'bg-blue-500 animate-pulse',
   };
 
   return (
@@ -133,7 +135,7 @@ const JobNode = ({ data, selected }: NodeProps) => {
   const statusColors = {
     completed: 'border-green-500',
     failed: 'border-red-500',
-    running: 'border-blue-500'
+    running: 'border-blue-500',
   };
 
   const hasRecursion = data.triggersInvocation;
@@ -199,45 +201,42 @@ const CorrelationChainNode = ({ data, selected }: NodeProps) => {
         min-w-[320px] text-white
       `}
     >
-      <Handle type="target" position={Position.Left} className="w-3 h-3" />
+      <Handle type='target' position={Position.Left} className='w-3 h-3' />
 
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-semibold text-purple-200 uppercase tracking-wider">
-            Correlation Chain
-          </span>
-          <div className="flex items-center space-x-1">
-            <div className={`w-3 h-3 rounded-full ${
-              data.status === 'completed' ? 'bg-green-400' :
-              data.status === 'failed' ? 'bg-red-400' : 'bg-yellow-400'
-            }`} />
+      <div className='p-6'>
+        <div className='flex items-center justify-between mb-3'>
+          <span className='text-xs font-semibold text-purple-200 uppercase tracking-wider'>Correlation Chain</span>
+          <div className='flex items-center space-x-1'>
+            <div
+              className={`w-3 h-3 rounded-full ${
+                data.status === 'completed' ? 'bg-green-400' : data.status === 'failed' ? 'bg-red-400' : 'bg-yellow-400'
+              }`}
+            />
           </div>
         </div>
 
-        <div className="space-y-2">
-          <p className="font-bold text-lg">
-            {data.chainId}
-          </p>
-          <p className="text-purple-100 text-sm">
+        <div className='space-y-2'>
+          <p className='font-bold text-lg'>{data.chainId}</p>
+          <p className='text-purple-100 text-sm'>
             {data.totalInvocations} invocations • {data.totalJobs} jobs
           </p>
 
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-purple-200">Duration: {data.totalDuration}ms</span>
-            <span className="text-purple-200">
+          <div className='flex items-center justify-between text-sm'>
+            <span className='text-purple-200'>Duration: {data.totalDuration}ms</span>
+            <span className='text-purple-200'>
               Success: {Math.round((data.successfulJobs / data.totalJobs) * 100)}%
             </span>
           </div>
 
           {data.recursive && (
-            <div className="mt-3 px-3 py-1 bg-purple-400/30 rounded-full">
-              <span className="text-xs font-medium">🔄 Recursive Chain</span>
+            <div className='mt-3 px-3 py-1 bg-purple-400/30 rounded-full'>
+              <span className='text-xs font-medium'>🔄 Recursive Chain</span>
             </div>
           )}
         </div>
       </div>
 
-      <Handle type="source" position={Position.Right} className="w-3 h-3" />
+      <Handle type='source' position={Position.Right} className='w-3 h-3' />
     </motion.div>
   );
 };
@@ -261,62 +260,49 @@ const GroupedEventsNode = ({ data, selected }: NodeProps) => {
       `}
       onClick={() => setExpanded(!expanded)}
     >
-      <Handle type="target" position={Position.Top} id="top" className="w-3 h-3" />
+      <Handle type='target' position={Position.Top} id='top' className='w-3 h-3' />
 
       {/* Gray accent strip */}
-      <div className="absolute left-0 top-0 bottom-0 w-1 bg-gray-400 dark:bg-gray-500 rounded-l-lg" />
+      <div className='absolute left-0 top-0 bottom-0 w-1 bg-gray-400 dark:bg-gray-500 rounded-l-lg' />
 
-      <div className="p-4 pl-5">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-            Event Group
+      <div className='p-4 pl-5'>
+        <div className='flex items-center justify-between mb-2'>
+          <span className='text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider'>
+            Ignored Events
           </span>
-          <div className="flex items-center space-x-1">
+          <div className='flex items-center space-x-1'>
             {expanded ? (
-              <ChevronDownIcon className="h-4 w-4 text-gray-500" />
+              <ChevronDownIcon className='h-4 w-4 text-gray-500' />
             ) : (
-              <ChevronRightIcon className="h-4 w-4 text-gray-500" />
+              <ChevronRightIcon className='h-4 w-4 text-gray-500' />
             )}
           </div>
         </div>
 
         {!expanded ? (
           // Collapsed View - Compact Summary
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-900 dark:text-white">
-                {data.totalCount} Events
-              </span>
-            </div>
-            <div className="flex items-center space-x-3 text-xs">
+          <div className='space-y-2'>
+            <div className='flex items-center space-x-3 text-xs'>
               {hasDetectedEvents && (
-                <div className="flex items-center space-x-1">
-                  <div className="w-2 h-2 bg-green-500 rounded-full" />
-                  <span className="text-green-600 dark:text-green-400 font-medium">
-                    {data.detectedCount} detected
-                  </span>
+                <div className='flex items-center space-x-1'>
+                  <div className='w-2 h-2 bg-green-500 rounded-full' />
+                  <span className='text-green-600 dark:text-green-400 font-medium'>{data.detectedCount} detected</span>
                 </div>
               )}
               {hasUndetectedEvents && (
-                <div className="flex items-center space-x-1">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full" />
-                  <span className="text-gray-500">
-                    {data.undetectedCount} not detected
-                  </span>
+                <div className='flex items-center space-x-1'>
+                  <div className='w-2 h-2 bg-gray-400 rounded-full' />
+                  <span className='text-gray-500'>{data.undetectedCount} not detected</span>
                 </div>
               )}
             </div>
-            <div className="text-xs text-gray-500">
-              Click to expand
-            </div>
+            <div className='text-xs text-gray-500'>Click to expand</div>
           </div>
         ) : (
           // Expanded View - Show Individual Events
-          <div className="space-y-3">
-            <div className="text-sm font-medium text-gray-900 dark:text-white mb-3">
-              Individual Events:
-            </div>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
+          <div className='space-y-3'>
+            <div className='text-sm font-medium text-gray-900 dark:text-white mb-3'>Individual Events:</div>
+            <div className='space-y-2 max-h-48 overflow-y-auto'>
               {data.events?.map((event: any, index: number) => (
                 <div
                   key={index}
@@ -326,30 +312,24 @@ const GroupedEventsNode = ({ data, selected }: NodeProps) => {
                       : 'border-l-gray-300 bg-gray-50 dark:bg-gray-900/20'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-gray-900 dark:text-white">
-                      {event.name}
-                    </span>
-                    <span className={`text-xs ${
-                      event.detected ? 'text-green-600 dark:text-green-400' : 'text-gray-500'
-                    }`}>
+                  <div className='flex items-center justify-between'>
+                    <span className='text-xs font-medium text-gray-900 dark:text-white'>{event.name}</span>
+                    <span
+                      className={`text-xs ${event.detected ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}
+                    >
                       {event.detected ? '✓' : '○'}
                     </span>
                   </div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                    {event.duration}ms
-                  </div>
+                  <div className='text-xs text-gray-600 dark:text-gray-400 mt-1'>{event.duration}ms</div>
                 </div>
               ))}
             </div>
-            <div className="text-xs text-gray-500 pt-2 border-t">
-              Click to collapse
-            </div>
+            <div className='text-xs text-gray-500 pt-2 border-t'>Click to collapse</div>
           </div>
         )}
       </div>
 
-      <Handle type="source" position={Position.Right} className="w-3 h-3" />
+      <Handle type='source' position={Position.Right} className='w-3 h-3' />
     </motion.div>
   );
 };
@@ -359,7 +339,7 @@ const nodeTypes = {
   event: EventNode,
   job: JobNode,
   correlationChain: CorrelationChainNode,
-  groupedEvents: GroupedEventsNode
+  groupedEvents: GroupedEventsNode,
 };
 
 // Enhanced mock data generator for testing grouping
@@ -392,8 +372,8 @@ const generateEnhancedMockData = () => {
       eventsCount: 8,
       jobsCount: 4,
       successfulJobs: 3,
-      failedJobs: 1
-    }
+      failedJobs: 1,
+    },
   };
   nodes.push(invocationNode);
 
@@ -417,7 +397,7 @@ const generateEnhancedMockData = () => {
     const eventNode: Node = {
       id: event.id,
       type: 'event',
-      position: { x: baseX + 584, y: baseY + 16 + (index * 200) + eventCenterOffset },
+      position: { x: baseX + 584, y: baseY + 16 + index * 200 + eventCenterOffset },
       data: {
         eventName: event.name,
         correlationId: 'demo.correlation.123',
@@ -425,8 +405,8 @@ const generateEnhancedMockData = () => {
         status: 'completed',
         detectionDuration: 15,
         handlerDuration: 12,
-        jobsCount: event.jobs
-      }
+        jobsCount: event.jobs,
+      },
     };
     nodes.push(eventNode);
 
@@ -436,7 +416,7 @@ const generateEnhancedMockData = () => {
       source: 'main-invocation',
       target: event.id,
       markerEnd: { type: MarkerType.ArrowClosed },
-      style: { stroke: '#10b981', strokeWidth: 2 }
+      style: { stroke: '#10b981', strokeWidth: 2 },
     });
 
     // Create job nodes for detected events (centered on parent event)
@@ -448,7 +428,7 @@ const generateEnhancedMockData = () => {
       const jobNode: Node = {
         id: jobId,
         type: 'job',
-        position: { x: baseX + 584 + 350, y: baseY + 16 + (index * 200) + jobCenterOffset + (jobIndex * 120) },
+        position: { x: baseX + 584 + 350, y: baseY + 16 + index * 200 + jobCenterOffset + jobIndex * 120 },
         data: {
           jobName: jobIndex === 0 ? 'sendNotification' : 'updateAnalytics',
           functionName: jobIndex === 0 ? 'notifications.sendEmail' : 'analytics.recordEvent',
@@ -456,8 +436,8 @@ const generateEnhancedMockData = () => {
           status: jobIndex === 1 && index === 1 ? 'failed' : 'completed',
           duration: jobIndex === 0 ? 120 : 45,
           result: { success: true },
-          error: jobIndex === 1 && index === 1 ? 'Timeout after 3s' : null
-        }
+          error: jobIndex === 1 && index === 1 ? 'Timeout after 3s' : null,
+        },
       };
       nodes.push(jobNode);
 
@@ -467,7 +447,7 @@ const generateEnhancedMockData = () => {
         source: event.id,
         target: jobId,
         markerEnd: { type: MarkerType.ArrowClosed },
-        style: { stroke: jobNode.data.status === 'completed' ? '#10b981' : '#ef4444' }
+        style: { stroke: jobNode.data.status === 'completed' ? '#10b981' : '#ef4444' },
       });
     }
   });
@@ -484,9 +464,9 @@ const generateEnhancedMockData = () => {
       events: undetectedEvents.map(e => ({
         name: e.name,
         detected: e.detected,
-        duration: 8
-      }))
-    }
+        duration: 8,
+      })),
+    },
   };
   nodes.push(groupedNode);
 
@@ -498,7 +478,7 @@ const generateEnhancedMockData = () => {
     sourceHandle: 'bottom',
     targetHandle: 'top',
     markerEnd: { type: MarkerType.ArrowClosed },
-    style: { stroke: '#9ca3af', strokeWidth: 1, strokeDasharray: '5,5' }
+    style: { stroke: '#9ca3af', strokeWidth: 1, strokeDasharray: '5,5' },
   });
 
   return { generatedNodes: nodes, generatedEdges: edges };
@@ -523,7 +503,6 @@ const FlowDiagramContent = () => {
   const invocationId = searchParams.get('invocationId');
   const autoFocus = searchParams.get('autoFocus') === 'true';
   const correlationId = searchParams.get('correlationId');
-
 
   // GraphQL Queries for real data
   const { data: invocationData, loading: invocationLoading } = useInvocationDetailQuery({
@@ -784,8 +763,8 @@ const FlowDiagramContent = () => {
       const edges: Edge[] = [];
 
       // Build parent-child mapping using source_job_id
-      const invocationsByParentJob = new Map<string, typeof correlationData.invocations[0][]>();
-      const rootInvocations: typeof correlationData.invocations[0][] = [];
+      const invocationsByParentJob = new Map<string, (typeof correlationData.invocations)[0][]>();
+      const rootInvocations: (typeof correlationData.invocations)[0][] = [];
       const allJobNodes = new Map<string, Node>();
 
       // First pass: categorize invocations and collect all job nodes
@@ -826,7 +805,12 @@ const FlowDiagramContent = () => {
       });
 
       // Recursive function to build tree structure
-      const buildInvocationTree = (invocations: typeof correlationData.invocations, startX: number, startY: number, level: number = 0) => {
+      const buildInvocationTree = (
+        invocations: typeof correlationData.invocations,
+        startX: number,
+        startY: number,
+        level: number = 0
+      ) => {
         let currentY = startY;
         const levelSpacing = 600; // Horizontal spacing between levels
 
@@ -927,12 +911,7 @@ const FlowDiagramContent = () => {
                 const childStartX = jobNodePosition ? jobNodePosition.x + 300 : startX + levelSpacing;
                 const childStartY = jobNodePosition ? jobNodePosition.y : currentY;
 
-                buildInvocationTree(
-                  childInvocations,
-                  childStartX,
-                  childStartY,
-                  level + 1
-                );
+                buildInvocationTree(childInvocations, childStartX, childStartY, level + 1);
               }
             });
           });
@@ -1016,7 +995,6 @@ const FlowDiagramContent = () => {
     },
     [nodes]
   );
-
 
   const filteredNodes = useMemo(() => {
     let filteredNodes = nodes;
@@ -1132,7 +1110,6 @@ const FlowDiagramContent = () => {
                 Correlation Chains
               </button>
             </div>
-
 
             <input
               type='text'
@@ -1291,10 +1268,23 @@ const FlowDiagramContent = () => {
         </ReactFlow>
       </div>
 
-      {/* Detail Drawer */}
+      {/* Detail Drawer - Type-specific modals */}
       <AnimatePresence>
         {drawerOpen && selectedNode && (
-          <InvocationDetailDrawer node={selectedNode} isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+          <>
+            {selectedNode.type === 'invocation' && (
+              <InvocationDetailDrawer node={selectedNode} isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+            )}
+            {selectedNode.type === 'job' && (
+              <JobDetailDrawer node={selectedNode} isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+            )}
+            {selectedNode.type === 'event' && (
+              <EventDetailDrawer node={selectedNode} isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+            )}
+            {selectedNode.type === 'groupedEvents' && (
+              <InvocationDetailDrawer node={selectedNode} isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+            )}
+          </>
         )}
       </AnimatePresence>
     </div>
