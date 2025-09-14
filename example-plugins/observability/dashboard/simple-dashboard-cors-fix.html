@@ -180,8 +180,14 @@
             border-bottom: 1px solid #e5e7eb;
         }
 
-        tr:hover {
-            background: #f9fafb;
+        tbody tr {
+            cursor: pointer;
+            transition: background-color 0.2s, box-shadow 0.2s;
+        }
+
+        tbody tr:hover {
+            background: #e3f2fd;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
         .status-badge {
@@ -366,10 +372,11 @@
                 </div>
             </div>
 
-            <div class="chart-container">
+            <!-- Chart disabled for performance -->
+            <!-- <div class="chart-container">
                 <div class="chart-title">Invocation Trends</div>
                 <canvas id="trendsChart" width="400" height="200"></canvas>
-            </div>
+            </div> -->
 
             <div class="table-container">
                 <div class="chart-title">Recent Invocations</div>
@@ -637,6 +644,9 @@ Protocol: ${window.location.protocol}</pre>
 
             invocations.forEach(inv => {
                 const row = tbody.insertRow();
+                row.style.cursor = 'pointer';
+                row.title = 'Click to view detailed execution flow';
+
                 row.innerHTML = `
                     <td>${new Date(inv.created_at).toLocaleString()}</td>
                     <td>${inv.source_function || '-'}</td>
@@ -646,15 +656,29 @@ Protocol: ${window.location.protocol}</pre>
                     <td>${inv.events_detected_count || 0}</td>
                     <td>${inv.total_jobs_run || 0}</td>
                 `;
+
+                // Add click handler to navigate to detail page
+                row.addEventListener('click', () => {
+                    window.location.href = `invocation-detail.html?id=${inv.id}`;
+                });
             });
         }
 
         function createCharts(data) {
-            // Destroy existing chart
-            if (trendsChart) trendsChart.destroy();
+            // Destroy existing chart properly
+            if (trendsChart) {
+                trendsChart.destroy();
+                trendsChart = null;
+            }
 
-            // Simple trend chart
-            const ctx = document.getElementById('trendsChart').getContext('2d');
+            // Get canvas context fresh
+            const canvas = document.getElementById('trendsChart');
+            const ctx = canvas.getContext('2d');
+
+            // Clear canvas completely
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Simple trend chart with limited data points
             const recentData = data.recent.slice(0, 10).reverse(); // Last 10, oldest first
 
             trendsChart = new Chart(ctx, {
@@ -705,7 +729,7 @@ Protocol: ${window.location.protocol}</pre>
 
                 updateMetrics(data);
                 updateTable(data.recent);
-                createCharts(data);
+                // createCharts(data); // Disabled for performance
 
                 loading.style.display = 'none';
                 dashboard.style.display = 'block';
@@ -732,12 +756,29 @@ Connection Mode: ${document.getElementById('connectionMode').value}</pre>
             }
         }
 
-        // Auto-refresh every 30 seconds (only when dashboard is visible)
+        // Auto-refresh every 2 minutes (only when dashboard is visible and page is active)
         setInterval(() => {
-            if (document.getElementById('dashboard').style.display !== 'none') {
+            if (document.getElementById('dashboard').style.display !== 'none' && !document.hidden) {
                 refreshDashboard();
             }
-        }, 30000);
+        }, 120000); // Changed from 30 seconds to 2 minutes
+
+        // Cleanup on page unload to prevent memory leaks
+        window.addEventListener('beforeunload', () => {
+            if (trendsChart) {
+                trendsChart.destroy();
+                trendsChart = null;
+            }
+        });
+
+        // Pause auto-refresh when page is not visible
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && trendsChart) {
+                // Optionally pause chart animations when page is hidden
+                trendsChart.options.animation = false;
+                trendsChart.update();
+            }
+        });
 
         // Load saved endpoint
         if (HASURA_ENDPOINT) {
