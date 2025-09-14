@@ -93,7 +93,8 @@ export const listenTo = async (
 
   try {
     // Special handling for onPreConfigure which returns modified options
-    for (const plugin of pluginManager.getEnabledPlugins()) {
+    const enabledPlugins = pluginManager.getEnabledPlugins();
+    for (const plugin of enabledPlugins) {
       if (typeof plugin.onPreConfigure === 'function') {
         const pluginModifiedOptions = await plugin.onPreConfigure(hasuraEvent, modifiedOptions);
         if (pluginModifiedOptions && typeof pluginModifiedOptions === 'object') {

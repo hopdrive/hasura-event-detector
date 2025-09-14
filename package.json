@@ -65,6 +65,7 @@
   "homepage": "https://github.com/hopdrive/hasura-event-detector#readme",
   "dependencies": {
     "commander": "^14.0.0",
+    "dotenv": "^17.2.2",
     "pg": "^8.11.0",
     "uuid": "^9.0.0"
   },

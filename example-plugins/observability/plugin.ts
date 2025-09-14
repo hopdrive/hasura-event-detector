@@ -1,9 +1,7 @@
 import { Pool, PoolClient } from 'pg';
 import { v4 as uuidv4 } from 'uuid';
+import { BasePlugin } from '../../src/plugin';
 import {
-  BasePlugin,
-  log,
-  logError,
   type PluginConfig,
   type CorrelationId,
   type EventName,
@@ -14,8 +12,10 @@ import {
   type ListenToOptions,
   type ListenToResponse,
   type DatabaseConfig,
-  type HasuraOperation
-} from '@hopdrive/hasura-event-detector';
+  type HasuraOperation,
+} from '../../src/types';
+import { log, logError } from '../../src/helpers/log';
+import { parseHasuraEvent } from '../../src/helpers/hasura';
 
 // Observability-specific types moved from core types
 export interface ObservabilityMetrics {
@@ -36,7 +36,6 @@ export interface ObservabilityData {
   metadata?: Record<string, any>;
   timestamp: Date;
 }
-
 
 export interface InvocationRecord {
   id: string;
@@ -90,6 +89,7 @@ export interface ObservabilityQueryVariables {
 }
 
 interface ObservabilityConfig extends PluginConfig {
+  enabled?: boolean;
   database: DatabaseConfig & {
     connectionString?: string | undefined;
   };
@@ -109,11 +109,12 @@ interface BufferedInvocation {
   source_function: string;
   source_table: string;
   source_operation: string;
-  hasura_event_id: string | null;
-  hasura_event_payload: Record<string, any> | null;
-  hasura_event_time: Date;
-  hasura_user_email: string | null;
-  hasura_user_role: string | null;
+  source_system: string;
+  source_event_id: string | null;
+  source_event_payload: Record<string, any> | null;
+  source_event_time: Date;
+  source_user_email: string | null;
+  source_user_role: string | null;
   auto_load_modules: boolean;
   event_modules_directory: string;
   context_data: Record<string, any> | null;
@@ -185,6 +186,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   };
   private flushTimer: NodeJS.Timeout | null = null;
   private isInitialized: boolean = false;
+  private activeInvocations: Map<CorrelationId, string> = new Map(); // Track correlation ID -> invocation ID mapping
 
   constructor(config: Partial<ObservabilityConfig> = {}) {
     const defaultConfig: ObservabilityConfig = {
@@ -198,7 +200,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
         password: process.env.OBSERVABILITY_DB_PASSWORD || '',
         ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
       },
-      schema: 'event_detector_observability',
+      schema: 'public',
       captureJobOptions: true,
       captureHasuraPayload: true,
       captureErrorStacks: true,
@@ -292,11 +294,12 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       source_function: data.sourceFunction,
       source_table: data.sourceTable,
       source_operation: data.sourceOperation,
-      hasura_event_id: data.hasuraEventId,
-      hasura_event_payload: this.config.captureHasuraPayload ? data.hasuraEventPayload : null,
-      hasura_event_time: data.hasuraEventTime,
-      hasura_user_email: data.hasuraUserEmail,
-      hasura_user_role: data.hasuraUserRole,
+      source_system: 'hasura', // Default to hasura, can be overridden
+      source_event_id: data.hasuraEventId,
+      source_event_payload: this.config.captureHasuraPayload ? data.hasuraEventPayload : null,
+      source_event_time: data.hasuraEventTime,
+      source_user_email: data.hasuraUserEmail,
+      source_user_role: data.hasuraUserRole,
       auto_load_modules: data.autoLoadModules,
       event_modules_directory: data.eventModulesDirectory,
       context_data: data.contextData,
@@ -375,7 +378,11 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   /**
    * Record job execution
    */
-  async recordJobExecution(invocationId: string | null, eventExecutionId: string | null, data: any): Promise<string | null> {
+  async recordJobExecution(
+    invocationId: string | null,
+    eventExecutionId: string | null,
+    data: any
+  ): Promise<string | null> {
     if (!this.config.enabled || !invocationId || !eventExecutionId) return null;
 
     const id = uuidv4();
@@ -458,11 +465,12 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       'source_function',
       'source_table',
       'source_operation',
-      'hasura_event_id',
-      'hasura_event_payload',
-      'hasura_event_time',
-      'hasura_user_email',
-      'hasura_user_role',
+      'source_system',
+      'source_event_id',
+      'source_event_payload',
+      'source_event_time',
+      'source_user_email',
+      'source_user_role',
       'total_duration_ms',
       'events_detected_count',
       'total_jobs_run',
@@ -481,7 +489,9 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     const values = records.map((record: any) => columns.map((col: string) => this.serializeValue(record[col])));
 
     const placeholders = values
-      .map((_: any, i: number) => `(${columns.map((_: string, j: number) => `$${i * columns.length + j + 1}`).join(', ')})`)
+      .map(
+        (_: any, i: number) => `(${columns.map((_: string, j: number) => `$${i * columns.length + j + 1}`).join(', ')})`
+      )
       .join(', ');
 
     const updateSet = columns
@@ -490,7 +500,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       .join(', ');
 
     const query = `
-      INSERT INTO ${this.config.schema}.invocations (${columns.join(', ')})
+      INSERT INTO invocations (${columns.join(', ')})
       VALUES ${placeholders}
       ON CONFLICT (id) DO UPDATE SET ${updateSet}
     `;
@@ -528,11 +538,13 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     const values = records.map((record: any) => columns.map((col: string) => this.serializeValue(record[col])));
 
     const placeholders = values
-      .map((_: any, i: number) => `(${columns.map((_: string, j: number) => `$${i * columns.length + j + 1}`).join(', ')})`)
+      .map(
+        (_: any, i: number) => `(${columns.map((_: string, j: number) => `$${i * columns.length + j + 1}`).join(', ')})`
+      )
       .join(', ');
 
     const query = `
-      INSERT INTO ${this.config.schema}.event_executions (${columns.join(', ')})
+      INSERT INTO event_executions (${columns.join(', ')})
       VALUES ${placeholders}
       ON CONFLICT (id) DO NOTHING
     `;
@@ -566,11 +578,13 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     const values = records.map((record: any) => columns.map((col: string) => this.serializeValue(record[col])));
 
     const placeholders = values
-      .map((_: any, i: number) => `(${columns.map((_: string, j: number) => `$${i * columns.length + j + 1}`).join(', ')})`)
+      .map(
+        (_: any, i: number) => `(${columns.map((_: string, j: number) => `$${i * columns.length + j + 1}`).join(', ')})`
+      )
       .join(', ');
 
     const query = `
-      INSERT INTO ${this.config.schema}.job_executions (${columns.join(', ')})
+      INSERT INTO job_executions (${columns.join(', ')})
       VALUES ${placeholders}
       ON CONFLICT (id) DO NOTHING
     `;
@@ -589,6 +603,140 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     return value;
   }
 
+  // Plugin Hook Implementations
+  // These methods are called automatically by the listenTo function
+
+  /**
+   * Called when listenTo() starts processing
+   */
+  override async onInvocationStart(
+    hasuraEvent: HasuraEventPayload,
+    options: ListenToOptions,
+    context: Record<string, any>,
+    correlationId: CorrelationId
+  ): Promise<void> {
+    if (!this.config.enabled) return;
+
+    const { dbEvent } = parseHasuraEvent(hasuraEvent);
+
+    const invocationData = {
+      correlationId,
+      sourceFunction: options.sourceFunction || 'unknown',
+      sourceTable: dbEvent?.table?.name || null,
+      sourceOperation: hasuraEvent.event?.op || 'MANUAL',
+      hasuraEventId: hasuraEvent.id || null,
+      hasuraEventPayload: hasuraEvent,
+      hasuraEventTime: new Date(hasuraEvent.event?.timestamp || hasuraEvent.created_at || Date.now()),
+      hasuraUserEmail: hasuraEvent.event?.session_variables?.['x-hasura-user-email'] || null,
+      hasuraUserRole: hasuraEvent.event?.session_variables?.['x-hasura-role'] || null,
+      autoLoadModules: options.autoLoadEventModules !== false,
+      eventModulesDirectory: options.eventModulesDirectory || './events',
+      contextData: context,
+    };
+
+    const invocationId = await this.recordInvocationStart(invocationData);
+    if (invocationId) {
+      this.activeInvocations.set(correlationId, invocationId);
+      log('ObservabilityPlugin', `Recorded invocation start: ${invocationId} for correlation: ${correlationId}`);
+    }
+  }
+
+  /**
+   * Called when listenTo() completes
+   */
+  override async onInvocationEnd(
+    hasuraEvent: HasuraEventPayload,
+    result: ListenToResponse,
+    correlationId: CorrelationId,
+    durationMs: number
+  ): Promise<void> {
+    if (!this.config.enabled) return;
+
+    const invocationId = this.activeInvocations.get(correlationId);
+    if (!invocationId) return;
+
+    // Count job results
+    let totalJobsRun = 0;
+    let totalJobsSucceeded = 0;
+    let totalJobsFailed = 0;
+
+    result.events.forEach(event => {
+      if (event.jobResults) {
+        totalJobsRun += event.jobResults.length;
+        event.jobResults.forEach(jobResult => {
+          if (jobResult.success) {
+            totalJobsSucceeded++;
+          } else {
+            totalJobsFailed++;
+          }
+        });
+      }
+    });
+
+    const endData = {
+      durationMs: result.durationMs || durationMs,
+      eventsDetectedCount: result.events.filter(e => e.detected).length,
+      totalJobsRun,
+      totalJobsSucceeded,
+      totalJobsFailed,
+      status: totalJobsFailed > 0 ? 'failed' : 'completed',
+      errorMessage: null,
+      errorStack: null,
+    };
+
+    await this.recordInvocationEnd(invocationId, endData);
+    this.activeInvocations.delete(correlationId);
+
+    log('ObservabilityPlugin', `Recorded invocation end: ${invocationId} (${endData.status})`);
+  }
+
+  /**
+   * Called before event detection starts
+   */
+  override async onEventDetectionStart(
+    eventName: EventName,
+    hasuraEvent: HasuraEventPayload,
+    correlationId: CorrelationId
+  ): Promise<void> {
+    // Will be implemented when event detection data is ready
+  }
+
+  /**
+   * Called after event detection completes
+   */
+  override async onEventDetectionEnd(
+    eventName: EventName,
+    detected: boolean,
+    hasuraEvent: HasuraEventPayload,
+    correlationId: CorrelationId,
+    durationMs: number
+  ): Promise<void> {
+    if (!this.config.enabled) return;
+
+    const invocationId = this.activeInvocations.get(correlationId);
+    if (!invocationId) return;
+
+    const eventData = {
+      correlationId,
+      eventName,
+      eventModulePath: null, // Will be filled when available
+      detected,
+      detectionDurationMs: durationMs,
+      detectionError: null,
+      detectionErrorStack: null,
+      handlerDurationMs: null,
+      handlerError: null,
+      handlerErrorStack: null,
+      jobsCount: 0,
+      jobsSucceeded: 0,
+      jobsFailed: 0,
+      status: detected ? 'handling' : 'not_detected',
+    };
+
+    await this.recordEventExecution(invocationId, eventData);
+    log('ObservabilityPlugin', `Recorded event execution: ${eventName} (${detected ? 'detected' : 'not detected'})`);
+  }
+
   /**
    * Get plugin status and statistics
    */
@@ -597,8 +745,12 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       name: this.name,
       enabled: this.enabled,
       config: this.config,
+      activeInvocations: this.activeInvocations.size,
+      bufferSizes: {
+        invocations: this.buffer.invocations.size,
+        eventExecutions: this.buffer.eventExecutions.size,
+        jobExecutions: this.buffer.jobExecutions.size,
+      },
     };
   }
 }
-
-// Export the plugin class

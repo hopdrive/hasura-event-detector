@@ -11,9 +11,11 @@
  */
 
 import { listenTo } from '../detector';
-import { pluginManager } from '@hopdrive/hasura-event-detector';
+import { pluginManager } from '../plugin';
 import { ObservabilityPlugin } from '../../example-plugins/observability/plugin';
 import * as path from 'path';
+import { config } from 'dotenv';
+config({ path: 'example-plugins/observability/.env' });
 
 describe('Debug Moves Event', () => {
   // Your actual Hasura payload from Insomnia
