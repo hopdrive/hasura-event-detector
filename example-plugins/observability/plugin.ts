@@ -187,6 +187,8 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   private flushTimer: NodeJS.Timeout | null = null;
   private isInitialized: boolean = false;
   private activeInvocations: Map<CorrelationId, string> = new Map(); // Track correlation ID -> invocation ID mapping
+  private activeEventExecutions: Map<string, string> = new Map(); // Track "${correlationId}:${eventName}" -> event execution ID
+  private activeJobExecutions: Map<string, string> = new Map(); // Track "${correlationId}:${eventName}:${jobName}" -> job execution ID
 
   constructor(config: Partial<ObservabilityConfig> = {}) {
     const defaultConfig: ObservabilityConfig = {
@@ -277,6 +279,11 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       await this.pool.end();
       this.pool = null;
     }
+
+    // Clean up tracking maps
+    this.activeInvocations.clear();
+    this.activeEventExecutions.clear();
+    this.activeJobExecutions.clear();
 
     log('ObservabilityPlugin', 'Shutdown complete');
   }
@@ -653,7 +660,10 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     if (!this.config.enabled) return;
 
     const invocationId = this.activeInvocations.get(correlationId);
-    if (!invocationId) return;
+    if (!invocationId) {
+      logError('ObservabilityPlugin', `Invocation ID not found for correlation ${correlationId} in onInvocationEnd`, new Error('Missing invocation ID'));
+      return;
+    }
 
     // Count job results
     let totalJobsRun = 0;
@@ -733,8 +743,193 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       status: detected ? 'handling' : 'not_detected',
     };
 
-    await this.recordEventExecution(invocationId, eventData);
+    const eventExecutionId = await this.recordEventExecution(invocationId, eventData);
+    if (eventExecutionId) {
+      // Store event execution ID for later job tracking
+      this.activeEventExecutions.set(`${correlationId}:${eventName}`, eventExecutionId);
+    }
+
     log('ObservabilityPlugin', `Recorded event execution: ${eventName} (${detected ? 'detected' : 'not detected'})`);
+  }
+
+  /**
+   * Called when event handler starts executing
+   */
+  override async onEventHandlerStart(
+    eventName: EventName,
+    hasuraEvent: HasuraEventPayload,
+    correlationId: CorrelationId
+  ): Promise<void> {
+    if (!this.config.enabled) return;
+
+    log('ObservabilityPlugin', `Event handler starting: ${eventName}`);
+  }
+
+  /**
+   * Called when event handler completes
+   */
+  override async onEventHandlerEnd(
+    eventName: EventName,
+    results: any[],
+    hasuraEvent: HasuraEventPayload,
+    correlationId: CorrelationId,
+    durationMs: number
+  ): Promise<void> {
+    if (!this.config.enabled) return;
+
+    const eventExecutionKey = `${correlationId}:${eventName}`;
+    const eventExecutionId = this.activeEventExecutions.get(eventExecutionKey);
+    if (!eventExecutionId) return;
+
+    // Count job results
+    let jobsSucceeded = 0;
+    let jobsFailed = 0;
+
+    results.forEach(result => {
+      if (result.success || result.completed) {
+        jobsSucceeded++;
+      } else {
+        jobsFailed++;
+      }
+    });
+
+    // Update the event execution record with handler results
+    const eventRecord = this.buffer.eventExecutions.get(eventExecutionId);
+    if (eventRecord) {
+      Object.assign(eventRecord, {
+        handler_duration_ms: durationMs,
+        jobs_count: results.length,
+        jobs_succeeded: jobsSucceeded,
+        jobs_failed: jobsFailed,
+        status: 'completed',
+        updated_at: new Date(),
+      });
+
+      this.buffer.eventExecutions.set(eventExecutionId, eventRecord);
+    }
+
+    // Clean up the event execution tracking
+    this.activeEventExecutions.delete(eventExecutionKey);
+
+    log('ObservabilityPlugin', `Event handler completed: ${eventName} (${results.length} jobs, ${jobsSucceeded} succeeded, ${jobsFailed} failed)`);
+  }
+
+  /**
+   * Called when individual job starts
+   */
+  override async onJobStart(
+    jobName: JobName,
+    jobOptions: JobOptions,
+    eventName: EventName,
+    hasuraEvent: HasuraEventPayload,
+    correlationId: CorrelationId
+  ): Promise<void> {
+    if (!this.config.enabled) return;
+
+    const invocationId = this.activeInvocations.get(correlationId);
+    const eventExecutionId = this.activeEventExecutions.get(`${correlationId}:${eventName}`);
+
+    if (!invocationId) {
+      logError('ObservabilityPlugin', `Invocation ID not found for correlation ${correlationId}`, new Error('Missing invocation ID'));
+      return;
+    }
+
+    if (!eventExecutionId) {
+      logError('ObservabilityPlugin', `Event execution ID not found for ${eventName} - possible missing onEventDetectionEnd call`, new Error('Missing event execution ID'));
+      return;
+    }
+
+    const jobData = {
+      correlationId,
+      jobName,
+      jobFunctionName: jobName, // Could be enhanced to get actual function name
+      jobOptions,
+      durationMs: null,
+      status: 'running',
+      result: null,
+      errorMessage: null,
+      errorStack: null,
+    };
+
+    const jobExecutionId = await this.recordJobExecution(invocationId, eventExecutionId, jobData);
+    if (jobExecutionId) {
+      // Store job execution ID for completion tracking
+      const jobExecutionKey = `${correlationId}:${eventName}:${jobName}`;
+      this.activeJobExecutions.set(jobExecutionKey, jobExecutionId);
+    }
+
+    log('ObservabilityPlugin', `Job started: ${jobName} for event ${eventName}`);
+  }
+
+  /**
+   * Called when individual job completes
+   */
+  override async onJobEnd(
+    jobName: JobName,
+    result: JobResult,
+    eventName: EventName,
+    hasuraEvent: HasuraEventPayload,
+    correlationId: CorrelationId,
+    durationMs: number
+  ): Promise<void> {
+    if (!this.config.enabled) return;
+
+    const jobExecutionKey = `${correlationId}:${eventName}:${jobName}`;
+    const jobExecutionId = this.activeJobExecutions.get(jobExecutionKey);
+    if (!jobExecutionId) {
+      logError('ObservabilityPlugin', `Job execution ID not found for ${jobName} - possible race condition or missing onJobStart call`, new Error('Missing job execution ID'));
+      return;
+    }
+
+    // Update the job execution record with completion data
+    const jobRecord = this.buffer.jobExecutions.get(jobExecutionId);
+    if (jobRecord) {
+      Object.assign(jobRecord, {
+        duration_ms: durationMs,
+        status: result.success || result.completed ? 'completed' : 'failed',
+        result: result.result || result,
+        error_message: result.error?.message || (result.success === false ? 'Job failed' : null),
+        error_stack: this.config.captureErrorStacks ? result.error?.stack : null,
+        updated_at: new Date(),
+      });
+
+      this.buffer.jobExecutions.set(jobExecutionId, jobRecord);
+    }
+
+    // Clean up job tracking
+    this.activeJobExecutions.delete(jobExecutionKey);
+
+    const status = result.success || result.completed ? 'succeeded' : 'failed';
+    log('ObservabilityPlugin', `Job completed: ${jobName} (${status}, ${durationMs}ms)`);
+  }
+
+  /**
+   * Called when errors occur during processing
+   */
+  override async onError(
+    error: Error,
+    context: string,
+    correlationId: CorrelationId
+  ): Promise<void> {
+    if (!this.config.enabled) return;
+
+    const invocationId = this.activeInvocations.get(correlationId);
+    if (!invocationId) return;
+
+    // Update the invocation record with error information
+    const invocationRecord = this.buffer.invocations.get(invocationId);
+    if (invocationRecord) {
+      Object.assign(invocationRecord, {
+        status: 'failed',
+        error_message: error.message,
+        error_stack: this.config.captureErrorStacks ? error.stack : null,
+        updated_at: new Date(),
+      });
+
+      this.buffer.invocations.set(invocationId, invocationRecord);
+    }
+
+    logError('ObservabilityPlugin', `Error in ${context}`, error);
   }
 
   /**
@@ -745,7 +940,11 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       name: this.name,
       enabled: this.enabled,
       config: this.config,
-      activeInvocations: this.activeInvocations.size,
+      activeTracking: {
+        invocations: this.activeInvocations.size,
+        eventExecutions: this.activeEventExecutions.size,
+        jobExecutions: this.activeJobExecutions.size,
+      },
       bufferSizes: {
         invocations: this.buffer.invocations.size,
         eventExecutions: this.buffer.eventExecutions.size,
