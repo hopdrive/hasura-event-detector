@@ -20,7 +20,6 @@ import ReactFlow, {
 } from 'reactflow';
 import { motion, AnimatePresence } from 'framer-motion';
 import InvocationDetailDrawer from './InvocationDetailDrawer';
-import { mockFlowData } from '../data/mockData';
 import {
   useCorrelationChainFlowQuery,
   useInvocationDetailQuery,
@@ -342,147 +341,6 @@ const nodeTypes = {
   groupedEvents: GroupedEventsNode,
 };
 
-// Enhanced mock data generator for testing grouping
-const generateEnhancedMockData = () => {
-  const nodes: Node[] = [];
-  const edges: Edge[] = [];
-
-  // Mock detected events (important - show individually)
-  const detectedEvents = [
-    { id: 'det-1', name: 'ride.status.change', detected: true, jobs: 2 },
-    { id: 'det-2', name: 'ride.pickup.successful', detected: true, jobs: 2 },
-  ];
-
-  // Main invocation node (centered on children)
-  const baseX = 50;
-  // Calculate total height needed for all detected events and their jobs
-  const totalEventsHeight = detectedEvents.length > 1 ? (detectedEvents.length - 1) * 200 : 0;
-  const invocationCenterOffset = -totalEventsHeight / 2;
-  const baseY = 300 + invocationCenterOffset;
-
-  const invocationNode: Node = {
-    id: 'main-invocation',
-    type: 'invocation',
-    position: { x: baseX, y: baseY },
-    data: {
-      sourceFunction: 'event-detector-rides',
-      correlationId: 'demo.correlation.123',
-      status: 'completed',
-      duration: 245,
-      eventsCount: 8,
-      jobsCount: 4,
-      successfulJobs: 3,
-      failedJobs: 1,
-    },
-  };
-  nodes.push(invocationNode);
-
-  // Mock undetected events (many - should be grouped)
-  const undetectedEvents = [
-    { id: 'undet-1', name: 'ride.driver.assigned', detected: false },
-    { id: 'undet-2', name: 'ride.customer.notified', detected: false },
-    { id: 'undet-3', name: 'ride.payment.pending', detected: false },
-    { id: 'undet-4', name: 'ride.route.optimized', detected: false },
-    { id: 'undet-5', name: 'ride.eta.updated', detected: false },
-    { id: 'undet-6', name: 'ride.analytics.tracked', detected: false },
-  ];
-
-  // Create detected event nodes individually (fan-out positioning)
-  detectedEvents.forEach((event, index) => {
-    // Calculate vertical offset to center jobs under this event
-    const jobCount = event.jobs;
-    const jobStackHeight = jobCount > 1 ? (jobCount - 1) * 120 : 0;
-    const eventCenterOffset = -jobStackHeight / 2;
-
-    const eventNode: Node = {
-      id: event.id,
-      type: 'event',
-      position: { x: baseX + 584, y: baseY + 16 + index * 200 + eventCenterOffset },
-      data: {
-        eventName: event.name,
-        correlationId: 'demo.correlation.123',
-        detected: event.detected,
-        status: 'completed',
-        detectionDuration: 15,
-        handlerDuration: 12,
-        jobsCount: event.jobs,
-      },
-    };
-    nodes.push(eventNode);
-
-    // Connect invocation to detected event
-    edges.push({
-      id: `inv-to-${event.id}`,
-      source: 'main-invocation',
-      target: event.id,
-      markerEnd: { type: MarkerType.ArrowClosed },
-      style: { stroke: '#10b981', strokeWidth: 2 },
-    });
-
-    // Create job nodes for detected events (centered on parent event)
-    for (let jobIndex = 0; jobIndex < event.jobs; jobIndex++) {
-      const jobId = `${event.id}-job-${jobIndex}`;
-      const jobStackHeight = event.jobs > 1 ? (event.jobs - 1) * 120 : 0;
-      const jobCenterOffset = -jobStackHeight / 2;
-
-      const jobNode: Node = {
-        id: jobId,
-        type: 'job',
-        position: { x: baseX + 584 + 350, y: baseY + 16 + index * 200 + jobCenterOffset + jobIndex * 120 },
-        data: {
-          jobName: jobIndex === 0 ? 'sendNotification' : 'updateAnalytics',
-          functionName: jobIndex === 0 ? 'notifications.sendEmail' : 'analytics.recordEvent',
-          correlationId: 'demo.correlation.123',
-          status: jobIndex === 1 && index === 1 ? 'failed' : 'completed',
-          duration: jobIndex === 0 ? 120 : 45,
-          result: { success: true },
-          error: jobIndex === 1 && index === 1 ? 'Timeout after 3s' : null,
-        },
-      };
-      nodes.push(jobNode);
-
-      // Connect event to job
-      edges.push({
-        id: `${event.id}-to-${jobId}`,
-        source: event.id,
-        target: jobId,
-        markerEnd: { type: MarkerType.ArrowClosed },
-        style: { stroke: jobNode.data.status === 'completed' ? '#10b981' : '#ef4444' },
-      });
-    }
-  });
-
-  // Create grouped node for undetected events (below invocation)
-  const groupedNode: Node = {
-    id: 'grouped-undetected',
-    type: 'groupedEvents',
-    position: { x: baseX + 89, y: baseY + 220 },
-    data: {
-      totalCount: undetectedEvents.length,
-      detectedCount: 0,
-      undetectedCount: undetectedEvents.length,
-      events: undetectedEvents.map(e => ({
-        name: e.name,
-        detected: e.detected,
-        duration: 8,
-      })),
-    },
-  };
-  nodes.push(groupedNode);
-
-  // Connect invocation to grouped undetected events (bottom to top)
-  edges.push({
-    id: 'inv-to-grouped-undetected',
-    source: 'main-invocation',
-    target: 'grouped-undetected',
-    sourceHandle: 'bottom',
-    targetHandle: 'top',
-    markerEnd: { type: MarkerType.ArrowClosed },
-    style: { stroke: '#9ca3af', strokeWidth: 1, strokeDasharray: '5,5' },
-  });
-
-  return { generatedNodes: nodes, generatedEdges: edges };
-};
 
 // Inner component that uses ReactFlow hooks
 const FlowDiagramContent = () => {
@@ -490,8 +348,8 @@ const FlowDiagramContent = () => {
   const navigate = useNavigate();
   const reactFlowInstance = useReactFlow();
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(mockFlowData.nodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(mockFlowData.edges);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -926,8 +784,8 @@ const FlowDiagramContent = () => {
       return { generatedNodes: nodes, generatedEdges: edges };
     }
 
-    // Fallback to enhanced mock data with more events for testing grouping
-    return generateEnhancedMockData();
+    // Return empty if no data
+    return { generatedNodes: [], generatedEdges: [] };
   }, [invocationData, correlationData]);
 
   // Auto-focus functionality
