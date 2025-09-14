@@ -22,6 +22,11 @@ import './styles/globals.css';
 // Apollo Client configuration
 const client = new ApolloClient({
   uri: import.meta.env.VITE_GRAPHQL_ENDPOINT || 'http://localhost:8080/v1/graphql',
+  headers: {
+    ...(import.meta.env.VITE_HASURA_ADMIN_SECRET && {
+      'x-hasura-admin-secret': import.meta.env.VITE_HASURA_ADMIN_SECRET,
+    }),
+  },
   cache: new InMemoryCache({
     typePolicies: {
       Query: {
@@ -45,11 +50,6 @@ const client = new ApolloClient({
       errorPolicy: 'all',
     },
   },
-  ...(import.meta.env.VITE_HASURA_ADMIN_SECRET && {
-    headers: {
-      'x-hasura-admin-secret': import.meta.env.VITE_HASURA_ADMIN_SECRET,
-    },
-  }),
 });
 
 const navigation = [

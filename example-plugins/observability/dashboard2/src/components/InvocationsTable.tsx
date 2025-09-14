@@ -13,7 +13,6 @@ import {
   ColumnFiltersState,
   VisibilityState,
 } from '@tanstack/react-table';
-import { useVirtualizer } from '@tanstack/react-virtual';
 import {
   FunnelIcon,
   ArrowsUpDownIcon,
@@ -55,7 +54,7 @@ const InvocationsTable = () => {
     variables: {
       limit: 1000,
       offset: 0,
-      order_by: { created_at: 'desc' }
+      order_by: [{ created_at: 'desc' }]
     },
     fetchPolicy: 'cache-first',
     errorPolicy: 'all',
@@ -64,8 +63,6 @@ const InvocationsTable = () => {
 
   const invocationsData = useMemo(() => {
     const invocations = queryData?.invocations || [];
-    console.log('GraphQL data:', queryData); // Debug log
-    console.log('Invocations array:', invocations); // Debug log
 
     return invocations.map(inv => ({
       id: inv.id,
@@ -288,17 +285,6 @@ const InvocationsTable = () => {
     debugTable: false,
   });
 
-  // Create virtual rows for performance with large datasets
-  const { rows } = table.getRowModel();
-  const parentRef = React.useRef<HTMLDivElement>(null);
-  const virtualizer = useVirtualizer({
-    count: rows.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 60, // estimated row height
-    overscan: 10,
-  });
-
-  const items = virtualizer.getVirtualItems();
 
   if (loading) {
     return (
@@ -338,9 +324,6 @@ const InvocationsTable = () => {
     );
   }
 
-  console.log('Transformed invocations data:', invocationsData); // Debug log
-  console.log('Table rows:', table.getRowModel().rows); // Debug log
-  console.log('Loading:', loading, 'Error:', error); // Debug log
 
   return (
     <div className="h-full flex flex-col">
@@ -394,86 +377,77 @@ const InvocationsTable = () => {
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-auto" ref={parentRef}>
-        <div style={{ height: `${virtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
-          <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700/50 sticky top-0 z-10">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
-                    const canSort = header.column.getCanSort();
-                    const sorted = header.column.getIsSorted();
+      <div className="flex-1 overflow-auto">
+        <table className="w-full">
+          <thead className="bg-gray-50 dark:bg-gray-700/50 sticky top-0 z-10">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  const canSort = header.column.getCanSort();
+                  const sorted = header.column.getIsSorted();
 
-                    return (
-                      <th
-                        key={header.id}
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                        style={{ width: header.getSize() }}
-                      >
-                        {header.isPlaceholder ? null : (
-                          <div
-                            className={`flex items-center space-x-1 ${
-                              canSort ? 'cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200' : ''
-                            }`}
-                            onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
-                          >
-                            <span>
-                              {flexRender(header.column.columnDef.header, header.getContext())}
+                  return (
+                    <th
+                      key={header.id}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    >
+                      {header.isPlaceholder ? null : (
+                        <div
+                          className={`flex items-center space-x-1 ${
+                            canSort ? 'cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200' : ''
+                          }`}
+                          onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
+                        >
+                          <span>
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                          </span>
+                          {canSort && (
+                            <span className="ml-1">
+                              {sorted === false ? (
+                                <ChevronUpDownIcon className="h-4 w-4" />
+                              ) : sorted === 'asc' ? (
+                                <ChevronUpIcon className="h-4 w-4" />
+                              ) : (
+                                <ChevronDownIcon className="h-4 w-4" />
+                              )}
                             </span>
-                            {canSort && (
-                              <span className="ml-1">
-                                {sorted === false ? (
-                                  <ChevronUpDownIcon className="h-4 w-4" />
-                                ) : sorted === 'asc' ? (
-                                  <ChevronUpIcon className="h-4 w-4" />
-                                ) : (
-                                  <ChevronDownIcon className="h-4 w-4" />
-                                )}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </th>
-                    );
-                  })}
-                </tr>
-              ))}
-            </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {items.map((virtualRow) => {
-                const row = rows[virtualRow.index];
-                return (
-                  <motion.tr
-                    key={row.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: virtualRow.index * 0.01 }}
-                    onClick={() => handleRowClick(row.original)}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: `${virtualRow.size}px`,
-                      transform: `translateY(${virtualRow.start}px)`,
-                    }}
+                          )}
+                        </div>
+                      )}
+                    </th>
+                  );
+                })}
+              </tr>
+            ))}
+          </thead>
+          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            {table.getRowModel().rows.map((row) => (
+              <motion.tr
+                key={row.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                onClick={() => handleRowClick(row.original)}
+                className="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <td
+                    key={cell.id}
+                    className="px-6 py-4 whitespace-nowrap text-sm"
                   >
-                    {row.getVisibleCells().map((cell) => (
-                      <td
-                        key={cell.id}
-                        className="px-6 py-4 whitespace-nowrap text-sm"
-                        style={{ width: cell.column.getSize() }}
-                      >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                  </motion.tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+              </motion.tr>
+            ))}
+            {table.getRowModel().rows.length === 0 && (
+              <tr>
+                <td colSpan={columns.length} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                  No invocations found
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
 
       {/* Pagination */}
