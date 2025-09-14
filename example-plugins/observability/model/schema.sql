@@ -66,6 +66,7 @@ CREATE TABLE invocations (
     source_table TEXT, -- database table that triggered the event
     source_operation TEXT, -- INSERT, UPDATE, DELETE, MANUAL
     source_system TEXT, -- event source system (hasura, supabase, custom, etc.)
+    source_job_id UUID, -- nullable reference to originating job execution (for job-to-job chains)
 
     -- Source event details
     source_event_id UUID, -- original event ID from the source system
@@ -181,6 +182,11 @@ CREATE TABLE metrics_hourly (
     UNIQUE(hour_bucket, source_function)
 );
 
+-- Add foreign key constraints (after all tables are created)
+ALTER TABLE invocations
+ADD CONSTRAINT fk_invocations_source_job_id
+FOREIGN KEY (source_job_id) REFERENCES job_executions(id) ON DELETE SET NULL;
+
 -- Performance indexes
 CREATE INDEX idx_invocations_created_at ON invocations(created_at DESC);
 CREATE INDEX idx_invocations_source_function ON invocations(source_function);
@@ -188,6 +194,7 @@ CREATE INDEX idx_invocations_source_system ON invocations(source_system);
 CREATE INDEX idx_invocations_status ON invocations(status);
 CREATE INDEX idx_invocations_source_event_id ON invocations(source_event_id);
 CREATE INDEX idx_invocations_correlation_id ON invocations(correlation_id);
+CREATE INDEX idx_invocations_source_job_id ON invocations(source_job_id);
 
 CREATE INDEX idx_event_executions_invocation_id ON event_executions(invocation_id);
 CREATE INDEX idx_event_executions_event_name ON event_executions(event_name);

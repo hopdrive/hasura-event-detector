@@ -46,6 +46,7 @@ erDiagram
         integer events_detected_count
         integer total_jobs_run
         jsonb hasura_event_payload
+        uuid source_job_id
     }
     
     event_executions {
@@ -91,6 +92,7 @@ erDiagram
     invocations ||--o{ job_executions : "has many"
     event_executions ||--o{ job_executions : "has many"
     job_executions ||--o{ job_logs : "has many"
+    job_executions ||--o| invocations : "can trigger via source_job_id"
 ```
 
 ## Table Breakdown
@@ -115,6 +117,7 @@ created_at             TIMESTAMPTZ
 source_event_payload    JSONB          -- Full event data from source system
 source_user_email      TEXT           -- Who triggered the change
 source_user_role       TEXT           -- User's role in source system
+source_job_id          UUID FK        -- Foreign key to job_executions.id (for job-to-job chains)
 
 -- Execution results
 status                 TEXT           -- 'running', 'completed', 'failed'

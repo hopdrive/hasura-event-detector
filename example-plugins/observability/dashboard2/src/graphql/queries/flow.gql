@@ -6,6 +6,19 @@ query EventFlow($invocationId: uuid!) {
     total_duration_ms
     events_detected_count
     correlation_id
+    source_job_id
+
+    # Parent job that triggered this invocation (if any)
+    source_job_execution {
+      id
+      job_name
+      job_function_name
+      status
+      duration_ms
+      invocation_id
+      event_execution_id
+      correlation_id
+    }
 
     event_executions {
       id
@@ -55,6 +68,19 @@ query CorrelationChainFlow($correlationId: String!) {
     total_duration_ms
     events_detected_count
     correlation_id
+    source_job_id
+
+    # Parent job that triggered this invocation (if any)
+    source_job_execution {
+      id
+      job_name
+      job_function_name
+      status
+      duration_ms
+      invocation_id
+      event_execution_id
+      correlation_id
+    }
 
     event_executions {
       id

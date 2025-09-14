@@ -46,6 +46,9 @@ DROP TRIGGER IF EXISTS job_executions_updated_at ON job_executions;
 -- Drop trigger function
 DROP FUNCTION IF EXISTS update_updated_at() CASCADE;
 
+-- Drop foreign key constraints first
+ALTER TABLE invocations DROP CONSTRAINT IF EXISTS fk_invocations_source_job_id;
+
 -- Drop indexes (will be dropped automatically with tables, but explicit for clarity)
 DROP INDEX IF EXISTS idx_invocations_created_at;
 DROP INDEX IF EXISTS idx_invocations_source_function;
@@ -53,6 +56,7 @@ DROP INDEX IF EXISTS idx_invocations_source_system;
 DROP INDEX IF EXISTS idx_invocations_status;
 DROP INDEX IF EXISTS idx_invocations_source_event_id;
 DROP INDEX IF EXISTS idx_invocations_correlation_id;
+DROP INDEX IF EXISTS idx_invocations_source_job_id;
 
 DROP INDEX IF EXISTS idx_event_executions_invocation_id;
 DROP INDEX IF EXISTS idx_event_executions_event_name;

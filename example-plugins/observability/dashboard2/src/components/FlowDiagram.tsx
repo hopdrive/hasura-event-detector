@@ -21,7 +21,10 @@ import ReactFlow, {
 import { motion, AnimatePresence } from 'framer-motion';
 import InvocationDetailDrawer from './InvocationDetailDrawer';
 import { mockFlowData } from '../data/mockData';
-import { useCorrelationChainFlowQuery, useInvocationDetailQuery } from '../types/generated';
+import {
+  useCorrelationChainFlowQuery,
+  useInvocationDetailQuery,
+} from '../types/generated';
 import 'reactflow/dist/style.css';
 
 // Custom Node Components
@@ -50,34 +53,30 @@ const InvocationNode = ({ data, selected }: NodeProps) => {
         min-w-[240px]
       `}
     >
-      <Handle type="target" position={Position.Left} className="w-3 h-3" />
+      <Handle type='target' position={Position.Left} className='w-3 h-3' />
 
       {/* Blue accent strip */}
-      <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-l-lg" />
-      
-      <div className="p-4 pl-5">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+      <div className='absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-l-lg' />
+
+      <div className='p-4 pl-5'>
+        <div className='flex items-center justify-between mb-2'>
+          <span className='text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide'>
             Invocation
           </span>
           <div className={`w-2 h-2 rounded-full ${statusDots[data.status as keyof typeof statusDots]}`} />
         </div>
-        
-        <div className="space-y-1">
-          <p className="font-semibold text-gray-900 dark:text-white text-sm">
-            {data.sourceFunction}
-          </p>
-          <p className="text-xs text-gray-600 dark:text-gray-400">
+
+        <div className='space-y-1'>
+          <p className='font-semibold text-gray-900 dark:text-white text-sm'>{data.sourceFunction}</p>
+          <p className='text-xs text-gray-600 dark:text-gray-400'>
             {data.duration}ms • {data.eventsCount} events
           </p>
-          <p className="text-xs text-gray-500 dark:text-gray-500 font-mono truncate">
-            {data.correlationId}
-          </p>
+          <p className='text-xs text-gray-500 dark:text-gray-500 font-mono truncate'>{data.correlationId}</p>
         </div>
       </div>
 
-      <Handle type="source" position={Position.Right} id="right" className="w-3 h-3" />
-      <Handle type="source" position={Position.Bottom} id="bottom" className="w-3 h-3" />
+      <Handle type='source' position={Position.Right} id='right' className='w-3 h-3' />
+      <Handle type='source' position={Position.Bottom} id='bottom' className='w-3 h-3' />
     </motion.div>
   );
 };
@@ -92,41 +91,40 @@ const EventNode = ({ data, selected }: NodeProps) => {
       transition={{ duration: 0.3, delay: 0.1 }}
       className={`
         relative bg-white dark:bg-gray-800 rounded-lg border-2
-        ${isDetected
-          ? 'border-green-500'
-          : 'border-gray-300 opacity-60'
-        }
+        ${isDetected ? 'border-green-500' : 'border-gray-300 opacity-60'}
         ${selected ? 'ring-4 ring-green-400 ring-opacity-50' : ''}
         shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer
         min-w-[200px]
       `}
     >
-      <Handle type="target" position={Position.Left} className="w-3 h-3" />
-      
+      <Handle type='target' position={Position.Left} className='w-3 h-3' />
+
       {/* Green accent strip */}
-      <div className="absolute left-0 top-0 bottom-0 w-1 bg-green-500 rounded-l-lg" />
-      
-      <div className="p-3 pl-4">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide">
+      <div className='absolute left-0 top-0 bottom-0 w-1 bg-green-500 rounded-l-lg' />
+
+      <div className='p-3 pl-4'>
+        <div className='flex items-center justify-between mb-1'>
+          <span className='text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide'>
             Event
           </span>
           {isDetected && (
-            <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            <svg className='w-4 h-4 text-green-500' fill='currentColor' viewBox='0 0 20 20'>
+              <path
+                fillRule='evenodd'
+                d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z'
+                clipRule='evenodd'
+              />
             </svg>
           )}
         </div>
-        
-        <p className="font-medium text-gray-900 dark:text-white text-sm">
-          {data.eventName}
-        </p>
-        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+
+        <p className='font-medium text-gray-900 dark:text-white text-sm'>{data.eventName}</p>
+        <p className='text-xs text-gray-600 dark:text-gray-400 mt-1'>
           {data.duration}ms • {isDetected ? `${data.jobsCount} jobs` : 'Not detected'}
         </p>
       </div>
-      
-      {isDetected && <Handle type="source" position={Position.Right} className="w-3 h-3" />}
+
+      {isDetected && <Handle type='source' position={Position.Right} className='w-3 h-3' />}
     </motion.div>
   );
 };
@@ -153,37 +151,36 @@ const JobNode = ({ data, selected }: NodeProps) => {
         min-w-[180px]
       `}
     >
-      <Handle type="target" position={Position.Left} className="w-3 h-3" />
-      
+      <Handle type='target' position={Position.Left} className='w-3 h-3' />
+
       {/* Purple accent strip */}
-      <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500 rounded-l-lg" />
-      
-      <div className="p-3 pl-4">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide">
+      <div className='absolute left-0 top-0 bottom-0 w-1 bg-purple-500 rounded-l-lg' />
+
+      <div className='p-3 pl-4'>
+        <div className='flex items-center justify-between mb-1'>
+          <span className='text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide'>
             Job
           </span>
           {hasRecursion && (
-            <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            <svg className='w-4 h-4 text-purple-500' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'
+              />
             </svg>
           )}
         </div>
-        
-        <p className="font-medium text-gray-900 dark:text-white text-sm">
-          {data.jobName}
-        </p>
-        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-          {data.duration}ms
-        </p>
+
+        <p className='font-medium text-gray-900 dark:text-white text-sm'>{data.jobName}</p>
+        <p className='text-xs text-gray-600 dark:text-gray-400 mt-1'>{data.duration}ms</p>
         {hasRecursion && (
-          <p className="text-xs text-purple-600 dark:text-purple-400 mt-1 font-medium">
-            → Triggers new invocation
-          </p>
+          <p className='text-xs text-purple-600 dark:text-purple-400 mt-1 font-medium'>→ Triggers new invocation</p>
         )}
       </div>
-      
-      {hasRecursion && <Handle type="source" position={Position.Right} className="w-3 h-3" />}
+
+      {hasRecursion && <Handle type='source' position={Position.Right} className='w-3 h-3' />}
     </motion.div>
   );
 };
@@ -527,19 +524,20 @@ const FlowDiagramContent = () => {
   const autoFocus = searchParams.get('autoFocus') === 'true';
   const correlationId = searchParams.get('correlationId');
 
+
   // GraphQL Queries for real data
   const { data: invocationData, loading: invocationLoading } = useInvocationDetailQuery({
     variables: { id: invocationId || '' },
     skip: !invocationId,
     fetchPolicy: 'cache-first',
-    errorPolicy: 'all'
+    errorPolicy: 'all',
   });
 
   const { data: correlationData, loading: correlationLoading } = useCorrelationChainFlowQuery({
     variables: { correlationId: correlationId || '' },
     skip: !correlationId,
     fetchPolicy: 'cache-first',
-    errorPolicy: 'all'
+    errorPolicy: 'all',
   });
 
   // Generate nodes and edges from real data with smart grouping
@@ -573,10 +571,38 @@ const FlowDiagramContent = () => {
           eventsCount: invocation.events_detected_count,
           jobsCount: invocation.total_jobs_run,
           successfulJobs: invocation.total_jobs_succeeded,
-          failedJobs: invocation.total_jobs_failed
-        }
+          failedJobs: invocation.total_jobs_failed,
+          parentJobId: invocation.source_job_id,
+        },
       };
       nodes.push(invocationNode);
+
+      // If this invocation has a parent job, create the parent job node and connect it
+      if (invocation.source_job_id && invocation.source_job_execution) {
+        const parentJobNode: Node = {
+          id: `job-${invocation.source_job_id}`,
+          type: 'job',
+          position: { x: baseX - 300, y: baseY },
+          data: {
+            jobName: invocation.source_job_execution.job_name,
+            functionName: invocation.source_job_execution.job_function_name,
+            correlationId: invocation.source_job_execution.correlation_id,
+            status: invocation.source_job_execution.status,
+            duration: invocation.source_job_execution.duration_ms,
+            triggersInvocation: true, // This job triggers this invocation
+          },
+        };
+        nodes.push(parentJobNode);
+
+        // Connect parent job to this invocation
+        edges.push({
+          id: `job-to-inv-${invocation.id}`,
+          source: `job-${invocation.source_job_id}`,
+          target: invocation.id,
+          markerEnd: { type: MarkerType.ArrowClosed },
+          style: { stroke: '#8b5cf6', strokeWidth: 2 }, // Purple for job-to-invocation connections
+        });
+      }
       const shouldGroupEvents = events.length > 6; // Group if more than 6 events
       const shouldGroupUndetected = undetectedEvents.length > 3; // Group undetected if more than 3
 
@@ -591,7 +617,7 @@ const FlowDiagramContent = () => {
           const eventNode: Node = {
             id: `event-${event.id}`,
             type: 'event',
-            position: { x: baseX + 584, y: baseY + 16 + (eventIndex * 200) + eventCenterOffset },
+            position: { x: baseX + 584, y: baseY + 16 + eventIndex * 200 + eventCenterOffset },
             data: {
               eventName: event.event_name,
               correlationId: event.correlation_id,
@@ -599,8 +625,8 @@ const FlowDiagramContent = () => {
               status: event.status,
               detectionDuration: event.detection_duration_ms,
               handlerDuration: event.handler_duration_ms,
-              jobsCount: event.jobs_count
-            }
+              jobsCount: event.jobs_count,
+            },
           };
           nodes.push(eventNode);
 
@@ -610,7 +636,7 @@ const FlowDiagramContent = () => {
             source: invocation.id,
             target: `event-${event.id}`,
             markerEnd: { type: MarkerType.ArrowClosed },
-            style: { stroke: '#10b981', strokeWidth: 2 } // Green for detected
+            style: { stroke: '#10b981', strokeWidth: 2 }, // Green for detected
           });
 
           // Create job nodes for detected events (centered on parent event)
@@ -622,7 +648,7 @@ const FlowDiagramContent = () => {
             const jobNode: Node = {
               id: `job-${job.id}`,
               type: 'job',
-              position: { x: baseX + 584 + 350, y: baseY + 16 + (eventIndex * 200) + jobCenterOffset + (jobIndex * 120) },
+              position: { x: baseX + 584 + 350, y: baseY + 16 + eventIndex * 200 + jobCenterOffset + jobIndex * 120 },
               data: {
                 jobName: job.job_name,
                 functionName: job.job_function_name,
@@ -630,8 +656,8 @@ const FlowDiagramContent = () => {
                 status: job.status,
                 duration: job.duration_ms,
                 result: job.result,
-                error: job.error_message
-              }
+                error: job.error_message,
+              },
             };
             nodes.push(jobNode);
 
@@ -641,7 +667,7 @@ const FlowDiagramContent = () => {
               source: `event-${event.id}`,
               target: `job-${job.id}`,
               markerEnd: { type: MarkerType.ArrowClosed },
-              style: { stroke: job.status === 'completed' ? '#10b981' : '#ef4444' }
+              style: { stroke: job.status === 'completed' ? '#10b981' : '#ef4444' },
             });
           });
         });
@@ -653,7 +679,7 @@ const FlowDiagramContent = () => {
             type: 'groupedEvents',
             position: {
               x: baseX + 89,
-              y: baseY + 220
+              y: baseY + 220,
             },
             data: {
               totalCount: undetectedEvents.length,
@@ -662,9 +688,9 @@ const FlowDiagramContent = () => {
               events: undetectedEvents.map(e => ({
                 name: e.event_name,
                 detected: e.detected,
-                duration: e.detection_duration_ms || 0
-              }))
-            }
+                duration: e.detection_duration_ms || 0,
+              })),
+            },
           };
           nodes.push(groupedNode);
 
@@ -676,7 +702,7 @@ const FlowDiagramContent = () => {
             sourceHandle: 'bottom',
             targetHandle: 'top',
             markerEnd: { type: MarkerType.ArrowClosed },
-            style: { stroke: '#9ca3af', strokeWidth: 1, strokeDasharray: '5,5' } // Gray dashed for undetected
+            style: { stroke: '#9ca3af', strokeWidth: 1, strokeDasharray: '5,5' }, // Gray dashed for undetected
           });
         }
       } else {
@@ -690,7 +716,7 @@ const FlowDiagramContent = () => {
           const eventNode: Node = {
             id: `event-${event.id}`,
             type: 'event',
-            position: { x: baseX + 584, y: baseY + 16 + (eventIndex * 200) + eventCenterOffset },
+            position: { x: baseX + 584, y: baseY + 16 + eventIndex * 200 + eventCenterOffset },
             data: {
               eventName: event.event_name,
               correlationId: event.correlation_id,
@@ -698,8 +724,8 @@ const FlowDiagramContent = () => {
               status: event.status,
               detectionDuration: event.detection_duration_ms,
               handlerDuration: event.handler_duration_ms,
-              jobsCount: event.jobs_count
-            }
+              jobsCount: event.jobs_count,
+            },
           };
           nodes.push(eventNode);
 
@@ -709,7 +735,7 @@ const FlowDiagramContent = () => {
             source: invocation.id,
             target: `event-${event.id}`,
             markerEnd: { type: MarkerType.ArrowClosed },
-            style: { stroke: event.detected ? '#10b981' : '#ef4444' }
+            style: { stroke: event.detected ? '#10b981' : '#ef4444' },
           });
 
           // Create job nodes for each event (centered on parent event)
@@ -722,7 +748,7 @@ const FlowDiagramContent = () => {
               const jobNode: Node = {
                 id: `job-${job.id}`,
                 type: 'job',
-                position: { x: baseX + 584 + 350, y: baseY + 16 + (eventIndex * 200) + jobCenterOffset + (jobIndex * 120) },
+                position: { x: baseX + 584 + 350, y: baseY + 16 + eventIndex * 200 + jobCenterOffset + jobIndex * 120 },
                 data: {
                   jobName: job.job_name,
                   functionName: job.job_function_name,
@@ -730,8 +756,9 @@ const FlowDiagramContent = () => {
                   status: job.status,
                   duration: job.duration_ms,
                   result: job.result,
-                  error: job.error_message
-                }
+                  error: job.error_message,
+                  triggersInvocation: false, // Will be updated if we find child invocations
+                },
               };
               nodes.push(jobNode);
 
@@ -741,7 +768,7 @@ const FlowDiagramContent = () => {
                 source: `event-${event.id}`,
                 target: `job-${job.id}`,
                 markerEnd: { type: MarkerType.ArrowClosed },
-                style: { stroke: job.status === 'completed' ? '#10b981' : '#ef4444' }
+                style: { stroke: job.status === 'completed' ? '#10b981' : '#ef4444' },
               });
             });
           }
@@ -756,34 +783,166 @@ const FlowDiagramContent = () => {
       const nodes: Node[] = [];
       const edges: Edge[] = [];
 
-      correlationData.invocations.forEach((inv, invIndex) => {
-        const baseX = 50 + (invIndex * 600);
-        const baseY = 200;
-        const invocationNode: Node = {
-          id: inv.id,
-          type: 'invocation',
-          position: { x: baseX, y: baseY },
-          data: {
-            sourceFunction: inv.source_function,
-            correlationId: inv.correlation_id,
-            status: inv.status,
-            duration: inv.total_duration_ms,
-            eventsCount: inv.events_detected_count
-          }
-        };
-        nodes.push(invocationNode);
+      // Build parent-child mapping using source_job_id
+      const invocationsByParentJob = new Map<string, typeof correlationData.invocations[0][]>();
+      const rootInvocations: typeof correlationData.invocations[0][] = [];
+      const allJobNodes = new Map<string, Node>();
 
-        // If this is a chain, connect invocations
-        if (invIndex > 0) {
-          edges.push({
-            id: `chain-${invIndex}`,
-            source: correlationData.invocations[invIndex - 1].id,
-            target: inv.id,
-            markerEnd: { type: MarkerType.ArrowClosed },
-            style: { stroke: '#8b5cf6', strokeWidth: 3 }
-          });
+      // First pass: categorize invocations and collect all job nodes
+      correlationData.invocations.forEach(inv => {
+        if (inv.source_job_id && inv.source_job_execution) {
+          // This invocation was triggered by a job
+          const parentJobId = inv.source_job_id;
+          if (!invocationsByParentJob.has(parentJobId)) {
+            invocationsByParentJob.set(parentJobId, []);
+          }
+          invocationsByParentJob.get(parentJobId)!.push(inv);
+        } else {
+          // This is a root invocation (no parent job)
+          rootInvocations.push(inv);
         }
+
+        // Collect all job nodes from this invocation
+        inv.event_executions?.forEach(event => {
+          event.job_executions?.forEach(job => {
+            const jobNodeId = `job-${job.id}`;
+            allJobNodes.set(job.id, {
+              id: jobNodeId,
+              type: 'job',
+              position: { x: 0, y: 0 }, // Will be positioned later
+              data: {
+                jobName: job.job_name,
+                functionName: job.job_function_name,
+                correlationId: job.correlation_id,
+                status: job.status,
+                duration: job.duration_ms,
+                result: job.result,
+                error: job.error_message,
+                triggersInvocation: invocationsByParentJob.has(job.id), // Mark if this job triggers children
+              },
+            });
+          });
+        });
       });
+
+      // Recursive function to build tree structure
+      const buildInvocationTree = (invocations: typeof correlationData.invocations, startX: number, startY: number, level: number = 0) => {
+        let currentY = startY;
+        const levelSpacing = 600; // Horizontal spacing between levels
+
+        invocations.forEach((inv, invIndex) => {
+          // Create invocation node
+          const invocationNode: Node = {
+            id: inv.id,
+            type: 'invocation',
+            position: { x: startX, y: currentY },
+            data: {
+              sourceFunction: inv.source_function,
+              correlationId: inv.correlation_id,
+              status: inv.status,
+              duration: inv.total_duration_ms,
+              eventsCount: inv.events_detected_count,
+              parentJobId: inv.source_job_id,
+            },
+          };
+          nodes.push(invocationNode);
+
+          // If this invocation has a parent job, connect it
+          if (inv.source_job_id && inv.source_job_execution) {
+            const parentJobNodeId = `job-${inv.source_job_id}`;
+            edges.push({
+              id: `job-to-inv-${inv.id}`,
+              source: parentJobNodeId,
+              target: inv.id,
+              markerEnd: { type: MarkerType.ArrowClosed },
+              style: { stroke: '#8b5cf6', strokeWidth: 2 },
+            });
+          }
+
+          // Build events and jobs for this invocation
+          let eventY = currentY + 100;
+          inv.event_executions?.forEach((event, eventIndex) => {
+            if (event.detected) {
+              // Create event node
+              const eventNode: Node = {
+                id: `event-${event.id}`,
+                type: 'event',
+                position: { x: startX + 350, y: eventY },
+                data: {
+                  eventName: event.event_name,
+                  correlationId: event.correlation_id,
+                  detected: event.detected,
+                  status: event.status,
+                  detectionDuration: event.detection_duration_ms,
+                  handlerDuration: event.handler_duration_ms,
+                  jobsCount: event.jobs_count,
+                },
+              };
+              nodes.push(eventNode);
+
+              // Connect invocation to event
+              edges.push({
+                id: `inv-to-event-${event.id}`,
+                source: inv.id,
+                target: `event-${event.id}`,
+                markerEnd: { type: MarkerType.ArrowClosed },
+                style: { stroke: '#10b981', strokeWidth: 2 },
+              });
+
+              // Create job nodes
+              let jobY = eventY;
+              event.job_executions?.forEach((job, jobIndex) => {
+                const jobNode = allJobNodes.get(job.id);
+                if (jobNode) {
+                  // Position the job node
+                  jobNode.position = { x: startX + 700, y: jobY };
+                  // Update the position in the map for child invocation positioning
+                  allJobNodes.set(job.id, jobNode);
+                  nodes.push(jobNode);
+
+                  // Connect event to job
+                  edges.push({
+                    id: `event-to-job-${job.id}`,
+                    source: `event-${event.id}`,
+                    target: `job-${job.id}`,
+                    markerEnd: { type: MarkerType.ArrowClosed },
+                    style: { stroke: job.status === 'completed' ? '#10b981' : '#ef4444' },
+                  });
+
+                  jobY += 120;
+                }
+              });
+
+              eventY = Math.max(eventY + 150, jobY);
+            }
+          });
+
+          // Build child invocations recursively
+          inv.event_executions?.forEach(event => {
+            event.job_executions?.forEach((job, jobIndex) => {
+              const childInvocations = invocationsByParentJob.get(job.id);
+              if (childInvocations && childInvocations.length > 0) {
+                // Position child invocations to the right of the job that triggers them
+                const jobNodePosition = allJobNodes.get(job.id)?.position;
+                const childStartX = jobNodePosition ? jobNodePosition.x + 300 : startX + levelSpacing;
+                const childStartY = jobNodePosition ? jobNodePosition.y : currentY;
+
+                buildInvocationTree(
+                  childInvocations,
+                  childStartX,
+                  childStartY,
+                  level + 1
+                );
+              }
+            });
+          });
+
+          currentY = Math.max(currentY + 400, eventY + 100);
+        });
+      };
+
+      // Start building from root invocations
+      buildInvocationTree(rootInvocations, 50, 100);
 
       return { generatedNodes: nodes, generatedEdges: edges };
     }
@@ -801,7 +960,7 @@ const FlowDiagramContent = () => {
         reactFlowInstance.fitView({
           nodes: [targetNode],
           padding: 0.3,
-          duration: 800
+          duration: 800,
         });
 
         // Highlight the correlation chain
@@ -817,7 +976,16 @@ const FlowDiagramContent = () => {
         setAutoFocusCompleted(true);
       }
     }
-  }, [autoFocus, invocationId, reactFlowInstance, generatedNodes, autoFocusCompleted, correlationId, searchParams, setSearchParams]);
+  }, [
+    autoFocus,
+    invocationId,
+    reactFlowInstance,
+    generatedNodes,
+    autoFocusCompleted,
+    correlationId,
+    searchParams,
+    setSearchParams,
+  ]);
 
   // Update nodes and edges when data changes
   useEffect(() => {
@@ -832,17 +1000,23 @@ const FlowDiagramContent = () => {
     setDrawerOpen(true);
   }, []);
 
-  const onNodeDragStop = useCallback((event: React.MouseEvent, node: Node) => {
-    console.log(`Node dragged - Type: ${node.type}, ID: ${node.id}, Position: x=${node.position.x}, y=${node.position.y}`);
+  const onNodeDragStop = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      console.log(
+        `Node dragged - Type: ${node.type}, ID: ${node.id}, Position: x=${node.position.x}, y=${node.position.y}`
+      );
 
-    // Find the invocation node to calculate relative positioning
-    const invocationNode = nodes.find(n => n.type === 'invocation');
-    if (invocationNode && node.id !== invocationNode.id) {
-      const relativeX = node.position.x - invocationNode.position.x;
-      const relativeY = node.position.y - invocationNode.position.y;
-      console.log(`Relative to invocation - Type: ${node.type}, RelativeX: ${relativeX}, RelativeY: ${relativeY}`);
-    }
-  }, [nodes]);
+      // Find the invocation node to calculate relative positioning
+      const invocationNode = nodes.find(n => n.type === 'invocation');
+      if (invocationNode && node.id !== invocationNode.id) {
+        const relativeX = node.position.x - invocationNode.position.x;
+        const relativeY = node.position.y - invocationNode.position.y;
+        console.log(`Relative to invocation - Type: ${node.type}, RelativeX: ${relativeX}, RelativeY: ${relativeY}`);
+      }
+    },
+    [nodes]
+  );
+
 
   const filteredNodes = useMemo(() => {
     let filteredNodes = nodes;
@@ -851,10 +1025,11 @@ const FlowDiagramContent = () => {
     if (searchTerm) {
       filteredNodes = nodes.map(node => ({
         ...node,
-        hidden: !node.data.correlationId?.includes(searchTerm) &&
-                !node.data.sourceFunction?.toLowerCase().includes(searchTerm.toLowerCase()) &&
-                !node.data.eventName?.toLowerCase().includes(searchTerm.toLowerCase()) &&
-                !node.data.jobName?.toLowerCase().includes(searchTerm.toLowerCase())
+        hidden:
+          !node.data.correlationId?.includes(searchTerm) &&
+          !node.data.sourceFunction?.toLowerCase().includes(searchTerm.toLowerCase()) &&
+          !node.data.eventName?.toLowerCase().includes(searchTerm.toLowerCase()) &&
+          !node.data.jobName?.toLowerCase().includes(searchTerm.toLowerCase()),
       }));
     }
 
@@ -864,8 +1039,8 @@ const FlowDiagramContent = () => {
         ...node,
         style: {
           ...node.style,
-          opacity: node.data.correlationId?.includes(highlightCorrelation) ? 1 : 0.3
-        }
+          opacity: node.data.correlationId?.includes(highlightCorrelation) ? 1 : 0.3,
+        },
       }));
     }
 
@@ -878,22 +1053,23 @@ const FlowDiagramContent = () => {
     return edges.map(edge => {
       const sourceNode = nodes.find(n => n.id === edge.source);
       const targetNode = nodes.find(n => n.id === edge.target);
-      const isHighlighted = sourceNode?.data.correlationId?.includes(highlightCorrelation) ||
-                           targetNode?.data.correlationId?.includes(highlightCorrelation);
+      const isHighlighted =
+        sourceNode?.data.correlationId?.includes(highlightCorrelation) ||
+        targetNode?.data.correlationId?.includes(highlightCorrelation);
 
       return {
         ...edge,
         style: {
           ...edge.style,
-          opacity: isHighlighted ? 1 : 0.2
-        }
+          opacity: isHighlighted ? 1 : 0.2,
+        },
       };
     });
   }, [edges, nodes, highlightCorrelation]);
 
   // Extract unique correlation chains from nodes
   const correlationChains = useMemo(() => {
-    const chains = new Map<string, { id: string, nodes: Node[], totalJobs: number, status: string }>();
+    const chains = new Map<string, { id: string; nodes: Node[]; totalJobs: number; status: string }>();
 
     nodes.forEach(node => {
       if (node.data.correlationId) {
@@ -903,7 +1079,7 @@ const FlowDiagramContent = () => {
             id: baseId,
             nodes: [],
             totalJobs: 0,
-            status: 'completed'
+            status: 'completed',
           });
         }
         const chain = chains.get(baseId)!;
@@ -921,22 +1097,20 @@ const FlowDiagramContent = () => {
   }, [nodes]);
 
   return (
-    <div className="h-full flex flex-col">
+    <div className='h-full flex flex-col'>
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-        <div className="flex items-center justify-between">
+      <div className='bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4'>
+        <div className='flex items-center justify-between'>
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Event Flow Visualization
-            </h2>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            <h2 className='text-xl font-semibold text-gray-900 dark:text-white'>Event Flow Visualization</h2>
+            <p className='mt-1 text-sm text-gray-600 dark:text-gray-400'>
               Interactive correlation chain diagram with recursive invocations
             </p>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className='flex items-center space-x-4'>
             {/* View Mode Toggle */}
-            <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+            <div className='flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1'>
               <button
                 onClick={() => setViewMode('flow')}
                 className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
@@ -959,21 +1133,22 @@ const FlowDiagramContent = () => {
               </button>
             </div>
 
+
             <input
-              type="text"
-              placeholder="Filter nodes..."
+              type='text'
+              placeholder='Filter nodes...'
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500"
+              onChange={e => setSearchTerm(e.target.value)}
+              className='px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500'
             />
 
             {viewMode === 'correlation' && (
               <select
                 value={highlightCorrelation || 'none'}
-                onChange={(e) => setHighlightCorrelation(e.target.value === 'none' ? null : e.target.value)}
-                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                onChange={e => setHighlightCorrelation(e.target.value === 'none' ? null : e.target.value)}
+                className='px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100'
               >
-                <option value="none">Show All</option>
+                <option value='none'>Show All</option>
                 {correlationChains.map(chain => (
                   <option key={chain.id} value={chain.id}>
                     {chain.id} ({chain.nodes.length} nodes)
@@ -982,18 +1157,18 @@ const FlowDiagramContent = () => {
               </select>
             )}
 
-            <div className="flex items-center space-x-2 text-sm">
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-blue-500 rounded-sm mr-1" />
-                <span className="text-gray-600 dark:text-gray-400">Invocation</span>
+            <div className='flex items-center space-x-2 text-sm'>
+              <div className='flex items-center'>
+                <div className='w-3 h-3 bg-blue-500 rounded-sm mr-1' />
+                <span className='text-gray-600 dark:text-gray-400'>Invocation</span>
               </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-green-500 rounded-sm mr-1" />
-                <span className="text-gray-600 dark:text-gray-400">Event</span>
+              <div className='flex items-center'>
+                <div className='w-3 h-3 bg-green-500 rounded-sm mr-1' />
+                <span className='text-gray-600 dark:text-gray-400'>Event</span>
               </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-purple-500 rounded-sm mr-1" />
-                <span className="text-gray-600 dark:text-gray-400">Job</span>
+              <div className='flex items-center'>
+                <div className='w-3 h-3 bg-purple-500 rounded-sm mr-1' />
+                <span className='text-gray-600 dark:text-gray-400'>Job</span>
               </div>
             </div>
           </div>
@@ -1002,12 +1177,12 @@ const FlowDiagramContent = () => {
 
       {/* Correlation Chains Stats Panel */}
       {viewMode === 'correlation' && (
-        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Correlation Chains</h3>
-            <span className="text-xs text-gray-500">{correlationChains.length} chains found</span>
+        <div className='bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4'>
+          <div className='flex items-center justify-between'>
+            <h3 className='text-sm font-medium text-gray-700 dark:text-gray-300'>Correlation Chains</h3>
+            <span className='text-xs text-gray-500'>{correlationChains.length} chains found</span>
           </div>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className='mt-3 flex flex-wrap gap-2'>
             {correlationChains.slice(0, 5).map(chain => (
               <button
                 key={chain.id}
@@ -1018,17 +1193,17 @@ const FlowDiagramContent = () => {
                     : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600'
                 }`}
               >
-                <div className="flex items-center space-x-1">
-                  <div className={`w-2 h-2 rounded-full ${
-                    chain.status === 'completed' ? 'bg-green-500' : 'bg-red-500'
-                  }`} />
-                  <span className="font-medium">{chain.id}</span>
-                  <span className="text-gray-500 dark:text-gray-400">({chain.totalJobs})</span>
+                <div className='flex items-center space-x-1'>
+                  <div
+                    className={`w-2 h-2 rounded-full ${chain.status === 'completed' ? 'bg-green-500' : 'bg-red-500'}`}
+                  />
+                  <span className='font-medium'>{chain.id}</span>
+                  <span className='text-gray-500 dark:text-gray-400'>({chain.totalJobs})</span>
                 </div>
               </button>
             ))}
             {correlationChains.length > 5 && (
-              <span className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
+              <span className='px-3 py-2 text-xs text-gray-500 dark:text-gray-400'>
                 +{correlationChains.length - 5} more
               </span>
             )}
@@ -1038,11 +1213,11 @@ const FlowDiagramContent = () => {
 
       {/* Loading States */}
       {(invocationLoading || correlationLoading) && (
-        <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
-            <div className="flex items-center space-x-3">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-              <span className="text-gray-900 dark:text-white">Loading flow diagram...</span>
+        <div className='absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50'>
+          <div className='bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg'>
+            <div className='flex items-center space-x-3'>
+              <div className='animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600'></div>
+              <span className='text-gray-900 dark:text-white'>Loading flow diagram...</span>
             </div>
           </div>
         </div>
@@ -1050,30 +1225,26 @@ const FlowDiagramContent = () => {
 
       {/* Breadcrumb Navigation */}
       {(invocationId || correlationId) && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800 px-6 py-3">
-          <nav className="flex items-center space-x-2 text-sm">
+        <div className='bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800 px-6 py-3'>
+          <nav className='flex items-center space-x-2 text-sm'>
             <button
               onClick={() => navigate('/invocations')}
-              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+              className='text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300'
             >
               All Invocations
             </button>
-            <span className="text-gray-400 dark:text-gray-600">/</span>
+            <span className='text-gray-400 dark:text-gray-600'>/</span>
             {invocationId && (
               <>
-                <span className="text-gray-700 dark:text-gray-300">Invocation</span>
-                <span className="text-gray-400 dark:text-gray-600">/</span>
-                <span className="font-medium text-gray-900 dark:text-white">
-                  {invocationId.split('-')[0]}...
-                </span>
+                <span className='text-gray-700 dark:text-gray-300'>Invocation</span>
+                <span className='text-gray-400 dark:text-gray-600'>/</span>
+                <span className='font-medium text-gray-900 dark:text-white'>{invocationId.split('-')[0]}...</span>
               </>
             )}
             {correlationId && (
               <>
-                <span className="text-gray-400 dark:text-gray-600">/</span>
-                <span className="font-medium text-purple-700 dark:text-purple-400">
-                  Chain: {correlationId}
-                </span>
+                <span className='text-gray-400 dark:text-gray-600'>/</span>
+                <span className='font-medium text-purple-700 dark:text-purple-400'>Chain: {correlationId}</span>
               </>
             )}
           </nav>
@@ -1081,7 +1252,7 @@ const FlowDiagramContent = () => {
       )}
 
       {/* Flow Diagram */}
-      <div className="flex-1 bg-gray-50 dark:bg-gray-900">
+      <div className='flex-1 bg-gray-50 dark:bg-gray-900'>
         <ReactFlow
           nodes={filteredNodes}
           edges={filteredEdges}
@@ -1091,7 +1262,7 @@ const FlowDiagramContent = () => {
           onNodeDragStop={onNodeDragStop}
           nodeTypes={nodeTypes}
           connectionMode={ConnectionMode.Loose}
-          onInit={(instance) => {
+          onInit={instance => {
             // Store the ReactFlow instance for later use
             // This will be used in the auto-focus effect
           }}
@@ -1102,15 +1273,15 @@ const FlowDiagramContent = () => {
             markerEnd: {
               type: MarkerType.ArrowClosed,
               width: 20,
-              height: 20
-            }
+              height: 20,
+            },
           }}
         >
-          <Background gap={20} className="bg-gray-50 dark:bg-gray-900" />
-          <Controls className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700" />
+          <Background gap={20} className='bg-gray-50 dark:bg-gray-900' />
+          <Controls className='bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700' />
           <MiniMap
-            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
-            nodeColor={(node) => {
+            className='bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
+            nodeColor={node => {
               if (node.type === 'invocation') return '#3b82f6';
               if (node.type === 'event') return '#10b981';
               if (node.type === 'job') return '#8b5cf6';
@@ -1123,11 +1294,7 @@ const FlowDiagramContent = () => {
       {/* Detail Drawer */}
       <AnimatePresence>
         {drawerOpen && selectedNode && (
-          <InvocationDetailDrawer
-            node={selectedNode}
-            isOpen={drawerOpen}
-            onClose={() => setDrawerOpen(false)}
-          />
+          <InvocationDetailDrawer node={selectedNode} isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
         )}
       </AnimatePresence>
     </div>

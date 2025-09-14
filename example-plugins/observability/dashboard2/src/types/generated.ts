@@ -35090,6 +35090,9 @@ export type Invocations = {
   source_event_payload: Scalars['jsonb']['output'];
   source_event_time?: Maybe<Scalars['timestamptz']['output']>;
   source_function: Scalars['String']['output'];
+  /** An object relationship */
+  source_job_execution?: Maybe<Job_Executions>;
+  source_job_id?: Maybe<Scalars['uuid']['output']>;
   source_operation?: Maybe<Scalars['String']['output']>;
   source_system?: Maybe<Scalars['String']['output']>;
   source_table?: Maybe<Scalars['String']['output']>;
@@ -35223,6 +35226,8 @@ export type Invocations_Bool_Exp = {
   source_event_payload?: InputMaybe<Jsonb_Comparison_Exp>;
   source_event_time?: InputMaybe<Timestamptz_Comparison_Exp>;
   source_function?: InputMaybe<String_Comparison_Exp>;
+  source_job_execution?: InputMaybe<Job_Executions_Bool_Exp>;
+  source_job_id?: InputMaybe<Uuid_Comparison_Exp>;
   source_operation?: InputMaybe<String_Comparison_Exp>;
   source_system?: InputMaybe<String_Comparison_Exp>;
   source_table?: InputMaybe<String_Comparison_Exp>;
@@ -35286,6 +35291,8 @@ export type Invocations_Insert_Input = {
   source_event_payload?: InputMaybe<Scalars['jsonb']['input']>;
   source_event_time?: InputMaybe<Scalars['timestamptz']['input']>;
   source_function?: InputMaybe<Scalars['String']['input']>;
+  source_job_execution?: InputMaybe<Job_Executions_Obj_Rel_Insert_Input>;
+  source_job_id?: InputMaybe<Scalars['uuid']['input']>;
   source_operation?: InputMaybe<Scalars['String']['input']>;
   source_system?: InputMaybe<Scalars['String']['input']>;
   source_table?: InputMaybe<Scalars['String']['input']>;
@@ -35312,6 +35319,7 @@ export type Invocations_Max_Fields = {
   source_event_id?: Maybe<Scalars['uuid']['output']>;
   source_event_time?: Maybe<Scalars['timestamptz']['output']>;
   source_function?: Maybe<Scalars['String']['output']>;
+  source_job_id?: Maybe<Scalars['uuid']['output']>;
   source_operation?: Maybe<Scalars['String']['output']>;
   source_system?: Maybe<Scalars['String']['output']>;
   source_table?: Maybe<Scalars['String']['output']>;
@@ -35338,6 +35346,7 @@ export type Invocations_Min_Fields = {
   source_event_id?: Maybe<Scalars['uuid']['output']>;
   source_event_time?: Maybe<Scalars['timestamptz']['output']>;
   source_function?: Maybe<Scalars['String']['output']>;
+  source_job_id?: Maybe<Scalars['uuid']['output']>;
   source_operation?: Maybe<Scalars['String']['output']>;
   source_system?: Maybe<Scalars['String']['output']>;
   source_table?: Maybe<Scalars['String']['output']>;
@@ -35391,6 +35400,8 @@ export type Invocations_Order_By = {
   source_event_payload?: InputMaybe<Order_By>;
   source_event_time?: InputMaybe<Order_By>;
   source_function?: InputMaybe<Order_By>;
+  source_job_execution?: InputMaybe<Job_Executions_Order_By>;
+  source_job_id?: InputMaybe<Order_By>;
   source_operation?: InputMaybe<Order_By>;
   source_system?: InputMaybe<Order_By>;
   source_table?: InputMaybe<Order_By>;
@@ -35444,6 +35455,8 @@ export enum Invocations_Select_Column {
   /** column name */
   SourceFunction = 'source_function',
   /** column name */
+  SourceJobId = 'source_job_id',
+  /** column name */
   SourceOperation = 'source_operation',
   /** column name */
   SourceSystem = 'source_system',
@@ -35482,6 +35495,7 @@ export type Invocations_Set_Input = {
   source_event_payload?: InputMaybe<Scalars['jsonb']['input']>;
   source_event_time?: InputMaybe<Scalars['timestamptz']['input']>;
   source_function?: InputMaybe<Scalars['String']['input']>;
+  source_job_id?: InputMaybe<Scalars['uuid']['input']>;
   source_operation?: InputMaybe<Scalars['String']['input']>;
   source_system?: InputMaybe<Scalars['String']['input']>;
   source_table?: InputMaybe<Scalars['String']['input']>;
@@ -35548,6 +35562,7 @@ export type Invocations_Stream_Cursor_Value_Input = {
   source_event_payload?: InputMaybe<Scalars['jsonb']['input']>;
   source_event_time?: InputMaybe<Scalars['timestamptz']['input']>;
   source_function?: InputMaybe<Scalars['String']['input']>;
+  source_job_id?: InputMaybe<Scalars['uuid']['input']>;
   source_operation?: InputMaybe<Scalars['String']['input']>;
   source_system?: InputMaybe<Scalars['String']['input']>;
   source_table?: InputMaybe<Scalars['String']['input']>;
@@ -35599,6 +35614,8 @@ export enum Invocations_Update_Column {
   SourceEventTime = 'source_event_time',
   /** column name */
   SourceFunction = 'source_function',
+  /** column name */
+  SourceJobId = 'source_job_id',
   /** column name */
   SourceOperation = 'source_operation',
   /** column name */
@@ -35932,6 +35949,13 @@ export type Job_Executions_Mutation_Response = {
   affected_rows: Scalars['Int']['output'];
   /** data from the rows affected by the mutation */
   returning: Array<Job_Executions>;
+};
+
+/** input type for inserting object relation for remote table "job_executions" */
+export type Job_Executions_Obj_Rel_Insert_Input = {
+  data: Job_Executions_Insert_Input;
+  /** upsert condition */
+  on_conflict?: InputMaybe<Job_Executions_On_Conflict>;
 };
 
 /** on_conflict condition type for table "job_executions" */
@@ -88873,7 +88897,7 @@ export type EventFlowQueryVariables = Exact<{
 }>;
 
 
-export type EventFlowQuery = { __typename?: 'query_root', invocations_by_pk?: { __typename?: 'invocations', id: string, source_function: string, status: string, total_duration_ms?: number | null, events_detected_count?: number | null, correlation_id?: string | null, event_executions: Array<{ __typename?: 'event_executions', id: string, event_name: string, detected: boolean, status: string, detection_duration_ms?: number | null, handler_duration_ms?: number | null, jobs_count?: number | null, job_executions: Array<{ __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, result?: object | null, error_message?: string | null }> }> } | null };
+export type EventFlowQuery = { __typename?: 'query_root', invocations_by_pk?: { __typename?: 'invocations', id: string, source_function: string, status: string, total_duration_ms?: number | null, events_detected_count?: number | null, correlation_id?: string | null, source_job_id?: string | null, source_job_execution?: { __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, invocation_id: string, event_execution_id: string, correlation_id?: string | null } | null, event_executions: Array<{ __typename?: 'event_executions', id: string, event_name: string, detected: boolean, status: string, detection_duration_ms?: number | null, handler_duration_ms?: number | null, jobs_count?: number | null, job_executions: Array<{ __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, result?: object | null, error_message?: string | null }> }> } | null };
 
 export type CorrelationChainsListQueryVariables = Exact<{
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -88887,7 +88911,7 @@ export type CorrelationChainFlowQueryVariables = Exact<{
 }>;
 
 
-export type CorrelationChainFlowQuery = { __typename?: 'query_root', invocations: Array<{ __typename?: 'invocations', id: string, source_function: string, created_at: string, status: string, total_duration_ms?: number | null, events_detected_count?: number | null, correlation_id?: string | null, event_executions: Array<{ __typename?: 'event_executions', id: string, event_name: string, detected: boolean, status: string, detection_duration_ms?: number | null, handler_duration_ms?: number | null, jobs_count?: number | null, jobs_succeeded?: number | null, jobs_failed?: number | null, job_executions: Array<{ __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, result?: object | null, error_message?: string | null, correlation_id?: string | null, created_at: string }> }> }> };
+export type CorrelationChainFlowQuery = { __typename?: 'query_root', invocations: Array<{ __typename?: 'invocations', id: string, source_function: string, created_at: string, status: string, total_duration_ms?: number | null, events_detected_count?: number | null, correlation_id?: string | null, source_job_id?: string | null, source_job_execution?: { __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, invocation_id: string, event_execution_id: string, correlation_id?: string | null } | null, event_executions: Array<{ __typename?: 'event_executions', id: string, event_name: string, detected: boolean, status: string, detection_duration_ms?: number | null, handler_duration_ms?: number | null, jobs_count?: number | null, jobs_succeeded?: number | null, jobs_failed?: number | null, job_executions: Array<{ __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, result?: object | null, error_message?: string | null, correlation_id?: string | null, created_at: string }> }> }> };
 
 export type InvocationsListQueryVariables = Exact<{
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -89179,6 +89203,17 @@ export const EventFlowDocument = gql`
     total_duration_ms
     events_detected_count
     correlation_id
+    source_job_id
+    source_job_execution {
+      id
+      job_name
+      job_function_name
+      status
+      duration_ms
+      invocation_id
+      event_execution_id
+      correlation_id
+    }
     event_executions {
       id
       event_name
@@ -89293,6 +89328,17 @@ export const CorrelationChainFlowDocument = gql`
     total_duration_ms
     events_detected_count
     correlation_id
+    source_job_id
+    source_job_execution {
+      id
+      job_name
+      job_function_name
+      status
+      duration_ms
+      invocation_id
+      event_execution_id
+      correlation_id
+    }
     event_executions {
       id
       event_name
