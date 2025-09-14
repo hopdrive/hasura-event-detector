@@ -256,7 +256,7 @@ const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
                       </span>
                     </div>
                     <p className="text-xs text-blue-600 dark:text-blue-400">
-                      Duration: {eventData.detectionDuration}ms
+                      Duration: {formatDuration(eventData.detectionDuration)}
                     </p>
                     <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
                       Result: {eventData.detected ? 'Positive' : 'Negative'}
@@ -272,7 +272,7 @@ const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
                         </span>
                       </div>
                       <p className="text-xs text-green-600 dark:text-green-400">
-                        Duration: {eventData.handlerDuration}ms
+                        Duration: {formatDuration(eventData.handlerDuration)}
                       </p>
                       <p className="text-xs text-green-600 dark:text-green-400 mt-1">
                         Jobs: {eventData.jobsCount}
@@ -314,7 +314,7 @@ export default async function detect(payload, context) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-center">
                   <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    {eventData.detectionDuration}ms
+                    {formatDuration(eventData.detectionDuration)}
                   </div>
                   <div className="text-sm text-blue-700 dark:text-blue-400 font-medium">
                     Detection Time
@@ -327,7 +327,7 @@ export default async function detect(payload, context) {
                 {eventData.handlerDuration && (
                   <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg text-center">
                     <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                      {eventData.handlerDuration}ms
+                      {formatDuration(eventData.handlerDuration)}
                     </div>
                     <div className="text-sm text-green-700 dark:text-green-400 font-medium">
                       Handler Time
@@ -373,7 +373,7 @@ export default async function detect(payload, context) {
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Total Processing:</span>
                     <span className="font-medium text-gray-900 dark:text-white">
-                      {(eventData.detectionDuration || 0) + (eventData.handlerDuration || 0)}ms
+                      {formatDuration((eventData.detectionDuration || 0) + (eventData.handlerDuration || 0))}
                     </span>
                   </div>
                 </div>

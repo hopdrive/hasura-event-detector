@@ -665,7 +665,7 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
                       {job.name}
                     </p>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      Duration: {job.duration}ms
+                      Duration: {formatDuration(job.duration)}
                     </p>
                     {job.error && (
                       <p className="text-sm text-red-600 dark:text-red-400 mt-2">

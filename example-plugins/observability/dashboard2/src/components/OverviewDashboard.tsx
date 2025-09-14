@@ -13,6 +13,7 @@ import {
   Tooltip, ResponsiveContainer, Area, AreaChart
 } from 'recharts';
 import { useOverviewDashboardQuery } from '../types/generated';
+import { formatDuration } from '../utils/formatDuration';
 import { sub, format } from 'date-fns';
 import DatabaseConnectionStatus from './DatabaseConnectionStatus';
 
@@ -163,7 +164,7 @@ const OverviewDashboard = () => {
         />
         <KPICard
           title="Avg Duration"
-          value={`${avgDuration}ms`}
+          value={formatDuration(avgDuration)}
           change="-8.3%"
           trend="up"
           icon={ClockIcon}

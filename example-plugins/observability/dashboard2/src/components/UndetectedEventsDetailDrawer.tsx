@@ -110,7 +110,7 @@ const UndetectedEventsDetailDrawer: React.FC<UndetectedEventsDetailDrawerProps> 
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
-                    {Math.round((undetectedEvents.reduce((sum, event) => sum + (event.duration || 0), 0) / undetectedEvents.length) || 0)}ms
+                    {formatDuration(Math.round((undetectedEvents.reduce((sum, event) => sum + (event.duration || 0), 0) / undetectedEvents.length) || 0))}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-500">
                     Avg Detection Time
@@ -262,7 +262,7 @@ const UndetectedEventsDetailDrawer: React.FC<UndetectedEventsDetailDrawerProps> 
                   </div>
                   <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded text-center">
                     <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                      {Math.round((undetectedEvents.reduce((sum, e) => sum + (e.duration || 0), 0) / undetectedEvents.length) || 0)}ms
+                      {formatDuration(Math.round((undetectedEvents.reduce((sum, e) => sum + (e.duration || 0), 0) / undetectedEvents.length) || 0))}
                     </div>
                     <div className="text-sm text-blue-700 dark:text-blue-400">
                       Average per Event

@@ -323,7 +323,7 @@ const JobDetailDrawer: React.FC<JobDetailDrawerProps> = ({
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-sm text-gray-600 dark:text-gray-400">Execution Time</dt>
-                    <dd className="text-sm text-gray-900 dark:text-white">{jobData.duration}ms</dd>
+                    <dd className="text-sm text-gray-900 dark:text-white">{formatDuration(jobData.duration)}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-sm text-gray-600 dark:text-gray-400">Triggers Recursion</dt>
