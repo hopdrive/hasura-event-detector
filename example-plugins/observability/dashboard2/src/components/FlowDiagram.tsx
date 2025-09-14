@@ -25,6 +25,7 @@ import { useInvocationFlowQuery } from '../types/generated';
 import 'reactflow/dist/style.css';
 import JobDetailDrawer from './JobDetailDrawer';
 import EventDetailDrawer from './EventDetailDrawer';
+import UndetectedEventsDetailDrawer from './UndetectedEventsDetailDrawer';
 
 // Custom Node Components
 const InvocationNode = ({ data, selected }: NodeProps) => {
@@ -356,6 +357,26 @@ const FlowDiagramContent = () => {
     );
   };
 
+  // Calculate required spacing between events based on their job counts
+  const calculateEventSpacing = (events: any[]) => {
+    return events.map(event => {
+      const jobCount = event.job_executions?.length || 0;
+      // Calculate the total height needed for this event's jobs
+      const jobSpacing = jobCount > 3 ? VERTICAL_SPACING * 1.2 : VERTICAL_SPACING;
+      const jobsHeight = jobCount > 1 ? (jobCount - 1) * jobSpacing : 0;
+
+      // Add padding to prevent overlap with sibling events
+      const minSpacing = 160; // Minimum space between events
+      const requiredSpacing = Math.max(minSpacing, jobsHeight + 80); // 80px buffer
+
+      return {
+        event,
+        requiredSpacing,
+        jobCount
+      };
+    });
+  };
+
   // Generate nodes and edges from invocation data with smart grouping
   const { generatedNodes, generatedEdges } = useMemo(() => {
     if (data?.invocations_by_pk) {
@@ -422,13 +443,24 @@ const FlowDiagramContent = () => {
       const shouldGroupUndetected = undetectedEvents.length > 3; // Group undetected if more than 3
 
       if (shouldGroupEvents || shouldGroupUndetected) {
-        // Calculate positions for detected events (centered on invocation)
-        const eventPositions = calculateChildPositions(detectedEvents.length, baseY);
+        // Calculate dynamic spacing for detected events based on their job counts
+        const eventSpacingData = calculateEventSpacing(detectedEvents);
 
-        // Show detected events individually (centered positioning)
-        detectedEvents.forEach((event, eventIndex) => {
-          const eventY = eventPositions[eventIndex];
+        // Calculate positions with dynamic spacing
+        let currentEventY = baseY;
+        if (eventSpacingData.length > 1) {
+          // Calculate total height needed and center all events
+          const totalHeight = eventSpacingData.reduce((sum, data, index) =>
+            sum + (index < eventSpacingData.length - 1 ? data.requiredSpacing : 0), 0
+          );
+          currentEventY = baseY - totalHeight / 2;
+        }
+
+        // Show detected events individually with dynamic spacing
+        eventSpacingData.forEach((eventData, eventIndex) => {
+          const eventY = currentEventY;
           const eventX = baseX + HORIZONTAL_SPACING;
+          const { event } = eventData;
 
           const eventNode: Node = {
             id: `event-${event.id}`,
@@ -488,9 +520,12 @@ const FlowDiagramContent = () => {
               source: `event-${event.id}`,
               target: `job-${job.id}`,
               markerEnd: { type: MarkerType.ArrowClosed },
-              style: { stroke: job.status === 'completed' ? '#10b981' : '#ef4444' },
+              style: { stroke: job.status === 'completed' ? '#10b981' : '#ef4444', strokeWidth: 2 },
             });
           });
+
+          // Move to next event position using dynamic spacing
+          currentEventY += eventData.requiredSpacing;
         });
 
         // Group undetected events (if any) - position below the invocation
@@ -510,6 +545,9 @@ const FlowDiagramContent = () => {
                 name: e.event_name,
                 detected: e.detected,
                 duration: e.detection_duration_ms || 0,
+                correlationId: e.correlation_id,
+                status: e.status,
+                eventId: e.id,
               })),
             },
           };
@@ -527,13 +565,24 @@ const FlowDiagramContent = () => {
           });
         }
       } else {
-        // Calculate positions for all events (centered on invocation)
-        const eventPositions = calculateChildPositions(events.length, baseY);
+        // Calculate dynamic spacing for all events based on their job counts
+        const eventSpacingData = calculateEventSpacing(events);
 
-        // Show all events individually if count is manageable
-        events.forEach((event, eventIndex) => {
-          const eventY = eventPositions[eventIndex];
+        // Calculate positions with dynamic spacing
+        let currentEventY = baseY;
+        if (eventSpacingData.length > 1) {
+          // Calculate total height needed and center all events
+          const totalHeight = eventSpacingData.reduce((sum, data, index) =>
+            sum + (index < eventSpacingData.length - 1 ? data.requiredSpacing : 0), 0
+          );
+          currentEventY = baseY - totalHeight / 2;
+        }
+
+        // Show all events individually with dynamic spacing
+        eventSpacingData.forEach((eventData, eventIndex) => {
+          const eventY = currentEventY;
           const eventX = baseX + HORIZONTAL_SPACING;
+          const { event } = eventData;
 
           const eventNode: Node = {
             id: `event-${event.id}`,
@@ -598,6 +647,9 @@ const FlowDiagramContent = () => {
               });
             });
           }
+
+          // Move to next event position using dynamic spacing
+          currentEventY += eventData.requiredSpacing;
         });
       }
 
@@ -830,7 +882,7 @@ const FlowDiagramContent = () => {
               <EventDetailDrawer node={selectedNode} isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
             )}
             {selectedNode.type === 'groupedEvents' && (
-              <InvocationDetailDrawer node={selectedNode} isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+              <UndetectedEventsDetailDrawer node={selectedNode} isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
             )}
           </>
         )}
