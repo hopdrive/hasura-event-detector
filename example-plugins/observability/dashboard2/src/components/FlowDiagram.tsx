@@ -1,6 +1,7 @@
 import React, { useCallback, useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ChevronRightIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { formatDuration } from '../utils/formatDuration';
 import ReactFlow, {
   Node,
   Edge,
@@ -67,7 +68,7 @@ const InvocationNode = ({ data, selected }: NodeProps) => {
         <div className='space-y-1'>
           <p className='font-semibold text-gray-900 dark:text-white text-sm'>{data.sourceFunction}</p>
           <p className='text-xs text-gray-600 dark:text-gray-400'>
-            {data.duration}ms • {data.eventsCount} events
+            {formatDuration(data.duration)} • {data.eventsCount} events
           </p>
           <p className='text-xs text-gray-500 dark:text-gray-500 font-mono truncate'>{data.correlationId}</p>
         </div>
@@ -92,7 +93,7 @@ const EventNode = ({ data, selected }: NodeProps) => {
         ${isDetected ? 'border-green-500' : 'border-gray-300 opacity-60'}
         ${selected ? 'ring-4 ring-green-400 ring-opacity-50' : ''}
         shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer
-        min-w-[200px]
+        min-w-[220px]
       `}
     >
       <Handle type='target' position={Position.Left} className='w-3 h-3' />
@@ -117,12 +118,32 @@ const EventNode = ({ data, selected }: NodeProps) => {
         </div>
 
         <p className='font-medium text-gray-900 dark:text-white text-sm'>{data.eventName}</p>
-        <p className='text-xs text-gray-600 dark:text-gray-400 mt-1'>
-          {data.duration}ms • {isDetected ? `${data.jobsCount} jobs` : 'Not detected'}
-        </p>
+        <div className='mt-1 flex items-center space-x-2'>
+          <span className='inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'>
+            {formatDuration(data.detectionDuration)}
+          </span>
+          {isDetected && data.handlerDuration && (
+            <span className='inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'>
+              {formatDuration(data.handlerDuration)}
+            </span>
+          )}
+          {!isDetected && (
+            <span className='text-xs text-gray-500'>Not detected</span>
+          )}
+        </div>
       </div>
 
-      {isDetected && <Handle type='source' position={Position.Right} className='w-3 h-3' />}
+      {isDetected && (
+        <>
+          <Handle type='source' position={Position.Right} className='w-3 h-3' />
+          {/* Job count badge positioned near the right connector */}
+          <div className='absolute -right-2 top-1/2 transform -translate-y-1/2 translate-x-full'>
+            <span className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 border border-purple-200 dark:border-purple-700 shadow-sm'>
+              {data.jobsCount} jobs
+            </span>
+          </div>
+        </>
+      )}
     </motion.div>
   );
 };
@@ -172,7 +193,7 @@ const JobNode = ({ data, selected }: NodeProps) => {
         </div>
 
         <p className='font-medium text-gray-900 dark:text-white text-sm'>{data.jobName}</p>
-        <p className='text-xs text-gray-600 dark:text-gray-400 mt-1'>{data.duration}ms</p>
+        <p className='text-xs text-gray-600 dark:text-gray-400 mt-1'>{formatDuration(data.duration)}</p>
         {hasRecursion && (
           <p className='text-xs text-purple-600 dark:text-purple-400 mt-1 font-medium'>→ Triggers new invocation</p>
         )}
@@ -263,7 +284,7 @@ const GroupedEventsNode = ({ data, selected }: NodeProps) => {
                       {event.detected ? '✓' : '○'}
                     </span>
                   </div>
-                  <div className='text-xs text-gray-600 dark:text-gray-400 mt-1'>{event.duration}ms</div>
+                  <div className='text-xs text-gray-600 dark:text-gray-400 mt-1'>{formatDuration(event.duration)}</div>
                 </div>
               ))}
             </div>
@@ -311,6 +332,30 @@ const FlowDiagramContent = () => {
   });
 
 
+  // Reusable positioning system with predictable calculations
+  const HORIZONTAL_SPACING = 450; // Space between node levels (increased to prevent overlap)
+  const VERTICAL_SPACING = 120; // Space between sibling nodes (adjusted for better job spacing)
+  const NODE_HEIGHT = 80; // Approximate height of a node
+  const MIN_VERTICAL_SPACING = 100; // Minimum space between nodes to prevent overlap
+
+  // Calculate vertical position for centered child nodes
+  const calculateChildPositions = (childCount: number, parentY: number, spacing?: number) => {
+    if (childCount === 0) return [];
+
+    // Use custom spacing or default
+    const verticalSpacing = spacing || VERTICAL_SPACING;
+
+    // For single child, align with parent
+    if (childCount === 1) return [parentY];
+
+    const totalHeight = (childCount - 1) * verticalSpacing;
+    const startY = parentY - totalHeight / 2;
+
+    return Array.from({ length: childCount }, (_, i) =>
+      startY + i * verticalSpacing
+    );
+  };
+
   // Generate nodes and edges from invocation data with smart grouping
   const { generatedNodes, generatedEdges } = useMemo(() => {
     if (data?.invocations_by_pk) {
@@ -318,18 +363,16 @@ const FlowDiagramContent = () => {
       const nodes: Node[] = [];
       const edges: Edge[] = [];
 
+      // Starting position for the invocation
+      const baseX = 50;
+      const baseY = 300;
+
       // Smart event grouping logic
       const events = invocation.event_executions || [];
       const detectedEvents = events.filter(e => e.detected);
       const undetectedEvents = events.filter(e => !e.detected);
 
-      // Create invocation node (centered on children)
-      const baseX = 50;
-      // Calculate total height needed for all detected events
-      const totalEventsHeight = detectedEvents.length > 1 ? (detectedEvents.length - 1) * 200 : 0;
-      const invocationCenterOffset = -totalEventsHeight / 2;
-      const baseY = 300 + invocationCenterOffset;
-
+      // Create invocation node
       const invocationNode: Node = {
         id: invocation.id,
         type: 'invocation',
@@ -353,7 +396,7 @@ const FlowDiagramContent = () => {
         const parentJobNode: Node = {
           id: `job-${invocation.source_job_id}`,
           type: 'job',
-          position: { x: baseX - 300, y: baseY },
+          position: { x: baseX - HORIZONTAL_SPACING, y: baseY },
           data: {
             jobName: invocation.source_job_execution.job_name,
             functionName: invocation.source_job_execution.job_function_name,
@@ -374,21 +417,23 @@ const FlowDiagramContent = () => {
           style: { stroke: '#8b5cf6', strokeWidth: 2 }, // Purple for job-to-invocation connections
         });
       }
+
       const shouldGroupEvents = events.length > 6; // Group if more than 6 events
       const shouldGroupUndetected = undetectedEvents.length > 3; // Group undetected if more than 3
 
       if (shouldGroupEvents || shouldGroupUndetected) {
-        // Show detected events individually (fan-out positioning)
+        // Calculate positions for detected events (centered on invocation)
+        const eventPositions = calculateChildPositions(detectedEvents.length, baseY);
+
+        // Show detected events individually (centered positioning)
         detectedEvents.forEach((event, eventIndex) => {
-          // Calculate vertical offset to center jobs under this event
-          const jobCount = event.job_executions?.length || 0;
-          const jobStackHeight = jobCount > 1 ? (jobCount - 1) * 120 : 0;
-          const eventCenterOffset = -jobStackHeight / 2;
+          const eventY = eventPositions[eventIndex];
+          const eventX = baseX + HORIZONTAL_SPACING;
 
           const eventNode: Node = {
             id: `event-${event.id}`,
             type: 'event',
-            position: { x: baseX + 584, y: baseY + 16 + eventIndex * 200 + eventCenterOffset },
+            position: { x: eventX, y: eventY },
             data: {
               eventName: event.event_name,
               correlationId: event.correlation_id,
@@ -410,16 +455,21 @@ const FlowDiagramContent = () => {
             style: { stroke: '#10b981', strokeWidth: 2 }, // Green for detected
           });
 
+          // Calculate positions for jobs (centered on their parent event)
+          const jobs = event.job_executions || [];
+          // Use larger spacing for jobs if there are many
+          const jobSpacing = jobs.length > 3 ? VERTICAL_SPACING * 1.2 : VERTICAL_SPACING;
+          const jobPositions = calculateChildPositions(jobs.length, eventY, jobSpacing);
+
           // Create job nodes for detected events (centered on parent event)
-          event.job_executions?.forEach((job, jobIndex) => {
-            const jobCount = event.job_executions?.length || 0;
-            const jobStackHeight = jobCount > 1 ? (jobCount - 1) * 120 : 0;
-            const jobCenterOffset = -jobStackHeight / 2;
+          jobs.forEach((job, jobIndex) => {
+            const jobY = jobPositions[jobIndex];
+            const jobX = eventX + HORIZONTAL_SPACING;
 
             const jobNode: Node = {
               id: `job-${job.id}`,
               type: 'job',
-              position: { x: baseX + 584 + 350, y: baseY + 16 + eventIndex * 200 + jobCenterOffset + jobIndex * 120 },
+              position: { x: jobX, y: jobY },
               data: {
                 jobName: job.job_name,
                 functionName: job.job_function_name,
@@ -443,14 +493,14 @@ const FlowDiagramContent = () => {
           });
         });
 
-        // Group undetected events (if any)
+        // Group undetected events (if any) - position below the invocation
         if (undetectedEvents.length > 0) {
           const groupedNode: Node = {
             id: 'grouped-undetected',
             type: 'groupedEvents',
             position: {
-              x: baseX + 89,
-              y: baseY + 220,
+              x: baseX,
+              y: baseY + VERTICAL_SPACING * 1.5, // Position below invocation
             },
             data: {
               totalCount: undetectedEvents.length,
@@ -477,17 +527,18 @@ const FlowDiagramContent = () => {
           });
         }
       } else {
-        // Show all events individually if count is manageable (fan-out positioning)
+        // Calculate positions for all events (centered on invocation)
+        const eventPositions = calculateChildPositions(events.length, baseY);
+
+        // Show all events individually if count is manageable
         events.forEach((event, eventIndex) => {
-          // Calculate vertical offset to center jobs under this event
-          const jobCount = event.job_executions?.length || 0;
-          const jobStackHeight = jobCount > 1 ? (jobCount - 1) * 120 : 0;
-          const eventCenterOffset = -jobStackHeight / 2;
+          const eventY = eventPositions[eventIndex];
+          const eventX = baseX + HORIZONTAL_SPACING;
 
           const eventNode: Node = {
             id: `event-${event.id}`,
             type: 'event',
-            position: { x: baseX + 584, y: baseY + 16 + eventIndex * 200 + eventCenterOffset },
+            position: { x: eventX, y: eventY },
             data: {
               eventName: event.event_name,
               correlationId: event.correlation_id,
@@ -506,20 +557,24 @@ const FlowDiagramContent = () => {
             source: invocation.id,
             target: `event-${event.id}`,
             markerEnd: { type: MarkerType.ArrowClosed },
-            style: { stroke: event.detected ? '#10b981' : '#ef4444' },
+            style: { stroke: event.detected ? '#10b981' : '#9ca3af', strokeWidth: event.detected ? 2 : 1 },
           });
 
-          // Create job nodes for each event (centered on parent event)
+          // Create job nodes for detected events only
           if (event.detected) {
-            event.job_executions?.forEach((job, jobIndex) => {
-              const jobCount = event.job_executions?.length || 0;
-              const jobStackHeight = jobCount > 1 ? (jobCount - 1) * 120 : 0;
-              const jobCenterOffset = -jobStackHeight / 2;
+            const jobs = event.job_executions || [];
+            // Use larger spacing for jobs if there are many
+            const jobSpacing = jobs.length > 3 ? VERTICAL_SPACING * 1.2 : VERTICAL_SPACING;
+            const jobPositions = calculateChildPositions(jobs.length, eventY, jobSpacing);
+
+            jobs.forEach((job, jobIndex) => {
+              const jobY = jobPositions[jobIndex];
+              const jobX = eventX + HORIZONTAL_SPACING;
 
               const jobNode: Node = {
                 id: `job-${job.id}`,
                 type: 'job',
-                position: { x: baseX + 584 + 350, y: baseY + 16 + eventIndex * 200 + jobCenterOffset + jobIndex * 120 },
+                position: { x: jobX, y: jobY },
                 data: {
                   jobName: job.job_name,
                   functionName: job.job_function_name,
@@ -539,7 +594,7 @@ const FlowDiagramContent = () => {
                 source: `event-${event.id}`,
                 target: `job-${job.id}`,
                 markerEnd: { type: MarkerType.ArrowClosed },
-                style: { stroke: job.status === 'completed' ? '#10b981' : '#ef4444' },
+                style: { stroke: job.status === 'completed' ? '#10b981' : '#ef4444', strokeWidth: 2 },
               });
             });
           }
@@ -585,13 +640,23 @@ const FlowDiagramContent = () => {
     setSearchParams,
   ]);
 
-  // Update nodes and edges when data changes
+  // Update nodes and edges when data changes and auto-fit view
   useEffect(() => {
     if (generatedNodes.length > 0) {
       setNodes(generatedNodes);
       setEdges(generatedEdges);
+
+      // Auto-fit view to show all nodes with padding
+      setTimeout(() => {
+        reactFlowInstance?.fitView({
+          padding: 0.2,
+          duration: 800,
+          maxZoom: 1.5,
+          minZoom: 0.1
+        });
+      }, 100);
     }
-  }, [generatedNodes, generatedEdges, setNodes, setEdges]);
+  }, [generatedNodes, generatedEdges, setNodes, setEdges, reactFlowInstance]);
 
   const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
     setSelectedNode(node);
@@ -719,9 +784,12 @@ const FlowDiagramContent = () => {
           onNodeDragStop={onNodeDragStop}
           nodeTypes={nodeTypes}
           connectionMode={ConnectionMode.Loose}
-          onInit={instance => {
-            // Store the ReactFlow instance for later use
-            // This will be used in the auto-focus effect
+          fitView
+          fitViewOptions={{
+            padding: 0.2,
+            includeHiddenNodes: false,
+            maxZoom: 1.5,
+            minZoom: 0.1
           }}
           defaultEdgeOptions={{
             type: 'default', // Use bezier curves for smooth connections

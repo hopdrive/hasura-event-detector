@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { XMarkIcon, CheckCircleIcon, ExclamationCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { Node } from 'reactflow';
+import { formatDuration } from '../utils/formatDuration';
 
 interface EventDetailDrawerProps {
   node: Node | null;
@@ -96,6 +97,16 @@ const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
       <div className="flex-1 overflow-auto p-6">
         {activeTab === 'summary' && (
           <div className="space-y-6">
+            {/* Event Record ID - prominently displayed */}
+            <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-700">
+              <label className="text-xs font-medium text-green-600 dark:text-green-400 uppercase">
+                Event Execution ID
+              </label>
+              <p className="mt-1 text-sm font-mono text-gray-900 dark:text-white">
+                {node.id.replace('event-', '')}
+              </p>
+            </div>
+
             {/* Detection Status Banner */}
             <div className={`p-4 rounded-lg border-l-4 ${
               eventData.detected
@@ -109,8 +120,8 @@ const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                     {eventData.detected ?
-                      `Detection completed in ${eventData.detectionDuration}ms` :
-                      `Detection check completed in ${eventData.detectionDuration}ms`
+                      `Detection completed in ${formatDuration(eventData.detectionDuration)}` :
+                      `Detection check completed in ${formatDuration(eventData.detectionDuration)}`
                     }
                   </p>
                 </div>
@@ -149,7 +160,7 @@ const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
                   Detection Time
                 </label>
                 <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
-                  {eventData.detectionDuration}ms
+                  {formatDuration(eventData.detectionDuration)}
                 </p>
               </div>
               <div>
@@ -157,7 +168,7 @@ const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
                   Handler Time
                 </label>
                 <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
-                  {eventData.handlerDuration ? `${eventData.handlerDuration}ms` : 'N/A'}
+                  {eventData.handlerDuration ? formatDuration(eventData.handlerDuration) : 'N/A'}
                 </p>
               </div>
               <div>

@@ -4,6 +4,7 @@ import { XMarkIcon, ChevronRightIcon, ChevronDownIcon, PlayIcon } from '@heroico
 import { JSONTree } from 'react-json-tree';
 import { create, formatters } from 'jsondiffpatch';
 import { Node } from 'reactflow';
+import { formatDuration } from '../utils/formatDuration';
 
 interface InvocationDetailDrawerProps {
   node: Node | null;
@@ -145,7 +146,7 @@ const EventTreeNode = ({ event, eventIndex, expandedEvents, toggleEvent }: any) 
                 {event.name}
               </p>
               <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400 mt-1">
-                <span>Duration: {event.duration}ms</span>
+                <span>Duration: {formatDuration(event.duration)}</span>
                 {hasJobs && <span>{event.jobs.length} jobs</span>}
               </div>
             </div>
@@ -192,7 +193,7 @@ const EventTreeNode = ({ event, eventIndex, expandedEvents, toggleEvent }: any) 
                     </div>
                     <div className="ml-6 mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-400">
                       <div className="flex items-center space-x-4">
-                        <span>Duration: {job.duration}ms</span>
+                        <span>Duration: {formatDuration(job.duration)}</span>
                         {job.function && <span>Function: {job.function}</span>}
                       </div>
                       {job.error && (
@@ -464,6 +465,16 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
       <div className="flex-1 overflow-auto p-6">
         {activeTab === 'summary' && (
           <div className="space-y-6">
+            {/* Record ID - prominently displayed */}
+            <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                Record ID
+              </label>
+              <p className="mt-1 text-sm font-mono text-gray-900 dark:text-white">
+                {node.id}
+              </p>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
@@ -494,7 +505,7 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
                   Duration
                 </label>
                 <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
-                  {mockInvocationData.duration}ms
+                  {formatDuration(mockInvocationData.duration)}
                 </p>
               </div>
               <div>

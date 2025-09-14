@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { XMarkIcon, PlayIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 import { JSONTree } from 'react-json-tree';
 import { Node } from 'reactflow';
+import { formatDuration } from '../utils/formatDuration';
 
 interface JobDetailDrawerProps {
   node: Node | null;
@@ -113,6 +114,16 @@ const JobDetailDrawer: React.FC<JobDetailDrawerProps> = ({
       <div className="flex-1 overflow-auto p-6">
         {activeTab === 'summary' && (
           <div className="space-y-6">
+            {/* Job Record ID - prominently displayed */}
+            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-700">
+              <label className="text-xs font-medium text-purple-600 dark:text-purple-400 uppercase">
+                Job Execution ID
+              </label>
+              <p className="mt-1 text-sm font-mono text-gray-900 dark:text-white">
+                {node.id.replace('job-', '')}
+              </p>
+            </div>
+
             {/* Status Banner */}
             <div className={`p-4 rounded-lg border-l-4 ${
               jobData.status === 'completed'
@@ -128,7 +139,7 @@ const JobDetailDrawer: React.FC<JobDetailDrawerProps> = ({
                           jobData.status === 'failed' ? 'Failed' : 'Running'}
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    Execution time: {jobData.duration}ms
+                    Execution time: {formatDuration(jobData.duration)}
                   </p>
                 </div>
                 <span className={`
@@ -168,7 +179,7 @@ const JobDetailDrawer: React.FC<JobDetailDrawerProps> = ({
                   Duration
                 </label>
                 <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
-                  {jobData.duration}ms
+                  {formatDuration(jobData.duration)}
                 </p>
               </div>
               <div>
