@@ -76,6 +76,14 @@ const InvocationNode = ({ data, selected }: NodeProps) => {
       </div>
 
       <Handle type='source' position={Position.Right} id='right' className='w-3 h-3' />
+      {/* Event count badge positioned near the right connector */}
+      {data.eventsCount > 0 && (
+        <div className='absolute -right-2 top-1/2 transform -translate-y-1/2 translate-x-full'>
+          <span className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-700 shadow-sm'>
+            {data.eventsCount} events
+          </span>
+        </div>
+      )}
       <Handle type='source' position={Position.Bottom} id='bottom' className='w-3 h-3' />
     </motion.div>
   );
@@ -403,7 +411,7 @@ const FlowDiagramContent = () => {
           correlationId: invocation.correlation_id,
           status: invocation.status,
           duration: invocation.total_duration_ms,
-          eventsCount: invocation.events_detected_count,
+          eventsCount: detectedEvents.length,
           jobsCount: invocation.total_jobs_run,
           successfulJobs: invocation.total_jobs_succeeded,
           failedJobs: invocation.total_jobs_failed,
@@ -459,7 +467,7 @@ const FlowDiagramContent = () => {
         // Show detected events individually with dynamic spacing
         eventSpacingData.forEach((eventData, eventIndex) => {
           const eventY = currentEventY;
-          const eventX = baseX + HORIZONTAL_SPACING;
+          const eventX = baseX + HORIZONTAL_SPACING + 150;
           const { event } = eventData;
 
           const eventNode: Node = {
@@ -484,7 +492,7 @@ const FlowDiagramContent = () => {
             source: invocation.id,
             target: `event-${event.id}`,
             markerEnd: { type: MarkerType.ArrowClosed },
-            style: { stroke: '#10b981', strokeWidth: 2 }, // Green for detected
+            style: { stroke: '#3b82f6', strokeWidth: 2 }, // Blue to match invocation node
           });
 
           // Calculate positions for jobs (centered on their parent event)
@@ -561,7 +569,7 @@ const FlowDiagramContent = () => {
             sourceHandle: 'bottom',
             targetHandle: 'top',
             markerEnd: { type: MarkerType.ArrowClosed },
-            style: { stroke: '#9ca3af', strokeWidth: 1, strokeDasharray: '5,5' }, // Gray dashed for undetected
+            style: { stroke: '#3b82f6', strokeWidth: 2, strokeDasharray: '5,5' }, // Blue dashed to match invocation node
           });
         }
       } else {
@@ -581,7 +589,7 @@ const FlowDiagramContent = () => {
         // Show all events individually with dynamic spacing
         eventSpacingData.forEach((eventData, eventIndex) => {
           const eventY = currentEventY;
-          const eventX = baseX + HORIZONTAL_SPACING;
+          const eventX = baseX + HORIZONTAL_SPACING + 80;
           const { event } = eventData;
 
           const eventNode: Node = {
@@ -606,7 +614,7 @@ const FlowDiagramContent = () => {
             source: invocation.id,
             target: `event-${event.id}`,
             markerEnd: { type: MarkerType.ArrowClosed },
-            style: { stroke: event.detected ? '#10b981' : '#9ca3af', strokeWidth: event.detected ? 2 : 1 },
+            style: { stroke: '#3b82f6', strokeWidth: 2 }, // Blue to match invocation node
           });
 
           // Create job nodes for detected events only
@@ -713,6 +721,11 @@ const FlowDiagramContent = () => {
   const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
     setSelectedNode(node);
     setDrawerOpen(true);
+  }, []);
+
+  const onPaneClick = useCallback(() => {
+    setSelectedNode(null);
+    setDrawerOpen(false);
   }, []);
 
   const onNodeDragStop = useCallback(
@@ -833,6 +846,7 @@ const FlowDiagramContent = () => {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onNodeClick={onNodeClick}
+          onPaneClick={onPaneClick}
           onNodeDragStop={onNodeDragStop}
           nodeTypes={nodeTypes}
           connectionMode={ConnectionMode.Loose}
