@@ -148,7 +148,7 @@ export const useFlowPositioning = (
             functionName: invocation.source_job_execution.job_function_name,
             correlationId: invocation.source_job_execution.correlation_id,
             status: invocation.source_job_execution.status,
-            duration: invocation.source_job_execution.duration,
+            duration: invocation.source_job_execution.duration_ms,
             result: invocation.source_job_execution.result,
             error: invocation.source_job_execution.error,
             triggersInvocation: invocation.source_job_execution.triggers_invocation,
@@ -237,8 +237,8 @@ export const useFlowPositioning = (
               correlationId: event.correlation_id,
               detected: event.detected,
               status: event.status,
-              detectionDuration: event.detection_duration,
-              handlerDuration: event.handler_duration,
+              detectionDuration: event.detection_duration_ms,
+              handlerDuration: event.handler_duration_ms,
               jobsCount: event.job_executions?.length || 0,
               hasFailedJobs: (event.job_executions || []).some((job: JobExecution) => job.status === 'failed')
             }
@@ -280,7 +280,7 @@ export const useFlowPositioning = (
                   functionName: job.job_function_name,
                   correlationId: job.correlation_id,
                   status: job.status,
-                  duration: job.duration,
+                  duration: job.duration_ms,
                   result: job.result,
                   error: job.error,
                   triggersInvocation: job.triggers_invocation || (job.triggered_invocations && job.triggered_invocations.length > 0),
@@ -373,8 +373,8 @@ export const useFlowPositioning = (
               correlationId: event.correlation_id,
               detected: event.detected,
               status: event.status,
-              detectionDuration: event.detection_duration,
-              handlerDuration: event.handler_duration,
+              detectionDuration: event.detection_duration_ms,
+              handlerDuration: event.handler_duration_ms,
               jobsCount: 0,
               hasFailedJobs: false
             }

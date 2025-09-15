@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation, useSearchParams } from 'react-router-dom';
 import { ApolloClient, InMemoryCache, ApolloProvider } from '@apollo/client';
 import {
   HomeIcon,
@@ -13,10 +13,11 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import OverviewDashboard from './components/OverviewDashboard';
 import InvocationsTable from './components/InvocationsTable';
-import FlowDiagram from './components/FlowDiagram';
+import FlowDiagram, { calculateFlowSummary } from './components/FlowDiagram';
 import Analytics from './components/Analytics';
 import Settings from './components/Settings';
 import CorrelationSearch from './components/CorrelationSearch';
+import FlowHeader from './components/FlowHeader';
 import './styles/globals.css';
 
 // Apollo Client configuration
@@ -96,6 +97,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const [isPolling, setIsPolling] = useState(false);
   const [correlationSearch, setCorrelationSearch] = useState('');
+  const isFlowPage = location.pathname === '/flow';
 
   // Simulate polling indicator
   React.useEffect(() => {
@@ -152,35 +154,41 @@ function Layout({ children }: { children: React.ReactNode }) {
         {/* Header */}
         <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
           <div className="px-6 py-4">
-            <div className="flex items-center justify-between">
-              {/* Search */}
-              <div className="flex-1 max-w-2xl">
-                <CorrelationSearch
-                  value={correlationSearch}
-                  onChange={setCorrelationSearch}
-                />
-              </div>
-
-              {/* Time Range & Sync Indicator */}
-              <div className="flex items-center space-x-4 ml-6">
-                <select className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                  <option>Last 1 hour</option>
-                  <option>Last 6 hours</option>
-                  <option>Last 24 hours</option>
-                  <option>Last 7 days</option>
-                  <option>Custom range</option>
-                </select>
-
-                <div className="flex items-center">
-                  <ArrowPathIcon
-                    className={`h-5 w-5 ${isPolling ? 'animate-spin text-blue-600' : 'text-gray-400'}`}
+            {isFlowPage ? (
+              /* Flow Page Header - Show Summary */
+              <FlowHeader />
+            ) : (
+              /* Other Pages Header - Show Search and Time Range */
+              <div className="flex items-center justify-between">
+                {/* Search */}
+                <div className="flex-1 max-w-2xl">
+                  <CorrelationSearch
+                    value={correlationSearch}
+                    onChange={setCorrelationSearch}
                   />
-                  <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
-                    {isPolling ? 'Syncing...' : 'Auto-refresh'}
-                  </span>
+                </div>
+
+                {/* Time Range & Sync Indicator */}
+                <div className="flex items-center space-x-4 ml-6">
+                  <select className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                    <option>Last 1 hour</option>
+                    <option>Last 6 hours</option>
+                    <option>Last 24 hours</option>
+                    <option>Last 7 days</option>
+                    <option>Custom range</option>
+                  </select>
+
+                  <div className="flex items-center">
+                    <ArrowPathIcon
+                      className={`h-5 w-5 ${isPolling ? 'animate-spin text-blue-600' : 'text-gray-400'}`}
+                    />
+                    <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
+                      {isPolling ? 'Syncing...' : 'Auto-refresh'}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </header>
 

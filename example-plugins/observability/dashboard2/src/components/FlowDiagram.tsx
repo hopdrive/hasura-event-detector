@@ -22,6 +22,61 @@ import JobDetailDrawer from './JobDetailDrawer';
 import EventDetailDrawer from './EventDetailDrawer';
 import UndetectedEventsDetailDrawer from './UndetectedEventsDetailDrawer';
 
+// Helper function to calculate flow summary statistics
+export const calculateFlowSummary = (invocations: any[]) => {
+  let totalInvocations = 0;
+  let totalEvents = 0;
+  let detectedEvents = 0;
+  let undetectedEvents = 0;
+  let totalJobs = 0;
+  let successfulJobs = 0;
+  let failedJobs = 0;
+  let runningJobs = 0;
+
+  invocations.forEach(invocation => {
+    totalInvocations++;
+    const events = invocation.event_executions || [];
+
+    events.forEach((event: any) => {
+      totalEvents++;
+      if (event.detected) {
+        detectedEvents++;
+      } else {
+        undetectedEvents++;
+      }
+
+      const jobs = event.job_executions || [];
+      jobs.forEach((job: any) => {
+        totalJobs++;
+        switch (job.status) {
+          case 'completed':
+            successfulJobs++;
+            break;
+          case 'failed':
+            failedJobs++;
+            break;
+          case 'running':
+            runningJobs++;
+            break;
+          default:
+            successfulJobs++; // Default to successful for unknown statuses
+        }
+      });
+    });
+  });
+
+  return {
+    totalInvocations,
+    totalEvents,
+    detectedEvents,
+    undetectedEvents,
+    totalJobs,
+    successfulJobs,
+    failedJobs,
+    runningJobs
+  };
+};
+
 // FlowDiagram now uses extracted components and positioning hook
 
 // Inner component that uses ReactFlow hooks
@@ -121,7 +176,7 @@ const FlowDiagramContent = () => {
   // Node dragging will work automatically with direct props
 
   // Filter nodes based on search - memoized to prevent re-renders
-  const filteredData = useMemo(() => {
+  const flowData = useMemo(() => {
     const filteredNodes = generatedNodes.filter((node) => {
       if (!searchTerm) return true;
       const searchLower = searchTerm.toLowerCase();
@@ -146,7 +201,7 @@ const FlowDiagramContent = () => {
           );
         case 'groupedEvents':
           return node.data.events?.some((event: any) =>
-            event.name?.toLowerCase().includes(searchLower)
+            event.event_name?.toLowerCase().includes(searchLower)
           );
         default:
           return true;
@@ -189,7 +244,7 @@ const FlowDiagramContent = () => {
 
   return (
     <div className="w-full h-full relative" style={{ minHeight: '600px' }}>
-      {/* Search Bar */}
+      {/* Search Bar - Floating overlay */}
       <div className="absolute top-4 left-4 z-10">
         <input
           type="text"
@@ -201,9 +256,9 @@ const FlowDiagramContent = () => {
       </div>
 
       <ReactFlow
-        key={`flow-${filteredData.nodes.length}`}
-        nodes={filteredData.nodes}
-        edges={filteredData.edges}
+        key={`flow-${flowData.nodes.length}`}
+        nodes={flowData.nodes}
+        edges={flowData.edges}
         onNodeClick={onNodeClick}
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
