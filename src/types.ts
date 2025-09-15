@@ -161,43 +161,36 @@ export interface PluginLifecycleHooks<TConfig extends PluginConfig = PluginConfi
 
   onInvocationStart?(
     hasuraEvent: HasuraEventPayload,
-    options: ListenToOptions,
-    context: Record<string, any>,
-    correlationId: CorrelationId
+    options: ListenToOptions
   ): Promise<void>;
 
   onInvocationEnd?(
     hasuraEvent: HasuraEventPayload,
     result: ListenToResponse,
-    correlationId: CorrelationId,
     durationMs: number
   ): Promise<void>;
 
   onEventDetectionStart?(
     eventName: EventName,
-    hasuraEvent: HasuraEventPayload,
-    correlationId: CorrelationId
+    hasuraEvent: HasuraEventPayload
   ): Promise<void>;
 
   onEventDetectionEnd?(
     eventName: EventName,
     detected: boolean,
     hasuraEvent: HasuraEventPayload,
-    correlationId: CorrelationId,
     durationMs: number
   ): Promise<void>;
 
   onEventHandlerStart?(
     eventName: EventName,
-    hasuraEvent: HasuraEventPayload,
-    correlationId: CorrelationId
+    hasuraEvent: HasuraEventPayload
   ): Promise<void>;
 
   onEventHandlerEnd?(
     eventName: EventName,
     jobResults: JobResult[],
     hasuraEvent: HasuraEventPayload,
-    correlationId: CorrelationId,
     durationMs: number
   ): Promise<void>;
 
@@ -205,8 +198,7 @@ export interface PluginLifecycleHooks<TConfig extends PluginConfig = PluginConfi
     jobName: JobName,
     jobOptions: JobOptions,
     eventName: EventName,
-    hasuraEvent: HasuraEventPayload,
-    correlationId: CorrelationId
+    hasuraEvent: HasuraEventPayload
   ): Promise<void>;
 
   onJobEnd?(
@@ -214,7 +206,6 @@ export interface PluginLifecycleHooks<TConfig extends PluginConfig = PluginConfi
     result: JobResult,
     eventName: EventName,
     hasuraEvent: HasuraEventPayload,
-    correlationId: CorrelationId,
     durationMs: number
   ): Promise<void>;
 

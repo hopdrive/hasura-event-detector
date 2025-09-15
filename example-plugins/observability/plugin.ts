@@ -618,15 +618,14 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
    */
   override async onInvocationStart(
     hasuraEvent: HasuraEventPayload,
-    options: ListenToOptions,
-    correlationId: CorrelationId
+    options: ListenToOptions
   ): Promise<void> {
     if (!this.config.enabled) return;
 
     const { dbEvent } = parseHasuraEvent(hasuraEvent);
 
     const invocationData = {
-      correlationId,
+      correlationId: hasuraEvent.__correlationId,
       sourceFunction: options.sourceFunction || 'unknown',
       sourceTable: dbEvent?.table?.name || null,
       sourceOperation: hasuraEvent.event?.op || 'MANUAL',
@@ -642,8 +641,8 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
 
     const invocationId = await this.recordInvocationStart(invocationData);
     if (invocationId) {
-      this.activeInvocations.set(correlationId, invocationId);
-      log('ObservabilityPlugin', `Recorded invocation start: ${invocationId} for correlation: ${correlationId}`);
+      this.activeInvocations.set(hasuraEvent.__correlationId as CorrelationId, invocationId);
+      log('ObservabilityPlugin', `Recorded invocation start: ${invocationId} for correlation: ${hasuraEvent.__correlationId}`);
     }
   }
 
