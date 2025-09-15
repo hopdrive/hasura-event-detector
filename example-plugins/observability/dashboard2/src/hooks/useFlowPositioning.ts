@@ -197,7 +197,7 @@ export const useFlowPositioning = (
       edges.push({
         id: `${invocation.id}-to-grouped-${invocation.id}`,
         source: invocation.id,
-        sourceHandle: 'right',
+        sourceHandle: 'bottom',
         target: `grouped-${invocation.id}`,
         targetHandle: 'top',
         type: 'default',
