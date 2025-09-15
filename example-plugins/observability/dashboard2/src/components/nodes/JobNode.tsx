@@ -13,6 +13,7 @@ export interface JobNodeData {
   error?: string;
   triggersInvocation?: boolean;
   isSourceJob?: boolean;
+  triggeredInvocationsCount?: number;
 }
 
 export const JobNode: React.FC<NodeProps<JobNodeData>> = ({ data, selected }) => {
@@ -43,6 +44,7 @@ export const JobNode: React.FC<NodeProps<JobNodeData>> = ({ data, selected }) =>
   const status = data.status || 'completed';
   const colors = statusColors[status as keyof typeof statusColors] || statusColors.completed;
   const isFailed = status === 'failed';
+  const invocationCount = data.triggeredInvocationsCount || 0;
 
 
   return (
@@ -88,14 +90,21 @@ export const JobNode: React.FC<NodeProps<JobNodeData>> = ({ data, selected }) =>
               </svg>
             )}
             {hasRecursion && (
-              <svg className='w-4 h-4 text-purple-500' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                <path
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth={2}
-                  d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'
-                />
-              </svg>
+              <div className='relative'>
+                <svg className='w-4 h-4 text-purple-500' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'
+                  />
+                </svg>
+                {invocationCount > 0 && (
+                  <span className='absolute -top-1 -right-1 bg-purple-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold'>
+                    {invocationCount}
+                  </span>
+                )}
+              </div>
             )}
           </div>
         </div>

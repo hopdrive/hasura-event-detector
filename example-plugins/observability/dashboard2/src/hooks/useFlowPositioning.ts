@@ -157,7 +157,7 @@ export const useFlowPositioning = (
         };
         nodes.push(sourceJobNode);
 
-        // Edge from source job to invocation
+        // Edge from source job to invocation (invocation colored - blue)
         edges.push({
           id: `job-${invocation.source_job_id}-to-${invocation.id}`,
           source: `job-${invocation.source_job_id}`,
@@ -166,7 +166,7 @@ export const useFlowPositioning = (
           targetHandle: 'left',
           type: 'default',
           animated: true,
-          style: { stroke: '#8b5cf6', strokeWidth: 2 },
+          style: { stroke: '#3b82f6', strokeWidth: 2 }, // Blue for invocations
           markerEnd: {
             type: 'arrowclosed',
             width: 20,
@@ -175,25 +175,40 @@ export const useFlowPositioning = (
         });
       }
 
-      // Group undetected events if there are any
-      if (undetectedEvents.length > 0) {
-        const groupedEventsNode: PositionedNode = {
-          id: `grouped-${invocation.id}`,
-          type: 'groupedEvents',
-          position: {
-            x: baseX,
-            y: baseY + verticalSpacing * 1.5
-          },
-          data: {
-            totalCount: undetectedEvents.length,
-            detectedCount: 0,
-            undetectedCount: undetectedEvents.length,
-            events: undetectedEvents,
-            invocationId: invocation.id
-          }
-        };
-        nodes.push(groupedEventsNode);
-      }
+      // Always create undetected events group node for all invocations
+      const groupedEventsNode: PositionedNode = {
+        id: `grouped-${invocation.id}`,
+        type: 'groupedEvents',
+        position: {
+          x: baseX,
+          y: baseY + verticalSpacing * 1.5
+        },
+        data: {
+          totalCount: events.length,
+          detectedCount: detectedEvents.length,
+          undetectedCount: undetectedEvents.length,
+          events: undetectedEvents.length > 0 ? undetectedEvents : events,
+          invocationId: invocation.id
+        }
+      };
+      nodes.push(groupedEventsNode);
+
+      // Edge from invocation to grouped events (always show, gray for undetected content)
+      edges.push({
+        id: `${invocation.id}-to-grouped-${invocation.id}`,
+        source: invocation.id,
+        sourceHandle: 'right',
+        target: `grouped-${invocation.id}`,
+        targetHandle: 'top',
+        type: 'default',
+        animated: true,
+        style: { stroke: '#6b7280', strokeWidth: 2, strokeDasharray: '5,5' }, // Gray color for grouped events
+        markerEnd: {
+          type: 'arrowclosed',
+          width: 20,
+          height: 20,
+        }
+      });
 
       // Position detected events
       if (detectedEvents.length > 0) {
@@ -230,7 +245,7 @@ export const useFlowPositioning = (
           };
           nodes.push(eventNode);
 
-          // Edge from invocation to event
+          // Edge from invocation to event (event colored - green)
           edges.push({
             id: `${invocation.id}-to-event-${event.id}`,
             source: invocation.id,
@@ -238,7 +253,7 @@ export const useFlowPositioning = (
             target: `event-${event.id}`,
             type: 'default',
             animated: true,
-            style: { stroke: '#3b82f6', strokeWidth: 2 },
+            style: { stroke: '#10b981', strokeWidth: 2 }, // Green for events
             markerEnd: {
               type: 'arrowclosed',
               width: 20,
@@ -268,19 +283,20 @@ export const useFlowPositioning = (
                   duration: job.duration,
                   result: job.result,
                   error: job.error,
-                  triggersInvocation: job.triggers_invocation || (job.triggered_invocations && job.triggered_invocations.length > 0)
+                  triggersInvocation: job.triggers_invocation || (job.triggered_invocations && job.triggered_invocations.length > 0),
+                  triggeredInvocationsCount: job.triggered_invocations?.length || 0
                 }
               };
               nodes.push(jobNode);
 
-              // Edge from event to job
+              // Edge from event to job (job colored - purple)
               edges.push({
                 id: `event-${event.id}-to-job-${job.id}`,
                 source: `event-${event.id}`,
                 target: `job-${job.id}`,
                 type: 'default',
                 animated: true,
-                style: { stroke: '#8b5cf6', strokeWidth: 2 },
+                style: { stroke: '#8b5cf6', strokeWidth: 2 }, // Purple for jobs
                 markerEnd: {
                   type: 'arrowclosed',
                   width: 20,
@@ -302,7 +318,7 @@ export const useFlowPositioning = (
                     // Process the child invocation recursively with full data
                     processInvocation(fullTriggeredInvocation, childX, childY);
 
-                    // Create edge from job to triggered invocation
+                    // Create edge from job to triggered invocation (invocation colored - blue)
                     edges.push({
                       id: `job-${job.id}-to-invocation-${fullTriggeredInvocation.id}`,
                       source: `job-${job.id}`,
@@ -311,7 +327,7 @@ export const useFlowPositioning = (
                       targetHandle: 'left',
                       type: 'default',
                       animated: true,
-                      style: { stroke: '#f59e0b', strokeWidth: 3 }, // Orange color for recursive edges
+                      style: { stroke: '#3b82f6', strokeWidth: 2 }, // Blue for invocations
                       markerEnd: {
                         type: 'arrowclosed',
                         width: 20,
@@ -365,7 +381,7 @@ export const useFlowPositioning = (
           };
           nodes.push(eventNode);
 
-          // Edge from invocation to undetected event
+          // Edge from invocation to undetected event (event colored - green, dashed)
           edges.push({
             id: `${invocation.id}-to-event-${event.id}`,
             source: invocation.id,
@@ -373,7 +389,7 @@ export const useFlowPositioning = (
             target: `event-${event.id}`,
             type: 'default',
             animated: true,
-            style: { stroke: '#3b82f6', strokeWidth: 2, strokeDasharray: '5,5' },
+            style: { stroke: '#10b981', strokeWidth: 2, strokeDasharray: '5,5' }, // Green for events, dashed for undetected
             markerEnd: {
               type: 'arrowclosed',
               width: 20,
