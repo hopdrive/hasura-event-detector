@@ -105,7 +105,7 @@ describe('Debug Moves Event', () => {
           tookan_relationship_id: null,
           tracking_link: null,
           trip_id: null,
-          updatedBy: null,
+          updatedBy: 'system.f6185344-5e40-4c98-a334-02812adb60bd',
           updatedat: '2025-09-10T04:21:27.232771+00:00',
           usecase_key: null,
           vehicle_color: null,

@@ -59,10 +59,10 @@ export class CorrelationIdExtractionPlugin extends BasePlugin<CorrelationIdExtra
 
     // Strategy 1: Extract from updated_by field with pattern matching
     if (this.config.extractFromUpdatedBy) {
-      const updatedByResult = this.extractFromUpdatedBy(parsedEvent);
-      if (updatedByResult) {
-        log('CorrelationIdExtraction', `Extracted from updated_by: ${updatedByResult}`);
-        return { ...options, correlationId: updatedByResult };
+      const extractedCorrelationId = this.extractFromUpdatedBy(parsedEvent);
+      if (extractedCorrelationId) {
+        log('CorrelationIdExtraction', `Extracted from updated_by: ${extractedCorrelationId}`);
+        return { ...options, correlationId: extractedCorrelationId };
       }
     }
 
@@ -106,7 +106,7 @@ export class CorrelationIdExtractionPlugin extends BasePlugin<CorrelationIdExtra
   private extractFromUpdatedBy(parsedEvent: ParsedHasuraEvent): string | null {
     if (parsedEvent.operation !== 'UPDATE') return null;
 
-    const updatedBy = parsedEvent.dbEvent?.new?.updated_by;
+    const updatedBy = parsedEvent.dbEvent?.new?.updatedby || parsedEvent.dbEvent?.new?.updated_by;
     if (!updatedBy || typeof updatedBy !== 'string') return null;
 
     // Check if updated_by matches the correlation ID pattern
