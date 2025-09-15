@@ -302,6 +302,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       source_table: data.sourceTable,
       source_operation: data.sourceOperation,
       source_system: 'hasura', // Default to hasura, can be overridden
+      source_user: data.sourceUser,
       source_job_id: data.sourceJobId || null, // From tracking token extraction
       source_event_id: data.hasuraEventId,
       source_event_payload: this.config.captureHasuraPayload ? data.hasuraEventPayload : null,
@@ -628,8 +629,9 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     const invocationData = {
       correlationId: hasuraEvent.__correlationId,
       sourceFunction: options.sourceFunction || 'unknown',
-      sourceTable: dbEvent?.table?.name || null,
+      sourceTable: `${dbEvent?.table?.schema || 'public'}.${dbEvent?.table?.name || 'unknown'}`,
       sourceOperation: hasuraEvent.event?.op || 'MANUAL',
+      sourceUser: hasuraEvent.event?.session_variables?.['x-hasura-user-id'] || hasuraEvent.event?.session_variables?.['x-hasura-user-email'] || null,
       sourceJobId: (hasuraEvent as any).__sourceJobId || null,
       hasuraEventId: hasuraEvent.id || null,
       hasuraEventPayload: hasuraEvent,
@@ -674,10 +676,10 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     let totalJobsFailed = 0;
 
     result.events.forEach(event => {
-      if (event.jobResults) {
-        totalJobsRun += event.jobResults.length;
-        event.jobResults.forEach(jobResult => {
-          if (jobResult.success) {
+      if (event.jobs) {
+        totalJobsRun += event.jobs.length;
+        event.jobs.forEach(jobResult => {
+          if (jobResult.completed && !jobResult.error) {
             totalJobsSucceeded++;
           } else {
             totalJobsFailed++;
@@ -688,7 +690,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
 
     const endData = {
       durationMs: result.durationMs || durationMs,
-      eventsDetectedCount: result.events.filter(e => e.detected).length,
+      eventsDetectedCount: result.events.length, // All events that were processed
       totalJobsRun,
       totalJobsSucceeded,
       totalJobsFailed,
@@ -727,7 +729,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     const eventData = {
       correlationId: hasuraEvent?.__correlationId as CorrelationId,
       eventName,
-      eventModulePath: null, // Will be filled when available
+      eventModulePath: `./events/${eventName}.ts`, // Standard event module path
       detected,
       detectionDurationMs: durationMs,
       detectionError: null,
@@ -779,7 +781,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     let jobsFailed = 0;
 
     jobResults.forEach(result => {
-      if (result.success || result.completed) {
+      if (result.completed && !result.error) {
         jobsSucceeded++;
       } else {
         jobsFailed++;
@@ -844,10 +846,13 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       return;
     }
 
+    // Try to get the actual function name from job options or use job name
+    const functionName = jobOptions?.jobName || jobName;
+
     const jobData = {
       correlationId: hasuraEvent?.__correlationId as CorrelationId,
       jobName,
-      jobFunctionName: jobName, // Could be enhanced to get actual function name
+      jobFunctionName: functionName,
       jobOptions,
       durationMs: null,
       status: 'running',
@@ -894,9 +899,9 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     if (jobRecord) {
       Object.assign(jobRecord, {
         duration_ms: durationMs,
-        status: result.success || result.completed ? 'completed' : 'failed',
-        result: result.result || result,
-        error_message: result.error?.message || (result.success === false ? 'Job failed' : null),
+        status: result.completed && !result.error ? 'completed' : 'failed',
+        result: result.result,
+        error_message: result.error?.message || (!result.completed ? 'Job failed to complete' : null),
         error_stack: this.config.captureErrorStacks ? result.error?.stack : null,
         updated_at: new Date(),
       });
@@ -931,6 +936,34 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       });
 
       this.buffer.invocations.set(invocationId, invocationRecord);
+    }
+
+    // Also update any active event executions with the error if it's detection/handler related
+    if (context === 'event_detection' || context === 'event_handler') {
+      // Find all active event executions for this correlation ID
+      this.activeEventExecutions.forEach((eventExecutionId, key) => {
+        if (key.startsWith(correlationId)) {
+          const eventRecord = this.buffer.eventExecutions.get(eventExecutionId);
+          if (eventRecord) {
+            if (context === 'event_detection') {
+              Object.assign(eventRecord, {
+                detection_error: error.message,
+                detection_error_stack: this.config.captureErrorStacks ? error.stack : null,
+                status: 'detection_failed',
+                updated_at: new Date(),
+              });
+            } else if (context === 'event_handler') {
+              Object.assign(eventRecord, {
+                handler_error: error.message,
+                handler_error_stack: this.config.captureErrorStacks ? error.stack : null,
+                status: 'handler_failed',
+                updated_at: new Date(),
+              });
+            }
+            this.buffer.eventExecutions.set(eventExecutionId, eventRecord);
+          }
+        }
+      });
     }
 
     logError('ObservabilityPlugin', `Error in ${context}`, error);
