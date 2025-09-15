@@ -13,6 +13,7 @@
 import { listenTo } from '../detector';
 import { pluginManager } from '../plugin';
 import { ObservabilityPlugin } from '../../example-plugins/observability/plugin';
+import { CorrelationIdExtractionPlugin } from '../../example-plugins/correlation-id-extraction/plugin';
 import * as path from 'path';
 import { config } from 'dotenv';
 config({ path: 'example-plugins/observability/.env' });
@@ -235,6 +236,12 @@ describe('Debug Moves Event', () => {
   };
 
   it('should process moves UPDATE event with debugging', async () => {
+    const correlationIdExtractionPlugin = new CorrelationIdExtractionPlugin({
+      enabled: true,
+      extractFromUpdatedBy: true,
+      extractFromMetadata: false,
+      extractFromSession: false,
+    });
     const observabilityPlugin = new ObservabilityPlugin({
       enabled: process.env.OBSERVABILITY_ENABLED === 'true',
       database: {
@@ -250,6 +257,7 @@ describe('Debug Moves Event', () => {
       captureErrorStacks: true,
     });
 
+    pluginManager.register(correlationIdExtractionPlugin);
     pluginManager.register(observabilityPlugin);
 
     // Initialize (usually done once at startup)

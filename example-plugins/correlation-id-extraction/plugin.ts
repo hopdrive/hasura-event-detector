@@ -1,20 +1,15 @@
 /**
  * Correlation ID Extraction Plugin
- * 
+ *
  * This plugin demonstrates how to extract correlation IDs from Hasura event payloads
  * using the plugin system. It provides various extraction strategies that can be
  * customized based on your application's data structure.
  */
 
-import type {
-  HasuraEventPayload,
-  ParsedHasuraEvent,
-  BasePluginInterface,
-  PluginName,
-  PluginConfig,
-  ListenToOptions
-} from '@hopdrive/hasura-event-detector';
-import { log, logWarn, parseHasuraEvent } from '@hopdrive/hasura-event-detector';
+import type { HasuraEventPayload, ParsedHasuraEvent, PluginName, PluginConfig, ListenToOptions } from '../../src/types';
+import { BasePlugin } from '../../src/plugin';
+import { log, logWarn } from '../../src/helpers/log';
+import { parseHasuraEvent } from '../../src/helpers/hasura';
 
 export interface CorrelationIdExtractionConfig extends PluginConfig {
   enabled?: boolean;
@@ -31,32 +26,21 @@ export interface CorrelationIdExtractionConfig extends PluginConfig {
   metadataKeys?: string[];
 }
 
-export class CorrelationIdExtractionPlugin implements BasePluginInterface<CorrelationIdExtractionConfig> {
-  readonly name = 'correlation-id-extraction' as PluginName;
-  readonly config: CorrelationIdExtractionConfig;
-  readonly enabled: boolean;
-
+export class CorrelationIdExtractionPlugin extends BasePlugin<CorrelationIdExtractionConfig> {
   constructor(config: Partial<CorrelationIdExtractionConfig> = {}) {
-    this.config = {
+    const defaultConfig: CorrelationIdExtractionConfig = {
       enabled: true,
       extractFromUpdatedBy: true,
       extractFromMetadata: true,
       extractFromSession: true,
-      // Default pattern: extract UUID from "something.uuid" format
-      updatedByPattern: /^.+\.([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i,
+      // Default pattern: extract correlation ID from "something.correlation_id.source_job_id" format (2nd position)
+      // Also supports legacy "something.correlation_id" format for backward compatibility
+      updatedByPattern: /^[^.]+\.([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:\.[^.]+)?$/i,
       sessionVariables: ['x-correlation-id', 'x-request-id', 'x-trace-id'],
       metadataKeys: ['correlation_id', 'trace_id', 'request_id', 'workflow_id'],
-      ...config
+      ...config,
     };
-    this.enabled = this.config.enabled ?? true;
-  }
-
-  getStatus() {
-    return {
-      name: this.name,
-      enabled: this.enabled,
-      config: this.config
-    };
+    super(defaultConfig);
   }
 
   /**
@@ -115,6 +99,9 @@ export class CorrelationIdExtractionPlugin implements BasePluginInterface<Correl
 
   /**
    * Extract correlation ID from updated_by field using pattern matching
+   * Supports formats like:
+   * - "something.correlation_id.source_job_id" (new format with source job tracking)
+   * - "something.correlation_id" (legacy format)
    */
   private extractFromUpdatedBy(parsedEvent: ParsedHasuraEvent): string | null {
     if (parsedEvent.operation !== 'UPDATE') return null;
@@ -126,7 +113,7 @@ export class CorrelationIdExtractionPlugin implements BasePluginInterface<Correl
     if (this.config.updatedByPattern) {
       const match = updatedBy.match(this.config.updatedByPattern);
       if (match && match[1]) {
-        return match[1]; // Return the captured UUID group
+        return match[1]; // Return the captured correlation ID (2nd position)
       }
     }
 
@@ -225,8 +212,8 @@ export const updatedByOnlyPlugin = new CorrelationIdExtractionPlugin({
   extractFromUpdatedBy: true,
   extractFromMetadata: false,
   extractFromSession: false,
-  // Extract UUID from "user:12345.uuid-here" format
-  updatedByPattern: /^user:\d+\.([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i
+  // Extract correlation ID from "user:12345.correlation-id.source-job-id" format (2nd position)
+  updatedByPattern: /^user:\d+\.([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:\.[^.]+)?$/i
 });
 
 /**

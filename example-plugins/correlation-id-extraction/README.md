@@ -28,8 +28,9 @@ const correlationExtractor = new CorrelationIdExtractionPlugin({
   extractFromSession: true,       // Extract from session variables
   extractFromCustomField: 'trace_id',  // Extract from custom field
 
-  // Pattern to match in updated_by field (e.g., "user.uuid" -> "uuid")
-  updatedByPattern: /^.+\\.([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i,
+  // Pattern to match in updated_by field (extracts correlation ID from 2nd position)
+  // Supports: "something.correlation_id.source_job_id" and "something.correlation_id"
+  updatedByPattern: /^[^.]+\\.([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:\\.[^.]+)?$/i,
 
   // Session variables to check for correlation IDs
   sessionVariables: ['x-correlation-id', 'x-request-id', 'x-trace-id'],
@@ -62,11 +63,15 @@ await pluginManager.initialize();
 ## Extraction Strategies
 
 ### 1. Updated By Field Extraction
-Extracts correlation IDs from the `updated_by` field using pattern matching:
+Extracts correlation IDs from the `updated_by` field using pattern matching. Supports both new format with source job tracking and legacy format:
 
 ```sql
--- If updated_by contains "user.abc-123-def"
--- Pattern extracts "abc-123-def" as correlation ID
+-- New format with source job tracking: "source.correlation_id.source_job_id"
+-- Pattern extracts "abc-123-def" as correlation ID (2nd position)
+UPDATE users SET name='John', updated_by='user.abc-123-def.job-456-ghi' WHERE id=1;
+
+-- Legacy format: "source.correlation_id"
+-- Pattern also extracts "abc-123-def" as correlation ID
 UPDATE users SET name='John', updated_by='user.abc-123-def' WHERE id=1;
 ```
 
@@ -139,7 +144,8 @@ This plugin integrates with the event detector's correlation ID system:
 // Example: Auto-extract correlation IDs for all events
 const correlationExtractor = new CorrelationIdExtractionPlugin({
   extractFromUpdatedBy: true,
-  updatedByPattern: /user\.(.+)$/,  // Extract from "user.correlation-id"
+  // Extract correlation ID from 2nd position: "user.correlation-id.source-job-id"
+  updatedByPattern: /^user\.([0-9a-f-]+)(?:\.[^.]+)?$/i,
 });
 
 pluginManager.register(correlationExtractor);
@@ -177,5 +183,12 @@ const customExtractor = new CorrelationIdExtractionPlugin({
   extractFromCustomField: 'workflow_context',
   // Custom pattern to extract correlation ID from complex format
   updatedByPattern: /workflow:([^:]+):/
+});
+
+// Example: Extract from job-chaining format with source job tracking
+const jobChainExtractor = new CorrelationIdExtractionPlugin({
+  extractFromUpdatedBy: true,
+  // Extract correlation ID from "system.correlation-id.source-job-id" format
+  updatedByPattern: /^system\.([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.job-[0-9a-f-]+$/i
 });
 ```
