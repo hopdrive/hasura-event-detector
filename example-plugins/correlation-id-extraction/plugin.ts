@@ -109,7 +109,13 @@ export class CorrelationIdExtractionPlugin extends BasePlugin<CorrelationIdExtra
     const updatedBy = parsedEvent.dbEvent?.new?.updatedby || parsedEvent.dbEvent?.new?.updated_by;
     if (!updatedBy || typeof updatedBy !== 'string') return null;
 
-    // Check if updated_by matches the correlation ID pattern
+    // First try using the UpdatedByUtils to extract correlation ID
+    const correlationId = UpdatedByUtils.extractCorrelationId(updatedBy);
+    if (correlationId) {
+      return correlationId;
+    }
+
+    // Fallback: use the configured pattern for backward compatibility
     if (this.config.updatedByPattern) {
       const match = updatedBy.match(this.config.updatedByPattern);
       if (match && match[1]) {
@@ -213,7 +219,7 @@ export const updatedByOnlyPlugin = new CorrelationIdExtractionPlugin({
   extractFromMetadata: false,
   extractFromSession: false,
   // Extract correlation ID from "user:12345.correlation-id.source-job-id" format (2nd position)
-  updatedByPattern: /^user:\d+\.([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:\.[^.]+)?$/i
+  updatedByPattern: /^user:\d+\.([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:\.[^.]+)?$/i,
 });
 
 /**
@@ -223,7 +229,7 @@ export const customFieldPlugin = new CorrelationIdExtractionPlugin({
   extractFromUpdatedBy: false,
   extractFromMetadata: false,
   extractFromSession: false,
-  extractFromCustomField: 'process_id'
+  extractFromCustomField: 'process_id',
 });
 
 /**
@@ -233,7 +239,60 @@ export const multiTenantPlugin = new CorrelationIdExtractionPlugin({
   extractFromSession: true,
   sessionVariables: ['x-hasura-tenant-id', 'x-correlation-id', 'x-workflow-id'],
   extractFromMetadata: true,
-  metadataKeys: ['tenant_correlation_id', 'workflow_id']
+  metadataKeys: ['tenant_correlation_id', 'workflow_id'],
 });
+
+/**
+ * Utilities for working with updated_by column format: something.correlationid.jobid
+ */
+export class UpdatedByUtils {
+  /**
+   * Check if a value looks like an updated_by format
+   */
+  static isUpdatedByFormat(value: unknown): value is string {
+    if (!value || typeof value !== 'string') return false;
+
+    // Format: something.correlationid.jobid (3 parts) or something.correlationid (2 parts)
+    const parts = value.split('.');
+    return parts.length >= 2 && parts.length <= 3 && parts.every(part => part.length > 0);
+  }
+
+  /**
+   * Generate an updated_by value
+   */
+  static generate(source: string, correlationId: string, jobId?: string): string {
+    return jobId ? `${source}.${correlationId}.${jobId}` : `${source}.${correlationId}`;
+  }
+
+  /**
+   * Parse an updated_by value into components
+   */
+  static parse(updatedBy: string): { source: string; correlationId: string; jobId?: string } | null {
+    if (!this.isUpdatedByFormat(updatedBy)) return null;
+
+    const parts = updatedBy.split('.');
+    return {
+      source: parts[0]!,
+      correlationId: parts[1]!,
+      jobId: parts[2] || undefined,
+    };
+  }
+
+  /**
+   * Extract just the correlation ID from an updated_by value
+   */
+  static extractCorrelationId(updatedBy: string): string | null {
+    const parsed = this.parse(updatedBy);
+    return parsed?.correlationId || null;
+  }
+
+  /**
+   * Extract just the job ID from an updated_by value
+   */
+  static extractJobId(updatedBy: string): string | null {
+    const parsed = this.parse(updatedBy);
+    return parsed?.jobId || null;
+  }
+}
 
 export default CorrelationIdExtractionPlugin;

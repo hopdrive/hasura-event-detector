@@ -2,6 +2,7 @@ import { log, logError, logWarn, setPluginManager } from '@/helpers/log';
 import { getObjectSafely } from '@/helpers/object';
 import { parseHasuraEvent } from '@/helpers/hasura';
 import { pluginManager, CorrelationIdUtils } from '@/plugin';
+import { v4 as uuidv4 } from 'uuid';
 import { promises as fs } from 'fs';
 import path from 'path';
 import type {
@@ -15,7 +16,7 @@ import type {
   HandlerFunction,
   EventModule,
   JobResult,
-} from "./types";
+} from './types';
 
 /**
  * Runtime validation for Hasura event payload
@@ -126,7 +127,7 @@ export const listenTo = async (
     log('CorrelationId', `Using correlation ID from options: ${finalCorrelationId}`);
   } else {
     // 2. Generate new correlation ID if not provided (always generates UUID)
-    finalCorrelationId = CorrelationIdUtils.generate(resolvedOptions.sourceFunction || 'listenTo');
+    finalCorrelationId = uuidv4() as CorrelationId;
     log('CorrelationId', `Generated new correlation ID: ${finalCorrelationId}`);
   }
 
@@ -134,7 +135,7 @@ export const listenTo = async (
   hasuraEvent.__correlationId = finalCorrelationId;
 
   // Call plugin hook for invocation start
-  await pluginManager.callHook('onInvocationStart', hasuraEvent, resolvedOptions, context, finalCorrelationId);
+  await pluginManager.callHook('onInvocationStart', hasuraEvent, resolvedOptions, finalCorrelationId);
 
   if (!resolvedOptions.eventModulesDirectory) {
     logError('listenTo', 'Event modules directory is not set');

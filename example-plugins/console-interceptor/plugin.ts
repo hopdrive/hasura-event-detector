@@ -66,8 +66,7 @@ export class ConsoleInterceptorPlugin extends BasePlugin<ConsoleInterceptorConfi
     jobName: JobName,
     jobOptions: JobOptions,
     eventName: EventName,
-    hasuraEvent: HasuraEventPayload,
-    correlationId: CorrelationId
+    hasuraEvent: HasuraEventPayload
   ) {
     if (!this.config.enabled) return;
 
@@ -75,7 +74,7 @@ export class ConsoleInterceptorPlugin extends BasePlugin<ConsoleInterceptorConfi
     this.currentJobContext = {
       jobName,
       eventName,
-      correlationId,
+      correlationId: hasuraEvent?.__correlationId,
       startTime: Date.now(),
     };
 
@@ -87,13 +86,7 @@ export class ConsoleInterceptorPlugin extends BasePlugin<ConsoleInterceptorConfi
    * Called after a job completes
    * Restores original console methods
    */
-  override async onJobEnd(
-    jobName: JobName,
-    result: JobResult,
-    eventName: EventName,
-    hasuraEvent: HasuraEventPayload,
-    correlationId: CorrelationId
-  ) {
+  override async onJobEnd(jobName: JobName, result: JobResult, eventName: EventName, hasuraEvent: HasuraEventPayload) {
     if (!this.config.enabled) return;
 
     // Stop intercepting and restore original console
@@ -168,7 +161,7 @@ export class ConsoleInterceptorPlugin extends BasePlugin<ConsoleInterceptorConfi
             logData.message,
             logData,
             this.currentJobContext.jobName,
-            this.currentJobContext.correlationId
+            this.currentJobContext.correlationId as CorrelationId
           )
           .catch(error => {
             // Use original console to avoid recursion

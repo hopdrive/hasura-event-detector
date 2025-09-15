@@ -258,7 +258,7 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
   /**
    * Log invocation start
    */
-  override async onInvocationStart(hasuraEvent: HasuraEventPayload, options: any, context: any, correlationId: CorrelationId) {
+  override async onInvocationStart(hasuraEvent: HasuraEventPayload, options: any) {
     if (!this.config.enabled) return;
 
     const sourceFunction = options.sourceFunction || 'unknown';
@@ -271,14 +271,14 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
         operation: hasuraEvent?.event?.op,
       },
       null,
-      correlationId
+      hasuraEvent?.__correlationId as CorrelationId
     );
   }
 
   /**
    * Log invocation end
    */
-  override async onInvocationEnd(hasuraEvent: HasuraEventPayload, result: any, correlationId: CorrelationId) {
+  override async onInvocationEnd(hasuraEvent: HasuraEventPayload, result: any) {
     if (!this.config.enabled) return;
 
     const durationMs = result?.durationMs || 0;
@@ -295,27 +295,38 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
         totalJobs,
       },
       null,
-      correlationId
+      hasuraEvent?.__correlationId as CorrelationId
     );
   }
 
   /**
    * Log job start
    */
-  override async onJobStart(jobName: JobName, jobOptions: JobOptions, eventName: EventName, hasuraEvent: HasuraEventPayload, correlationId: CorrelationId) {
+  override async onJobStart(
+    jobName: JobName,
+    jobOptions: JobOptions,
+    eventName: EventName,
+    hasuraEvent: HasuraEventPayload
+  ) {
     if (!this.config.enabled) return;
 
-    await this.onLog('debug', `Starting job: ${jobName}`, {
-      source: 'job_start',
-      eventName,
-      jobOptions: Object.keys(jobOptions || {}).length > 0 ? Object.keys(jobOptions) : null
-    }, jobName, correlationId);
+    await this.onLog(
+      'debug',
+      `Starting job: ${jobName}`,
+      {
+        source: 'job_start',
+        eventName,
+        jobOptions: Object.keys(jobOptions || {}).length > 0 ? Object.keys(jobOptions) : null,
+      },
+      jobName,
+      hasuraEvent?.__correlationId as CorrelationId
+    );
   }
 
   /**
    * Log job end
    */
-  override async onJobEnd(jobName: JobName, result: JobResult, eventName: EventName, hasuraEvent: HasuraEventPayload, correlationId: CorrelationId) {
+  override async onJobEnd(jobName: JobName, result: JobResult, eventName: EventName, hasuraEvent: HasuraEventPayload) {
     if (!this.config.enabled) return;
 
     const durationMs = result?.durationMs || 0;
@@ -332,7 +343,7 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
         result: result?.result,
       },
       jobName,
-      correlationId
+      hasuraEvent?.__correlationId as CorrelationId
     );
   }
 
@@ -342,12 +353,18 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
   override async onError(error: Error, context: any, correlationId: CorrelationId) {
     if (!this.config.enabled) return;
 
-    await this.onLog('error', `Error in ${context}: ${error.message}`, {
-      source: 'error',
-      context,
-      errorName: error.name,
-      errorStack: error.stack
-    }, null, correlationId);
+    await this.onLog(
+      'error',
+      `Error in ${context}: ${error.message}`,
+      {
+        source: 'error',
+        context,
+        errorName: error.name,
+        errorStack: error.stack,
+      },
+      null,
+      correlationId
+    );
   }
 
   override getStatus() {
@@ -355,7 +372,7 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
       ...super.getStatus(),
       format: this.config.format,
       logLevel: this.config.logLevel,
-      colorize: this.config.colorize
+      colorize: this.config.colorize,
     };
   }
 }

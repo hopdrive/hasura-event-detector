@@ -14,7 +14,6 @@ import type {
   JobName,
   JobResult,
   CorrelationId,
-  CorrelationIdParts,
   HasuraEventPayload,
   ListenToOptions,
   ListenToResponse,
@@ -22,9 +21,8 @@ import type {
   LogEntry,
   BasePluginInterface,
   PluginManagerInterface,
-  PluginLifecycleHooks
-} from "./types";
-import { v4 as uuidv4 } from 'uuid';
+  PluginLifecycleHooks,
+} from './types';
 
 /**
  * Base Plugin Interface
@@ -53,35 +51,21 @@ export class BasePlugin<TConfig extends PluginConfig = PluginConfig> implements 
   /**
    * Called before listenTo() starts processing
    */
-  async onInvocationStart(
-    hasuraEvent: HasuraEventPayload,
-    options: ListenToOptions,
-    context: Record<string, any>,
-    correlationId: CorrelationId
-  ): Promise<void> {
+  async onInvocationStart(hasuraEvent: HasuraEventPayload, options: ListenToOptions): Promise<void> {
     // Override in subclass
   }
 
   /**
    * Called when listenTo() completes
    */
-  async onInvocationEnd(
-    hasuraEvent: HasuraEventPayload,
-    result: ListenToResponse,
-    correlationId: CorrelationId,
-    durationMs: number
-  ): Promise<void> {
+  async onInvocationEnd(hasuraEvent: HasuraEventPayload, result: ListenToResponse, durationMs: number): Promise<void> {
     // Override in subclass
   }
 
   /**
    * Called before event detection starts
    */
-  async onEventDetectionStart(
-    eventName: EventName,
-    hasuraEvent: HasuraEventPayload,
-    correlationId: CorrelationId
-  ): Promise<void> {
+  async onEventDetectionStart(eventName: EventName, hasuraEvent: HasuraEventPayload): Promise<void> {
     // Override in subclass
   }
 
@@ -92,7 +76,6 @@ export class BasePlugin<TConfig extends PluginConfig = PluginConfig> implements 
     eventName: EventName,
     detected: boolean,
     hasuraEvent: HasuraEventPayload,
-    correlationId: CorrelationId,
     durationMs: number
   ): Promise<void> {
     // Override in subclass
@@ -101,11 +84,7 @@ export class BasePlugin<TConfig extends PluginConfig = PluginConfig> implements 
   /**
    * Called before event handler starts (only for detected events)
    */
-  async onEventHandlerStart(
-    eventName: EventName,
-    hasuraEvent: HasuraEventPayload,
-    correlationId: CorrelationId
-  ): Promise<void> {
+  async onEventHandlerStart(eventName: EventName, hasuraEvent: HasuraEventPayload): Promise<void> {
     // Override in subclass
   }
 
@@ -116,7 +95,6 @@ export class BasePlugin<TConfig extends PluginConfig = PluginConfig> implements 
     eventName: EventName,
     jobResults: JobResult[],
     hasuraEvent: HasuraEventPayload,
-    correlationId: CorrelationId,
     durationMs: number
   ): Promise<void> {
     // Override in subclass
@@ -129,8 +107,7 @@ export class BasePlugin<TConfig extends PluginConfig = PluginConfig> implements 
     jobName: JobName,
     jobOptions: JobOptions,
     eventName: EventName,
-    hasuraEvent: HasuraEventPayload,
-    correlationId: CorrelationId
+    hasuraEvent: HasuraEventPayload
   ): Promise<void> {
     // Override in subclass
   }
@@ -143,7 +120,6 @@ export class BasePlugin<TConfig extends PluginConfig = PluginConfig> implements 
     result: JobResult,
     eventName: EventName,
     hasuraEvent: HasuraEventPayload,
-    correlationId: CorrelationId,
     durationMs: number
   ): Promise<void> {
     // Override in subclass
@@ -338,38 +314,16 @@ export class PluginManager implements PluginManagerInterface {
 export const pluginManager = new PluginManager();
 
 /**
- * Correlation ID utilities with branded types
+ * Simple correlation ID utilities for UUID generation and validation
  */
 export class CorrelationIdUtils {
   /**
-   * Check if a value looks like a correlation ID
+   * Check if a value looks like a correlation ID (UUID)
    */
   static isCorrelationId(value: unknown): value is CorrelationId {
     if (!value || typeof value !== 'string') return false;
 
-    // Format: {source_function}.{uuid}
-    const parts = value.split('.');
-    return parts.length === 2 && parts[0]?.length > 0 && parts[1]?.length > 0 && /^[a-f0-9-]+$/i.test(parts[1] || ''); // UUID-like format
-  }
-
-  /**
-   * Generate a new correlation ID
-   */
-  static generate(sourceFunction: string): CorrelationId {
-    return `${sourceFunction}.${uuidv4()}` as CorrelationId;
-  }
-
-  /**
-   * Parse a correlation ID into components
-   */
-  static parse(correlationId: CorrelationId): CorrelationIdParts | null {
-    if (!this.isCorrelationId(correlationId)) return null;
-
-    const parts = correlationId.split('.');
-    return {
-      sourceFunction: parts[0]!,
-      uuid: parts[1]!,
-      full: correlationId,
-    };
+    // Simple UUID validation
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
   }
 }

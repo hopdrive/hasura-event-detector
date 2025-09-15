@@ -48,7 +48,6 @@ export type {
   PluginLifecycleHooks,
   BasePluginInterface,
   PluginManagerInterface,
-  CorrelationIdParts,
 
   // Additional types used by plugins
   DatabaseConfig,

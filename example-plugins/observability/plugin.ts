@@ -619,7 +619,6 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   override async onInvocationStart(
     hasuraEvent: HasuraEventPayload,
     options: ListenToOptions,
-    context: Record<string, any>,
     correlationId: CorrelationId
   ): Promise<void> {
     if (!this.config.enabled) return;
@@ -638,7 +637,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       hasuraUserRole: hasuraEvent.event?.session_variables?.['x-hasura-role'] || null,
       autoLoadModules: options.autoLoadEventModules !== false,
       eventModulesDirectory: options.eventModulesDirectory || './events',
-      contextData: context,
+      contextData: hasuraEvent?.__context || null,
     };
 
     const invocationId = await this.recordInvocationStart(invocationData);
@@ -654,14 +653,17 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   override async onInvocationEnd(
     hasuraEvent: HasuraEventPayload,
     result: ListenToResponse,
-    correlationId: CorrelationId,
     durationMs: number
   ): Promise<void> {
     if (!this.config.enabled) return;
 
-    const invocationId = this.activeInvocations.get(correlationId);
+    const invocationId = this.activeInvocations.get(hasuraEvent?.__correlationId as CorrelationId);
     if (!invocationId) {
-      logError('ObservabilityPlugin', `Invocation ID not found for correlation ${correlationId} in onInvocationEnd`, new Error('Missing invocation ID'));
+      logError(
+        'ObservabilityPlugin',
+        `Invocation ID not found for correlation ${hasuraEvent?.__correlationId} in onInvocationEnd`,
+        new Error('Missing invocation ID')
+      );
       return;
     }
 
@@ -695,7 +697,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     };
 
     await this.recordInvocationEnd(invocationId, endData);
-    this.activeInvocations.delete(correlationId);
+    this.activeInvocations.delete(hasuraEvent?.__correlationId as CorrelationId);
 
     log('ObservabilityPlugin', `Recorded invocation end: ${invocationId} (${endData.status})`);
   }
@@ -703,11 +705,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   /**
    * Called before event detection starts
    */
-  override async onEventDetectionStart(
-    eventName: EventName,
-    hasuraEvent: HasuraEventPayload,
-    correlationId: CorrelationId
-  ): Promise<void> {
+  override async onEventDetectionStart(eventName: EventName, hasuraEvent: HasuraEventPayload): Promise<void> {
     // Will be implemented when event detection data is ready
   }
 
@@ -718,16 +716,15 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     eventName: EventName,
     detected: boolean,
     hasuraEvent: HasuraEventPayload,
-    correlationId: CorrelationId,
     durationMs: number
   ): Promise<void> {
     if (!this.config.enabled) return;
 
-    const invocationId = this.activeInvocations.get(correlationId);
+    const invocationId = this.activeInvocations.get(hasuraEvent?.__correlationId as CorrelationId);
     if (!invocationId) return;
 
     const eventData = {
-      correlationId,
+      correlationId: hasuraEvent?.__correlationId as CorrelationId,
       eventName,
       eventModulePath: null, // Will be filled when available
       detected,
@@ -746,7 +743,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     const eventExecutionId = await this.recordEventExecution(invocationId, eventData);
     if (eventExecutionId) {
       // Store event execution ID for later job tracking
-      this.activeEventExecutions.set(`${correlationId}:${eventName}`, eventExecutionId);
+      this.activeEventExecutions.set(`${hasuraEvent?.__correlationId as CorrelationId}:${eventName}`, eventExecutionId);
     }
 
     log('ObservabilityPlugin', `Recorded event execution: ${eventName} (${detected ? 'detected' : 'not detected'})`);
@@ -755,11 +752,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   /**
    * Called when event handler starts executing
    */
-  override async onEventHandlerStart(
-    eventName: EventName,
-    hasuraEvent: HasuraEventPayload,
-    correlationId: CorrelationId
-  ): Promise<void> {
+  override async onEventHandlerStart(eventName: EventName, hasuraEvent: HasuraEventPayload): Promise<void> {
     if (!this.config.enabled) return;
 
     log('ObservabilityPlugin', `Event handler starting: ${eventName}`);
@@ -770,14 +763,13 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
    */
   override async onEventHandlerEnd(
     eventName: EventName,
-    results: any[],
+    jobResults: JobResult[],
     hasuraEvent: HasuraEventPayload,
-    correlationId: CorrelationId,
     durationMs: number
   ): Promise<void> {
     if (!this.config.enabled) return;
 
-    const eventExecutionKey = `${correlationId}:${eventName}`;
+    const eventExecutionKey = `${hasuraEvent?.__correlationId as CorrelationId}:${eventName}`;
     const eventExecutionId = this.activeEventExecutions.get(eventExecutionKey);
     if (!eventExecutionId) return;
 
@@ -785,7 +777,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     let jobsSucceeded = 0;
     let jobsFailed = 0;
 
-    results.forEach(result => {
+    jobResults.forEach(result => {
       if (result.success || result.completed) {
         jobsSucceeded++;
       } else {
@@ -798,7 +790,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     if (eventRecord) {
       Object.assign(eventRecord, {
         handler_duration_ms: durationMs,
-        jobs_count: results.length,
+        jobs_count: jobResults.length,
         jobs_succeeded: jobsSucceeded,
         jobs_failed: jobsFailed,
         status: 'completed',
@@ -811,7 +803,10 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     // Clean up the event execution tracking
     this.activeEventExecutions.delete(eventExecutionKey);
 
-    log('ObservabilityPlugin', `Event handler completed: ${eventName} (${results.length} jobs, ${jobsSucceeded} succeeded, ${jobsFailed} failed)`);
+    log(
+      'ObservabilityPlugin',
+      `Event handler completed: ${eventName} (${jobResults.length} jobs, ${jobsSucceeded} succeeded, ${jobsFailed} failed)`
+    );
   }
 
   /**
@@ -821,26 +816,35 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     jobName: JobName,
     jobOptions: JobOptions,
     eventName: EventName,
-    hasuraEvent: HasuraEventPayload,
-    correlationId: CorrelationId
+    hasuraEvent: HasuraEventPayload
   ): Promise<void> {
     if (!this.config.enabled) return;
 
-    const invocationId = this.activeInvocations.get(correlationId);
-    const eventExecutionId = this.activeEventExecutions.get(`${correlationId}:${eventName}`);
+    const invocationId = this.activeInvocations.get(hasuraEvent?.__correlationId as CorrelationId);
+    const eventExecutionId = this.activeEventExecutions.get(
+      `${hasuraEvent?.__correlationId as CorrelationId}:${eventName}`
+    );
 
     if (!invocationId) {
-      logError('ObservabilityPlugin', `Invocation ID not found for correlation ${correlationId}`, new Error('Missing invocation ID'));
+      logError(
+        'ObservabilityPlugin',
+        `Invocation ID not found for correlation ${hasuraEvent?.__correlationId}`,
+        new Error('Missing invocation ID')
+      );
       return;
     }
 
     if (!eventExecutionId) {
-      logError('ObservabilityPlugin', `Event execution ID not found for ${eventName} - possible missing onEventDetectionEnd call`, new Error('Missing event execution ID'));
+      logError(
+        'ObservabilityPlugin',
+        `Event execution ID not found for ${eventName} - possible missing onEventDetectionEnd call`,
+        new Error('Missing event execution ID')
+      );
       return;
     }
 
     const jobData = {
-      correlationId,
+      correlationId: hasuraEvent?.__correlationId as CorrelationId,
       jobName,
       jobFunctionName: jobName, // Could be enhanced to get actual function name
       jobOptions,
@@ -854,7 +858,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     const jobExecutionId = await this.recordJobExecution(invocationId, eventExecutionId, jobData);
     if (jobExecutionId) {
       // Store job execution ID for completion tracking
-      const jobExecutionKey = `${correlationId}:${eventName}:${jobName}`;
+      const jobExecutionKey = `${hasuraEvent?.__correlationId as CorrelationId}:${eventName}:${jobName}`;
       this.activeJobExecutions.set(jobExecutionKey, jobExecutionId);
     }
 
@@ -869,15 +873,18 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     result: JobResult,
     eventName: EventName,
     hasuraEvent: HasuraEventPayload,
-    correlationId: CorrelationId,
     durationMs: number
   ): Promise<void> {
     if (!this.config.enabled) return;
 
-    const jobExecutionKey = `${correlationId}:${eventName}:${jobName}`;
+    const jobExecutionKey = `${hasuraEvent?.__correlationId as CorrelationId}:${eventName}:${jobName}`;
     const jobExecutionId = this.activeJobExecutions.get(jobExecutionKey);
     if (!jobExecutionId) {
-      logError('ObservabilityPlugin', `Job execution ID not found for ${jobName} - possible race condition or missing onJobStart call`, new Error('Missing job execution ID'));
+      logError(
+        'ObservabilityPlugin',
+        `Job execution ID not found for ${jobName} - possible race condition or missing onJobStart call`,
+        new Error('Missing job execution ID')
+      );
       return;
     }
 
@@ -906,11 +913,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   /**
    * Called when errors occur during processing
    */
-  override async onError(
-    error: Error,
-    context: string,
-    correlationId: CorrelationId
-  ): Promise<void> {
+  override async onError(error: Error, context: string, correlationId: CorrelationId): Promise<void> {
     if (!this.config.enabled) return;
 
     const invocationId = this.activeInvocations.get(correlationId);

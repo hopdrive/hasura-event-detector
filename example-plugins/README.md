@@ -230,7 +230,7 @@ export class MyPlugin extends BasePlugin<MyPluginConfig> {
   }
 
   // Override lifecycle hooks you need
-  override async onInvocationStart(hasuraEvent, options, context, correlationId) {
+  override async onInvocationStart(hasuraEvent, options, correlationId) {
     // Your custom logic here
     console.log('Invocation started with correlation ID:', correlationId);
   }
@@ -326,7 +326,7 @@ private async enrichOrderWithRelatedData(hasuraEvent: HasuraEventPayload) {
 export class MetricsPlugin extends BasePlugin<MyPluginConfig> {
   private metrics = new Map();
 
-  override async onInvocationStart(hasuraEvent, options, context, correlationId) {
+  override async onInvocationStart(hasuraEvent, options, correlationId) {
     // Track metrics
     const key = `${hasuraEvent.table.name}:${hasuraEvent.event.op}`;
     this.metrics.set(key, (this.metrics.get(key) || 0) + 1);
@@ -350,7 +350,7 @@ export class MetricsPlugin extends BasePlugin<MyPluginConfig> {
 |------|------------|---------|
 | `initialize()` | none | Plugin initialization |
 | `onPreConfigure(hasuraEvent, options)` | event, options | **Most powerful**: Modify payload and extract correlation IDs |
-| `onInvocationStart(hasuraEvent, options, context, correlationId)` | event, options, context, id | React to processing start |
+| `onInvocationStart(hasuraEvent, options, correlationId)` | event, options, id | React to processing start |
 | `onEventDetectionStart(eventName, hasuraEvent, correlationId)` | name, event, id | React to event detection start |
 | `onEventDetectionEnd(eventName, detected, hasuraEvent, correlationId, duration)` | name, detected, event, id, time | React to event detection end |
 | `onEventHandlerStart(eventName, hasuraEvent, correlationId)` | name, event, id | React to job execution start |

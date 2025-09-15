@@ -78,17 +78,8 @@ export type PluginName = string & { readonly __pluginName: unique symbol };
 // CORRELATION ID TYPES
 // =============================================================================
 
-export interface CorrelationIdParts {
-  sourceFunction: string;
-  uuid: string;
-  full: CorrelationId;
-}
-
-export interface CorrelationIdUtils {
-  isCorrelationId(value: unknown): value is CorrelationId;
-  generate(sourceFunction: string): CorrelationId;
-  parse(correlationId: CorrelationId): CorrelationIdParts | null;
-}
+// Correlation ID is now just a simple UUID string
+// Use UpdatedByUtils from correlation-id-extraction plugin for parsing updated_by format
 
 // =============================================================================
 // JOB EXECUTION TYPES

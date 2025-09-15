@@ -192,3 +192,44 @@ const jobChainExtractor = new CorrelationIdExtractionPlugin({
   updatedByPattern: /^system\.([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.job-[0-9a-f-]+$/i
 });
 ```
+
+## UpdatedBy Utilities
+
+This plugin also exports `UpdatedByUtils` for working with the `updated_by` column format used to pass correlation IDs and job IDs between database mutations:
+
+```typescript
+import { UpdatedByUtils } from './example-plugins/correlation-id-extraction/plugin';
+
+// Parse updated_by format: "something.correlation_id.job_id"
+const parsed = UpdatedByUtils.parse('user.abc-123-def.job-456-ghi');
+// Returns: { source: 'user', correlationId: 'abc-123-def', jobId: 'job-456-ghi' }
+
+// Extract just the correlation ID
+const correlationId = UpdatedByUtils.extractCorrelationId('user.abc-123-def.job-456-ghi');
+// Returns: 'abc-123-def'
+
+// Extract just the job ID
+const jobId = UpdatedByUtils.extractJobId('user.abc-123-def.job-456-ghi');
+// Returns: 'job-456-ghi'
+
+// Generate updated_by values
+const updatedBy = UpdatedByUtils.generate('system', 'correlation-id-123', 'job-456');
+// Returns: 'system.correlation-id-123.job-456'
+
+// Legacy format (without job ID)
+const legacyUpdatedBy = UpdatedByUtils.generate('user', 'correlation-id-123');
+// Returns: 'user.correlation-id-123'
+```
+
+### UpdatedBy Format
+
+The `updated_by` column uses a structured format to pass information between database mutations:
+
+- **Format**: `source.correlation_id.job_id`
+- **Example**: `user.abc-123-def.job-456-ghi`
+- **Legacy**: `user.abc-123-def` (without job ID)
+
+Where:
+- `source`: The system or user that initiated the change
+- `correlation_id`: A UUID that tracks related operations
+- `job_id`: Optional UUID of the job that triggered this change (for job chaining)
