@@ -139,6 +139,14 @@ export const listenTo = async (
 
   if (!resolvedOptions.eventModulesDirectory) {
     logError('listenTo', 'Event modules directory is not set');
+
+    // Ensure plugin shutdown even on early return
+    try {
+      await pluginManager.shutdown();
+    } catch (error) {
+      logError('PluginSystem', 'Error during plugin shutdown on early return', error as Error);
+    }
+
     return {
       events: [],
       durationMs: Date.now() - start,
@@ -155,6 +163,14 @@ export const listenTo = async (
     !resolvedOptions.listenedEvents
   ) {
     logError('listenTo', 'No events to listen for');
+
+    // Ensure plugin shutdown even on early return
+    try {
+      await pluginManager.shutdown();
+    } catch (error) {
+      logError('PluginSystem', 'Error during plugin shutdown on early return', error as Error);
+    }
+
     return {
       events: [],
       durationMs: Date.now() - start,
@@ -192,6 +208,17 @@ export const listenTo = async (
 
   // Call plugin hook for invocation end
   await pluginManager.callOnInvocationEnd(hasuraEvent, preppedRes, preppedRes.durationMs);
+
+  // Shutdown plugin manager to ensure all buffered data is flushed
+  // This is critical in serverless environments where the process may terminate abruptly
+  try {
+    console.error('[Detector] Calling pluginManager.shutdown()');
+    await pluginManager.shutdown();
+    console.error('[Detector] pluginManager.shutdown() completed');
+  } catch (error) {
+    console.log('[Detector] Error during plugin shutdown:', error);
+    logError('PluginSystem', 'Error during plugin shutdown', error as Error);
+  }
 
   consoleLogResponse(detectedEventNames, preppedRes);
 
