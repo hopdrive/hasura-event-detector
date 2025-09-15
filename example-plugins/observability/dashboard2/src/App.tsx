@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, useSearchParams } from 'react-router-dom';
-import { ApolloClient, InMemoryCache, ApolloProvider } from '@apollo/client';
+import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink } from '@apollo/client';
 import {
   HomeIcon,
   TableCellsIcon,
@@ -21,13 +21,17 @@ import FlowHeader from './components/FlowHeader';
 import './styles/globals.css';
 
 // Apollo Client configuration
-const client = new ApolloClient({
+const httpLink = createHttpLink({
   uri: import.meta.env.VITE_GRAPHQL_ENDPOINT || 'http://localhost:8080/v1/graphql',
   headers: {
     ...(import.meta.env.VITE_HASURA_ADMIN_SECRET && {
       'x-hasura-admin-secret': import.meta.env.VITE_HASURA_ADMIN_SECRET,
     }),
   },
+});
+
+const client = new ApolloClient({
+  link: httpLink,
   cache: new InMemoryCache({
     typePolicies: {
       Query: {
@@ -215,7 +219,12 @@ function Layout({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <ApolloProvider client={client}>
-      <Router>
+      <Router
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         <Layout>
           <Routes>
             <Route path="/" element={<OverviewDashboard />} />
