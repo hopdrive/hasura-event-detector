@@ -72,7 +72,7 @@ const safeJobWrapper = async <T = any>(
   };
 
   // Call plugin hook for job start
-  await pluginManager.callHook('onJobStart', output.name, options, event, hasuraEvent, correlationId);
+  await pluginManager.callOnJobStart(output.name, options, event, hasuraEvent);
 
   try {
     if (!func) throw new Error('Job func not defined');
@@ -94,7 +94,7 @@ const safeJobWrapper = async <T = any>(
     output.endTime = new Date();
 
     // Call plugin hook for job completion
-    await pluginManager.callHook('onJobEnd', output.name, output, event, hasuraEvent, correlationId, output.durationMs);
+    await pluginManager.callOnJobEnd(output.name, output, event, hasuraEvent, output.durationMs);
 
     return output;
   } catch (error) {
@@ -105,7 +105,7 @@ const safeJobWrapper = async <T = any>(
     output.endTime = new Date();
 
     // Call plugin hook for error
-    await pluginManager.callHook('onError', error as Error, 'job', correlationId);
+    await pluginManager.callOnError(error as Error, 'job', correlationId);
 
     log(event, `Job func crashed: ${(error as Error).message}`);
     const newError = new Error(`Job func crashed: ${(error as Error).message}`);

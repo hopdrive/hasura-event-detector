@@ -135,7 +135,7 @@ export const listenTo = async (
   hasuraEvent.__correlationId = finalCorrelationId;
 
   // Call plugin hook for invocation start
-  await pluginManager.callHook('onInvocationStart', hasuraEvent, resolvedOptions, finalCorrelationId);
+  await pluginManager.callOnInvocationStart(hasuraEvent, resolvedOptions);
 
   if (!resolvedOptions.eventModulesDirectory) {
     logError('listenTo', 'Event modules directory is not set');
@@ -177,7 +177,7 @@ export const listenTo = async (
         eventHandlersToRun.push(eventHandler);
         detectedEventNames.push(eventName);
       } catch (error) {
-        await pluginManager.callHook('onError', error as Error, 'event_detection', finalCorrelationId);
+        await pluginManager.callOnError(error as Error, 'event_detection', finalCorrelationId);
         logError(eventName, 'Error detecting events', error as Error);
       }
     })
@@ -191,7 +191,7 @@ export const listenTo = async (
   preppedRes.durationMs = Date.now() - start;
 
   // Call plugin hook for invocation end
-  await pluginManager.callHook('onInvocationEnd', hasuraEvent, preppedRes, finalCorrelationId);
+  await pluginManager.callOnInvocationEnd(hasuraEvent, preppedRes, preppedRes.durationMs);
 
   consoleLogResponse(detectedEventNames, preppedRes);
 
@@ -253,7 +253,7 @@ const runDetectorWithHooks = async (
   const detectionStart = Date.now();
 
   // Call plugin hook for event detection start
-  await pluginManager.callHook('onEventDetectionStart', eventName, hasuraEvent, correlationId);
+  await pluginManager.callOnEventDetectionStart(eventName, hasuraEvent);
 
   const eventHandler = await detect(eventName, hasuraEvent, eventModulesDirectory);
 
@@ -261,12 +261,10 @@ const runDetectorWithHooks = async (
   const detected = eventHandler !== null;
 
   // Call plugin hook for event detection end
-  await pluginManager.callHook(
-    'onEventDetectionEnd',
+  await pluginManager.callOnEventDetectionEnd(
     eventName,
     detected,
     hasuraEvent,
-    correlationId,
     detectionDuration
   );
 
@@ -296,20 +294,20 @@ const runEventHandlerWithHooks = async (
     if (typeof eventHandler !== 'function') throw new Error('Handler not a function');
 
     // Call plugin hook for event handler start
-    await pluginManager.callHook('onEventHandlerStart', eventName, hasuraEvent, correlationId);
+    await pluginManager.callOnEventHandlerStart(eventName, hasuraEvent);
 
     const res = await eventHandler(eventName, hasuraEvent);
     const handlerDuration = Date.now() - handlerStart;
 
     // Call plugin hook for event handler end
-    await pluginManager.callHook('onEventHandlerEnd', eventName, res, hasuraEvent, correlationId);
+    await pluginManager.callOnEventHandlerEnd(eventName, res, hasuraEvent, handlerDuration);
 
     return res;
   } catch (error) {
     const handlerDuration = Date.now() - handlerStart;
 
     // Call plugin hook for error
-    await pluginManager.callHook('onError', error as Error, 'event_handler', correlationId);
+    await pluginManager.callOnError(error as Error, 'event_handler', correlationId);
 
     log(eventName, `Handler crashed: ${(error as Error).stack}`);
     throw new Error(`Handler crashed: ${(error as Error).stack}`);

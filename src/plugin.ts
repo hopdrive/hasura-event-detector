@@ -253,6 +253,94 @@ export class PluginManager implements PluginManagerInterface {
   }
 
   /**
+   * Typed wrapper methods for plugin hooks - provide type safety
+   */
+
+  async callOnInvocationStart(
+    hasuraEvent: HasuraEventPayload,
+    options: ListenToOptions
+  ): Promise<void> {
+    return this.callHook('onInvocationStart', hasuraEvent, options);
+  }
+
+  async callOnInvocationEnd(
+    hasuraEvent: HasuraEventPayload,
+    result: ListenToResponse,
+    durationMs: number
+  ): Promise<void> {
+    return this.callHook('onInvocationEnd', hasuraEvent, result, durationMs);
+  }
+
+  async callOnEventDetectionStart(
+    eventName: EventName,
+    hasuraEvent: HasuraEventPayload
+  ): Promise<void> {
+    return this.callHook('onEventDetectionStart', eventName, hasuraEvent);
+  }
+
+  async callOnEventDetectionEnd(
+    eventName: EventName,
+    detected: boolean,
+    hasuraEvent: HasuraEventPayload,
+    durationMs: number
+  ): Promise<void> {
+    return this.callHook('onEventDetectionEnd', eventName, detected, hasuraEvent, durationMs);
+  }
+
+  async callOnEventHandlerStart(
+    eventName: EventName,
+    hasuraEvent: HasuraEventPayload
+  ): Promise<void> {
+    return this.callHook('onEventHandlerStart', eventName, hasuraEvent);
+  }
+
+  async callOnEventHandlerEnd(
+    eventName: EventName,
+    jobResults: JobResult[],
+    hasuraEvent: HasuraEventPayload,
+    durationMs: number
+  ): Promise<void> {
+    return this.callHook('onEventHandlerEnd', eventName, jobResults, hasuraEvent, durationMs);
+  }
+
+  async callOnJobStart(
+    jobName: JobName,
+    jobOptions: JobOptions,
+    eventName: EventName,
+    hasuraEvent: HasuraEventPayload
+  ): Promise<void> {
+    return this.callHook('onJobStart', jobName, jobOptions, eventName, hasuraEvent);
+  }
+
+  async callOnJobEnd(
+    jobName: JobName,
+    result: JobResult,
+    eventName: EventName,
+    hasuraEvent: HasuraEventPayload,
+    durationMs: number
+  ): Promise<void> {
+    return this.callHook('onJobEnd', jobName, result, eventName, hasuraEvent, durationMs);
+  }
+
+  async callOnLog(
+    level: LogEntry['level'],
+    message: string,
+    data: any,
+    jobName: JobName,
+    correlationId: CorrelationId
+  ): Promise<void> {
+    return this.callHook('onLog', level, message, data, jobName, correlationId);
+  }
+
+  async callOnError(
+    error: Error,
+    context: string,
+    correlationId: CorrelationId
+  ): Promise<void> {
+    return this.callHook('onError', error, context, correlationId);
+  }
+
+  /**
    * Get a specific plugin by name
    */
   getPlugin<T extends BasePluginInterface = BasePluginInterface>(name: PluginName): T | null {

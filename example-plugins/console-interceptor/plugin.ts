@@ -155,8 +155,7 @@ export class ConsoleInterceptorPlugin extends BasePlugin<ConsoleInterceptorConfi
     if (this.pluginManager) {
       setImmediate(() => {
         this.pluginManager
-          .callHook(
-            'onLog',
+          .callOnLog(
             logData.level,
             logData.message,
             logData,

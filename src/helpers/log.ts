@@ -26,11 +26,11 @@ export const log = (prefix: string, message: string, ...args: any[]): void => {
 
   // If plugin system is available, use it for consistent logging
   if (pluginManager && pluginManager.initialized) {
-    pluginManager.callHook('onLog', 'info', `[${prefix}] ${formattedMessage}`, {
+    pluginManager.callOnLog('info', `[${prefix}] ${formattedMessage}`, {
       source: 'internal_logger',
       prefix,
       originalArgs: args
-    }, 'system', null).catch(() => {
+    }, 'system' as JobName, null as CorrelationId).catch(() => {
       // Fallback to console if plugin system fails
       console.log(`[${prefix}] ${formattedMessage}`);
     });
@@ -50,7 +50,7 @@ export const logError = (prefix: string, message: string, error: Error | null = 
     errorMessage;
 
   if (pluginManager && pluginManager.initialized) {
-    pluginManager.callHook('onLog', 'error', `[${prefix}] ${formattedMessage}`, {
+    pluginManager.callOnLog('error', `[${prefix}] ${formattedMessage}`, {
       source: 'internal_logger',
       prefix,
       error: error ? {
@@ -59,7 +59,7 @@ export const logError = (prefix: string, message: string, error: Error | null = 
         stack: error.stack
       } : null,
       originalArgs: args
-    }, 'system', null).catch(() => {
+    }, 'system' as JobName, null as CorrelationId).catch(() => {
       // Fallback to console if plugin system fails
       console.error(`[${prefix}] ${formattedMessage}`);
     });
@@ -78,11 +78,11 @@ export const logWarn = (prefix: string, message: string, ...args: any[]): void =
     message;
 
   if (pluginManager && pluginManager.initialized) {
-    pluginManager.callHook('onLog', 'warn', `[${prefix}] ${formattedMessage}`, {
+    pluginManager.callOnLog('warn', `[${prefix}] ${formattedMessage}`, {
       source: 'internal_logger',
       prefix,
       originalArgs: args
-    }, 'system', null).catch(() => {
+    }, 'system' as JobName, null as CorrelationId).catch(() => {
       // Fallback to console if plugin system fails
       console.warn(`[${prefix}] ${formattedMessage}`);
     });

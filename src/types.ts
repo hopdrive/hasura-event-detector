@@ -241,6 +241,19 @@ export interface PluginManagerInterface {
   register<T extends BasePluginInterface>(plugin: T): this;
   initialize(): Promise<void>;
   callHook(hookName: keyof PluginLifecycleHooks, ...args: any[]): Promise<void>;
+
+  // Typed wrapper methods for plugin hooks - provide type safety
+  callOnInvocationStart(hasuraEvent: HasuraEventPayload, options: ListenToOptions): Promise<void>;
+  callOnInvocationEnd(hasuraEvent: HasuraEventPayload, result: ListenToResponse, durationMs: number): Promise<void>;
+  callOnEventDetectionStart(eventName: EventName, hasuraEvent: HasuraEventPayload): Promise<void>;
+  callOnEventDetectionEnd(eventName: EventName, detected: boolean, hasuraEvent: HasuraEventPayload, durationMs: number): Promise<void>;
+  callOnEventHandlerStart(eventName: EventName, hasuraEvent: HasuraEventPayload): Promise<void>;
+  callOnEventHandlerEnd(eventName: EventName, jobResults: JobResult[], hasuraEvent: HasuraEventPayload, durationMs: number): Promise<void>;
+  callOnJobStart(jobName: JobName, jobOptions: JobOptions, eventName: EventName, hasuraEvent: HasuraEventPayload): Promise<void>;
+  callOnJobEnd(jobName: JobName, result: JobResult, eventName: EventName, hasuraEvent: HasuraEventPayload, durationMs: number): Promise<void>;
+  callOnLog(level: LogEntry['level'], message: string, data: any, jobName: JobName, correlationId: CorrelationId): Promise<void>;
+  callOnError(error: Error, context: string, correlationId: CorrelationId): Promise<void>;
+
   getPlugin<T extends BasePluginInterface = BasePluginInterface>(name: PluginName): T | null;
   getEnabledPlugins<T extends BasePluginInterface = BasePluginInterface>(): T[];
   shutdown(): Promise<void>;
