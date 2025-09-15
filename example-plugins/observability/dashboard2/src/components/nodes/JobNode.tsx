@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { formatDuration } from '../../utils/formatDuration';
+import { useRunningDuration } from '../../hooks/useRunningDuration';
 
 export interface JobNodeData {
   jobName: string;
@@ -14,9 +15,18 @@ export interface JobNodeData {
   triggersInvocation?: boolean;
   isSourceJob?: boolean;
   triggeredInvocationsCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export const JobNode: React.FC<NodeProps<JobNodeData>> = ({ data, selected }) => {
+  // Use running duration hook for live updates
+  const liveDuration = useRunningDuration({
+    status: data.status,
+    createdAt: data.createdAt,
+    completedDurationMs: data.duration
+  });
+
   const statusColors = {
     completed: {
       border: 'border-purple-500',
@@ -110,7 +120,7 @@ export const JobNode: React.FC<NodeProps<JobNodeData>> = ({ data, selected }) =>
         </div>
 
         <p className='font-medium text-gray-900 dark:text-white text-sm'>{data.jobName}</p>
-        <p className='text-xs text-gray-600 dark:text-gray-400 mt-1'>{formatDuration(data.duration)}</p>
+        <p className='text-xs text-gray-600 dark:text-gray-400 mt-1'>{formatDuration(liveDuration)}</p>
         {hasRecursion && (
           <p className='text-xs text-purple-600 dark:text-purple-400 mt-1 font-medium'>→ Triggers new invocation</p>
         )}

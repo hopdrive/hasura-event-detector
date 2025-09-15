@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { formatDuration } from '../../utils/formatDuration';
+import { useRunningDuration } from '../../hooks/useRunningDuration';
 
 export interface EventNodeData {
   eventName: string;
@@ -12,12 +13,28 @@ export interface EventNodeData {
   handlerDuration?: number;
   jobsCount: number;
   hasFailedJobs: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export const EventNode: React.FC<NodeProps<EventNodeData>> = ({ data, selected }) => {
   const isDetected = data.detected;
   const hasFailedJobs = data.hasFailedJobs;
   const hasErrors = isDetected && hasFailedJobs;
+
+  // Use running duration hook for detection duration
+  const liveDetectionDuration = useRunningDuration({
+    status: data.status,
+    createdAt: data.createdAt,
+    completedDurationMs: data.detectionDuration
+  });
+
+  // Use running duration hook for handler duration (if applicable)
+  const liveHandlerDuration = data.handlerDuration ? useRunningDuration({
+    status: data.status,
+    createdAt: data.createdAt,
+    completedDurationMs: data.handlerDuration
+  }) : undefined;
 
   return (
     <motion.div
@@ -67,23 +84,23 @@ export const EventNode: React.FC<NodeProps<EventNodeData>> = ({ data, selected }
         <div className='mt-1 flex items-center space-x-2'>
           <span
             className='relative inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors group'
-            title={`Detection took ${formatDuration(data.detectionDuration)}`}
+            title={`Detection took ${formatDuration(liveDetectionDuration)}`}
           >
-            {formatDuration(data.detectionDuration)}
+            {formatDuration(liveDetectionDuration)}
             <div className='absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50'>
-              Detection took {formatDuration(data.detectionDuration)}
+              Detection took {formatDuration(liveDetectionDuration)}
               <div className='absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900'></div>
             </div>
           </span>
 
-          {isDetected && data.handlerDuration && (
+          {isDetected && liveHandlerDuration !== undefined && (
             <span
               className='relative inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors group'
-              title={`Handler took ${formatDuration(data.handlerDuration)}`}
+              title={`Handler took ${formatDuration(liveHandlerDuration)}`}
             >
-              {formatDuration(data.handlerDuration)}
+              {formatDuration(liveHandlerDuration)}
               <div className='absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50'>
-                Handler took {formatDuration(data.handlerDuration)}
+                Handler took {formatDuration(liveHandlerDuration)}
                 <div className='absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900'></div>
               </div>
             </span>

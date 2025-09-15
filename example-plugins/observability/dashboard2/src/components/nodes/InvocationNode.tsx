@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { formatDuration } from '../../utils/formatDuration';
+import { useRunningDuration } from '../../hooks/useRunningDuration';
 
 export interface InvocationNodeData {
   sourceFunction: string;
@@ -12,9 +13,18 @@ export interface InvocationNodeData {
   events?: any[];
   detectedEvents?: any[];
   undetectedEvents?: any[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export const InvocationNode: React.FC<NodeProps<InvocationNodeData>> = ({ data, selected }) => {
+  // Use running duration hook for live updates
+  const liveDuration = useRunningDuration({
+    status: data.status,
+    createdAt: data.createdAt,
+    completedDurationMs: data.duration
+  });
+
   const statusColors = {
     completed: 'border-green-500 bg-green-50 dark:bg-green-900/20',
     failed: 'border-red-500 bg-red-50 dark:bg-red-900/20',
@@ -55,7 +65,7 @@ export const InvocationNode: React.FC<NodeProps<InvocationNodeData>> = ({ data, 
         <div className='space-y-1'>
           <p className='font-semibold text-gray-900 dark:text-white text-sm'>{data.sourceFunction}</p>
           <p className='text-xs text-gray-600 dark:text-gray-400'>
-            {formatDuration(data.duration)} • {data.eventsCount} events
+            {formatDuration(liveDuration)} • {data.eventsCount} events
           </p>
           <p className='text-xs text-gray-500 dark:text-gray-500 font-mono truncate'>{data.correlationId}</p>
         </div>

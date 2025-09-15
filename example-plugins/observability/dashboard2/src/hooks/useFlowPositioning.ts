@@ -132,7 +132,9 @@ export const useFlowPositioning = (
           eventsCount: detectedEvents.length,
           events: events,
           detectedEvents: detectedEvents,
-          undetectedEvents: undetectedEvents
+          undetectedEvents: undetectedEvents,
+          createdAt: invocation.created_at,
+          updatedAt: invocation.updated_at
         }
       };
       nodes.push(invocationNode);
@@ -152,7 +154,9 @@ export const useFlowPositioning = (
             result: invocation.source_job_execution.result,
             error: invocation.source_job_execution.error,
             triggersInvocation: invocation.source_job_execution.triggers_invocation,
-            isSourceJob: true
+            isSourceJob: true,
+            createdAt: invocation.source_job_execution.created_at,
+            updatedAt: invocation.source_job_execution.updated_at
           }
         };
         nodes.push(sourceJobNode);
@@ -240,7 +244,9 @@ export const useFlowPositioning = (
               detectionDuration: event.detection_duration_ms,
               handlerDuration: event.handler_duration_ms,
               jobsCount: event.job_executions?.length || 0,
-              hasFailedJobs: (event.job_executions || []).some((job: JobExecution) => job.status === 'failed')
+              hasFailedJobs: (event.job_executions || []).some((job: JobExecution) => job.status === 'failed'),
+              createdAt: event.created_at,
+              updatedAt: event.updated_at
             }
           };
           nodes.push(eventNode);
@@ -284,7 +290,9 @@ export const useFlowPositioning = (
                   result: job.result,
                   error: job.error,
                   triggersInvocation: job.triggers_invocation || (job.triggered_invocations && job.triggered_invocations.length > 0),
-                  triggeredInvocationsCount: job.triggered_invocations?.length || 0
+                  triggeredInvocationsCount: job.triggered_invocations?.length || 0,
+                  createdAt: job.created_at,
+                  updatedAt: job.updated_at
                 }
               };
               nodes.push(jobNode);
@@ -376,7 +384,9 @@ export const useFlowPositioning = (
               detectionDuration: event.detection_duration_ms,
               handlerDuration: event.handler_duration_ms,
               jobsCount: 0,
-              hasFailedJobs: false
+              hasFailedJobs: false,
+              createdAt: event.created_at,
+              updatedAt: event.updated_at
             }
           };
           nodes.push(eventNode);

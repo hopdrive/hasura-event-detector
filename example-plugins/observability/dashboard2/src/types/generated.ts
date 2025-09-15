@@ -89138,9 +89138,9 @@ export type InvocationTreeFlowQueryVariables = Exact<{
 }>;
 
 
-export type InvocationTreeFlowQuery = { __typename?: 'query_root', invocations_by_pk?: { __typename?: 'invocations', id: string, source_event_id?: string | null, source_function: string, status: string, total_duration_ms?: number | null, correlation_id?: string | null, source_job_id?: string | null, correlated_invocations: Array<{ __typename?: 'invocations', id: string, source_event_id?: string | null, source_function: string, status: string, total_duration_ms?: number | null, correlation_id?: string | null, source_job_id?: string | null, source_job_execution?: { __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, correlation_id?: string | null } | null, event_executions: Array<{ __typename?: 'event_executions', id: string, event_name: string, detected: boolean, status: string, detection_duration_ms?: number | null, handler_duration_ms?: number | null, correlation_id?: string | null, job_executions: Array<{ __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, result?: object | null, error_message?: string | null, correlation_id?: string | null, triggered_invocations: Array<{ __typename?: 'invocations', id: string, correlation_id?: string | null }> }> }> }>, source_job_execution?: { __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, correlation_id?: string | null } | null, event_executions: Array<{ __typename?: 'event_executions', id: string, event_name: string, detected: boolean, status: string, detection_duration_ms?: number | null, handler_duration_ms?: number | null, correlation_id?: string | null, job_executions: Array<{ __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, result?: object | null, error_message?: string | null, correlation_id?: string | null, triggered_invocations: Array<{ __typename?: 'invocations', id: string, correlation_id?: string | null }> }> }> } | null };
+export type InvocationTreeFlowQuery = { __typename?: 'query_root', invocations_by_pk?: { __typename?: 'invocations', id: string, source_event_id?: string | null, source_function: string, status: string, total_duration_ms?: number | null, correlation_id?: string | null, source_job_id?: string | null, created_at: string, updated_at: string, correlated_invocations: Array<{ __typename?: 'invocations', id: string, source_event_id?: string | null, source_function: string, status: string, total_duration_ms?: number | null, correlation_id?: string | null, source_job_id?: string | null, created_at: string, updated_at: string, source_job_execution?: { __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, correlation_id?: string | null, created_at: string, updated_at: string } | null, event_executions: Array<{ __typename?: 'event_executions', id: string, event_name: string, detected: boolean, status: string, detection_duration_ms?: number | null, handler_duration_ms?: number | null, correlation_id?: string | null, created_at: string, updated_at: string, job_executions: Array<{ __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, result?: object | null, error_message?: string | null, correlation_id?: string | null, created_at: string, updated_at: string, triggered_invocations: Array<{ __typename?: 'invocations', id: string, correlation_id?: string | null }> }> }> }>, source_job_execution?: { __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, correlation_id?: string | null, created_at: string, updated_at: string } | null, event_executions: Array<{ __typename?: 'event_executions', id: string, event_name: string, detected: boolean, status: string, detection_duration_ms?: number | null, handler_duration_ms?: number | null, correlation_id?: string | null, created_at: string, updated_at: string, job_executions: Array<{ __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, result?: object | null, error_message?: string | null, correlation_id?: string | null, created_at: string, updated_at: string, triggered_invocations: Array<{ __typename?: 'invocations', id: string, correlation_id?: string | null }> }> }> } | null };
 
-export type InvocationTreeFragment = { __typename?: 'invocations', id: string, source_event_id?: string | null, source_function: string, status: string, total_duration_ms?: number | null, correlation_id?: string | null, source_job_id?: string | null, source_job_execution?: { __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, correlation_id?: string | null } | null, event_executions: Array<{ __typename?: 'event_executions', id: string, event_name: string, detected: boolean, status: string, detection_duration_ms?: number | null, handler_duration_ms?: number | null, correlation_id?: string | null, job_executions: Array<{ __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, result?: object | null, error_message?: string | null, correlation_id?: string | null, triggered_invocations: Array<{ __typename?: 'invocations', id: string, correlation_id?: string | null }> }> }> };
+export type InvocationTreeFragment = { __typename?: 'invocations', id: string, source_event_id?: string | null, source_function: string, status: string, total_duration_ms?: number | null, correlation_id?: string | null, source_job_id?: string | null, created_at: string, updated_at: string, source_job_execution?: { __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, correlation_id?: string | null, created_at: string, updated_at: string } | null, event_executions: Array<{ __typename?: 'event_executions', id: string, event_name: string, detected: boolean, status: string, detection_duration_ms?: number | null, handler_duration_ms?: number | null, correlation_id?: string | null, created_at: string, updated_at: string, job_executions: Array<{ __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, result?: object | null, error_message?: string | null, correlation_id?: string | null, created_at: string, updated_at: string, triggered_invocations: Array<{ __typename?: 'invocations', id: string, correlation_id?: string | null }> }> }> };
 
 export type InvocationsListQueryVariables = Exact<{
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -89175,6 +89175,8 @@ export const InvocationTreeFragmentDoc = gql`
   total_duration_ms
   correlation_id
   source_job_id
+  created_at
+  updated_at
   source_job_execution {
     id
     job_name
@@ -89182,6 +89184,8 @@ export const InvocationTreeFragmentDoc = gql`
     status
     duration_ms
     correlation_id
+    created_at
+    updated_at
   }
   event_executions {
     id
@@ -89191,6 +89195,8 @@ export const InvocationTreeFragmentDoc = gql`
     detection_duration_ms
     handler_duration_ms
     correlation_id
+    created_at
+    updated_at
     job_executions {
       id
       job_name
@@ -89200,6 +89206,8 @@ export const InvocationTreeFragmentDoc = gql`
       result
       error_message
       correlation_id
+      created_at
+      updated_at
       triggered_invocations {
         id
         correlation_id
