@@ -87,7 +87,7 @@ Plugins enable:
 
 ---
 
-### 🔗 [Correlation ID Extraction Plugin](./correlation-id-extraction/)
+### 🔗 [Correlation ID Extraction Plugin](./tracking-token-extraction/)
 **Purpose**: Extracts correlation IDs from various sources in Hasura event payloads.
 
 **Features**:
@@ -98,19 +98,6 @@ Plugins enable:
 - Custom field extraction
 
 **Use Cases**: Distributed tracing, request correlation, audit logging, debug assistance
-
----
-
-### 👤 [Updated By Correlation Plugin](./updated-by-correlation/)
-**Purpose**: Specialized extraction of correlation IDs from `updated_by` database fields.
-
-**Features**:
-- Pattern-based extraction from `updated_by` fields
-- UUID format validation
-- Operation filtering (UPDATE only)
-- Flexible format support
-
-**Use Cases**: User action tracking, API request correlation, workflow tracing
 
 ---
 
@@ -156,12 +143,12 @@ await listenTo(hasuraEvent, options);
 import { pluginManager } from '@hopdrive/hasura-event-detector';
 import { SimpleLoggingPlugin } from './example-plugins/simple-logging/plugin';
 import { ConsoleInterceptorPlugin } from './example-plugins/console-interceptor/plugin';
-import { CorrelationIdExtractionPlugin } from './example-plugins/correlation-id-extraction/plugin';
+import { TrackingTokenExtractionPlugin } from './example-plugins/tracking-token-extraction/plugin';
 
 // Create plugins
 const consoleInterceptor = new ConsoleInterceptorPlugin();
 const logger = new SimpleLoggingPlugin({ format: 'json' });
-const correlationExtractor = new CorrelationIdExtractionPlugin({
+const correlationExtractor = new TrackingTokenExtractionPlugin({
   extractFromSession: true
 });
 
@@ -518,28 +505,23 @@ export class ErrorTrackingPlugin extends BasePlugin {
 }
 ```
 
-### Correlation ID Extraction Plugin
+### Correlation ID Extraction Example
 
 ```typescript
-export class UpdatedByCorrelationPlugin extends BasePlugin {
-  override async onPreConfigure(hasuraEvent, options) {
-    const parsedEvent = parseHasuraEvent(hasuraEvent);
-    const updatedBy = parsedEvent.dbEvent?.new?.updated_by;
+import { TrackingTokenExtractionPlugin } from './tracking-token-extraction/plugin';
 
-    if (updatedBy && typeof updatedBy === 'string') {
-      // Extract UUID from "prefix.uuid" format
-      const match = updatedBy.match(/^.+\\.([0-9a-f-]{36})$/i);
-      if (match) {
-        return {
-          ...options,
-          correlationId: match[1]
-        };
-      }
-    }
+// Create plugin to extract from various sources
+const correlationPlugin = new TrackingTokenExtractionPlugin({
+  extractFromUpdatedBy: true,
+  extractFromMetadata: true,
+  extractFromSession: true
+});
 
-    return options;
-  }
-}
+// The plugin's onPreConfigure hook will automatically:
+// 1. Try to extract from updated_by field (using TrackingToken)
+// 2. Fall back to metadata fields
+// 3. Fall back to session variables
+// 4. Return the extracted correlation ID in options
 ```
 
 ## Plugin Development Tips
@@ -594,7 +576,7 @@ override async onJobStart(jobName) {
 ### Comprehensive Monitoring Stack
 ```typescript
 // Example: Complete monitoring and optimization setup
-const correlationExtractor = new CorrelationIdExtractionPlugin({
+const correlationExtractor = new TrackingTokenExtractionPlugin({
   extractFromUpdatedBy: true,
   sessionVariables: ['x-correlation-id']
 });

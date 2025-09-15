@@ -302,6 +302,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       source_table: data.sourceTable,
       source_operation: data.sourceOperation,
       source_system: 'hasura', // Default to hasura, can be overridden
+      source_job_id: data.sourceJobId || null, // From tracking token extraction
       source_event_id: data.hasuraEventId,
       source_event_payload: this.config.captureHasuraPayload ? data.hasuraEventPayload : null,
       source_event_time: data.hasuraEventTime,
@@ -629,6 +630,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       sourceFunction: options.sourceFunction || 'unknown',
       sourceTable: dbEvent?.table?.name || null,
       sourceOperation: hasuraEvent.event?.op || 'MANUAL',
+      sourceJobId: (hasuraEvent as any).__sourceJobId || null,
       hasuraEventId: hasuraEvent.id || null,
       hasuraEventPayload: hasuraEvent,
       hasuraEventTime: new Date(hasuraEvent.event?.timestamp || hasuraEvent.created_at || Date.now()),

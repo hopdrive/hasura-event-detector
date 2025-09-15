@@ -73,13 +73,14 @@ export type EventName = string & { readonly __eventName: unique symbol };
 export type CorrelationId = string & { readonly __correlationId: unique symbol };
 export type JobName = string & { readonly __jobName: unique symbol };
 export type PluginName = string & { readonly __pluginName: unique symbol };
+export type TrackingToken = string & { readonly __trackingToken: unique symbol };
 
 // =============================================================================
-// CORRELATION ID TYPES
+// TRACKING AND CORRELATION TYPES
 // =============================================================================
 
-// Correlation ID is now just a simple UUID string
-// Use UpdatedByUtils from correlation-id-extraction plugin for parsing updated_by format
+// Correlation ID is a simple UUID string
+// TrackingToken provides hierarchical tracking: source.correlationId.jobId
 
 // =============================================================================
 // JOB EXECUTION TYPES
@@ -422,10 +423,10 @@ export interface NetlifyHelpers {
 }
 
 // =============================================================================
-// BACKWARD COMPATIBILITY TYPE ALIASES (for JSDoc compatibility)
+// TYPE ALIASES
 // =============================================================================
 
-// Main JSDoc type aliases to match existing documentation
+// JSDoc type aliases
 export type HasuraData<T = Record<string, any>> = HasuraEventData<T>;
 export type UUID = string; // Simple string type as used in JSDoc
 

@@ -337,13 +337,17 @@ const result = await listenTo(hasuraEvent, {
 
 ### Plugin-Based Extraction (Automatic)
 ```typescript
-import { UpdatedByCorrelationPlugin } from '@hopdrive/hasura-event-detector/plugins';
+import { TrackingTokenExtractionPlugin } from './example-plugins/tracking-token-extraction/plugin';
 
-// Create plugin to extract from updated_by field
-const correlationPlugin = new UpdatedByCorrelationPlugin({
-  extractionPattern: /^user\.([0-9a-f-]{36})$/i, // "user.uuid" format
-  validateUuidFormat: true
+// Create plugin to extract from various sources
+const correlationPlugin = new TrackingTokenExtractionPlugin({
+  extractFromUpdatedBy: true,  // Extract from updated_by field
+  extractFromMetadata: true,   // Extract from metadata fields
+  extractFromSession: true     // Extract from session variables
 });
+
+// Register the plugin
+pluginManager.register(correlationPlugin);
 
 // Plugin automatically extracts correlation IDs from payload
 const result = await listenTo(hasuraEvent, {

@@ -1,17 +1,18 @@
 /**
- * Correlation ID Extraction Plugin
+ * Tracking Token Extraction Plugin
  *
- * This plugin demonstrates how to extract correlation IDs from Hasura event payloads
- * using the plugin system. It provides various extraction strategies that can be
- * customized based on your application's data structure.
+ * This plugin extracts tracking tokens (source, correlationId, jobId) from Hasura event payloads
+ * using various strategies. It populates hasuraEvent.__correlationId and hasuraEvent.__sourceJobId
+ * for use by other plugins and jobs.
  */
 
 import type { HasuraEventPayload, ParsedHasuraEvent, PluginName, PluginConfig, ListenToOptions } from '../../src/types';
 import { BasePlugin } from '../../src/plugin';
 import { log, logWarn } from '../../src/helpers/log';
 import { parseHasuraEvent } from '../../src/helpers/hasura';
+import { TrackingToken } from '../../src/helpers/tracking-token';
 
-export interface CorrelationIdExtractionConfig extends PluginConfig {
+export interface TrackingTokenExtractionConfig extends PluginConfig {
   enabled?: boolean;
   // Enable specific extraction strategies
   extractFromUpdatedBy?: boolean;
@@ -26,15 +27,15 @@ export interface CorrelationIdExtractionConfig extends PluginConfig {
   metadataKeys?: string[];
 }
 
-export class CorrelationIdExtractionPlugin extends BasePlugin<CorrelationIdExtractionConfig> {
-  constructor(config: Partial<CorrelationIdExtractionConfig> = {}) {
-    const defaultConfig: CorrelationIdExtractionConfig = {
+export class TrackingTokenExtractionPlugin extends BasePlugin<TrackingTokenExtractionConfig> {
+  constructor(config: Partial<TrackingTokenExtractionConfig> = {}) {
+    const defaultConfig: TrackingTokenExtractionConfig = {
       enabled: true,
       extractFromUpdatedBy: true,
       extractFromMetadata: true,
       extractFromSession: true,
       // Default pattern: extract correlation ID from "something.correlation_id.source_job_id" format (2nd position)
-      // Also supports legacy "something.correlation_id" format for backward compatibility
+      // Also supports "something.correlation_id" format
       updatedByPattern: /^[^.]+\.([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:\.[^.]+)?$/i,
       sessionVariables: ['x-correlation-id', 'x-request-id', 'x-trace-id'],
       metadataKeys: ['correlation_id', 'trace_id', 'request_id', 'workflow_id'],
@@ -44,7 +45,7 @@ export class CorrelationIdExtractionPlugin extends BasePlugin<CorrelationIdExtra
   }
 
   /**
-   * Pre-configure hook - extract correlation ID and set in options before processing
+   * Pre-configure hook - extract tracking token components and set in options/hasuraEvent before processing
    */
   async onPreConfigure(
     hasuraEvent: HasuraEventPayload,
@@ -55,78 +56,95 @@ export class CorrelationIdExtractionPlugin extends BasePlugin<CorrelationIdExtra
     // Parse the Hasura event to get structured data
     const parsedEvent = parseHasuraEvent(hasuraEvent);
 
-    log('CorrelationIdExtraction', 'Starting correlation ID extraction');
+    log('TrackingTokenExtraction', 'Starting tracking token extraction');
+
+    let correlationId: string | null = null;
+    let sourceJobId: string | null = null;
 
     // Strategy 1: Extract from updated_by field with pattern matching
     if (this.config.extractFromUpdatedBy) {
-      const extractedCorrelationId = this.extractFromUpdatedBy(parsedEvent);
-      if (extractedCorrelationId) {
-        log('CorrelationIdExtraction', `Extracted from updated_by: ${extractedCorrelationId}`);
-        return { ...options, correlationId: extractedCorrelationId };
+      const trackingResult = this.extractFromUpdatedBy(parsedEvent);
+      if (trackingResult) {
+        correlationId = trackingResult.correlationId;
+        sourceJobId = trackingResult.sourceJobId || null;
+        log('TrackingTokenExtraction', `Extracted from updated_by - correlationId: ${correlationId}, sourceJobId: ${sourceJobId}`);
       }
     }
 
-    // Strategy 2: Extract from custom field
-    if (this.config.extractFromCustomField) {
-      const customFieldResult = this.extractFromCustomField(parsedEvent, this.config.extractFromCustomField);
-      if (customFieldResult) {
-        log('CorrelationIdExtraction', `Extracted from custom field: ${customFieldResult}`);
-        return { ...options, correlationId: customFieldResult };
+    // Strategy 2: Extract from custom field (if no correlationId yet)
+    if (!correlationId && this.config.extractFromCustomField) {
+      correlationId = this.extractFromCustomField(parsedEvent, this.config.extractFromCustomField);
+      if (correlationId) {
+        log('TrackingTokenExtraction', `Extracted correlationId from custom field: ${correlationId}`);
       }
     }
 
-    // Strategy 3: Extract from metadata/JSON fields
-    if (this.config.extractFromMetadata) {
-      const metadataResult = this.extractFromMetadata(parsedEvent);
-      if (metadataResult) {
-        log('CorrelationIdExtraction', `Extracted from metadata: ${metadataResult}`);
-        return { ...options, correlationId: metadataResult };
+    // Strategy 3: Extract from metadata/JSON fields (if no correlationId yet)
+    if (!correlationId && this.config.extractFromMetadata) {
+      correlationId = this.extractFromMetadata(parsedEvent);
+      if (correlationId) {
+        log('TrackingTokenExtraction', `Extracted correlationId from metadata: ${correlationId}`);
       }
     }
 
-    // Strategy 4: Extract from session variables
-    if (this.config.extractFromSession) {
-      const sessionResult = this.extractFromSession(parsedEvent);
-      if (sessionResult) {
-        log('CorrelationIdExtraction', `Extracted from session: ${sessionResult}`);
-        return { ...options, correlationId: sessionResult };
+    // Strategy 4: Extract from session variables (if no correlationId yet)
+    if (!correlationId && this.config.extractFromSession) {
+      correlationId = this.extractFromSession(parsedEvent);
+      if (correlationId) {
+        log('TrackingTokenExtraction', `Extracted correlationId from session: ${correlationId}`);
       }
     }
 
-    log('CorrelationIdExtraction', 'No correlation ID found in payload');
+    // Set the extracted values in hasuraEvent for other plugins/jobs to use
+    if (correlationId || sourceJobId) {
+      // Store source job ID in hasuraEvent for observability plugin
+      if (sourceJobId) {
+        (hasuraEvent as any).__sourceJobId = sourceJobId;
+      }
+
+      // Return updated options with correlationId
+      if (correlationId) {
+        return { ...options, correlationId };
+      }
+    }
+
+    log('TrackingTokenExtraction', 'No tracking token components found in payload');
     return options;
   }
 
   /**
-   * Extract correlation ID from updated_by field using pattern matching
+   * Extract tracking token components from updated_by field
    * Supports formats like:
-   * - "something.correlation_id.source_job_id" (new format with source job tracking)
-   * - "something.correlation_id" (legacy format)
+   * - "something.correlation_id.source_job_id" (full tracking token)
+   * - "something.correlation_id" (without source job)
    */
-  private extractFromUpdatedBy(parsedEvent: ParsedHasuraEvent): string | null {
+  private extractFromUpdatedBy(parsedEvent: ParsedHasuraEvent): { correlationId: string; sourceJobId?: string } | null {
     if (parsedEvent.operation !== 'UPDATE') return null;
 
     const updatedBy = parsedEvent.dbEvent?.new?.updatedby || parsedEvent.dbEvent?.new?.updated_by;
     if (!updatedBy || typeof updatedBy !== 'string') return null;
 
-    // First try using the UpdatedByUtils to extract correlation ID
-    const correlationId = UpdatedByUtils.extractCorrelationId(updatedBy);
-    if (correlationId) {
-      return correlationId;
+    // Try parsing as a TrackingToken first
+    const components = TrackingToken.parse(updatedBy);
+    if (components) {
+      return {
+        correlationId: components.correlationId,
+        sourceJobId: components.jobId
+      };
     }
 
-    // Fallback: use the configured pattern for backward compatibility
+    // Fallback: use the configured pattern if needed (correlation ID only)
     if (this.config.updatedByPattern) {
       const match = updatedBy.match(this.config.updatedByPattern);
       if (match && match[1]) {
-        return match[1]; // Return the captured correlation ID (2nd position)
+        return { correlationId: match[1] };
       }
     }
 
     // Fallback: check if the whole updated_by value is a UUID
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (uuidRegex.test(updatedBy)) {
-      return updatedBy;
+      return { correlationId: updatedBy };
     }
 
     return null;
@@ -209,12 +227,12 @@ export class CorrelationIdExtractionPlugin extends BasePlugin<CorrelationIdExtra
 /**
  * Basic configuration - uses default extraction strategies
  */
-export const basicCorrelationIdPlugin = new CorrelationIdExtractionPlugin();
+export const basicTrackingTokenPlugin = new TrackingTokenExtractionPlugin();
 
 /**
  * Updated-by pattern extraction only
  */
-export const updatedByOnlyPlugin = new CorrelationIdExtractionPlugin({
+export const updatedByOnlyPlugin = new TrackingTokenExtractionPlugin({
   extractFromUpdatedBy: true,
   extractFromMetadata: false,
   extractFromSession: false,
@@ -225,7 +243,7 @@ export const updatedByOnlyPlugin = new CorrelationIdExtractionPlugin({
 /**
  * Custom field extraction
  */
-export const customFieldPlugin = new CorrelationIdExtractionPlugin({
+export const customFieldPlugin = new TrackingTokenExtractionPlugin({
   extractFromUpdatedBy: false,
   extractFromMetadata: false,
   extractFromSession: false,
@@ -235,64 +253,14 @@ export const customFieldPlugin = new CorrelationIdExtractionPlugin({
 /**
  * Multi-tenant extraction with session variables
  */
-export const multiTenantPlugin = new CorrelationIdExtractionPlugin({
+export const multiTenantPlugin = new TrackingTokenExtractionPlugin({
   extractFromSession: true,
   sessionVariables: ['x-hasura-tenant-id', 'x-correlation-id', 'x-workflow-id'],
   extractFromMetadata: true,
   metadataKeys: ['tenant_correlation_id', 'workflow_id'],
 });
 
-/**
- * Utilities for working with updated_by column format: something.correlationid.jobid
- */
-export class UpdatedByUtils {
-  /**
-   * Check if a value looks like an updated_by format
-   */
-  static isUpdatedByFormat(value: unknown): value is string {
-    if (!value || typeof value !== 'string') return false;
+// Export for backward compatibility
+export const CorrelationIdExtractionPlugin = TrackingTokenExtractionPlugin;
 
-    // Format: something.correlationid.jobid (3 parts) or something.correlationid (2 parts)
-    const parts = value.split('.');
-    return parts.length >= 2 && parts.length <= 3 && parts.every(part => part.length > 0);
-  }
-
-  /**
-   * Generate an updated_by value
-   */
-  static generate(source: string, correlationId: string, jobId?: string): string {
-    return jobId ? `${source}.${correlationId}.${jobId}` : `${source}.${correlationId}`;
-  }
-
-  /**
-   * Parse an updated_by value into components
-   */
-  static parse(updatedBy: string): { source: string; correlationId: string; jobId?: string } | null {
-    if (!this.isUpdatedByFormat(updatedBy)) return null;
-
-    const parts = updatedBy.split('.');
-    return {
-      source: parts[0]!,
-      correlationId: parts[1]!,
-      jobId: parts[2] || undefined,
-    };
-  }
-
-  /**
-   * Extract just the correlation ID from an updated_by value
-   */
-  static extractCorrelationId(updatedBy: string): string | null {
-    const parsed = this.parse(updatedBy);
-    return parsed?.correlationId || null;
-  }
-
-  /**
-   * Extract just the job ID from an updated_by value
-   */
-  static extractJobId(updatedBy: string): string | null {
-    const parsed = this.parse(updatedBy);
-    return parsed?.jobId || null;
-  }
-}
-
-export default CorrelationIdExtractionPlugin;
+export default TrackingTokenExtractionPlugin;

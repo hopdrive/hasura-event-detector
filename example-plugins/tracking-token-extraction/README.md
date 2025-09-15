@@ -4,7 +4,7 @@ A flexible plugin that extracts correlation IDs from various sources in Hasura e
 
 ## Overview
 
-The CorrelationIdExtractionPlugin demonstrates how to extract correlation IDs from Hasura event payloads using multiple extraction strategies. It can pull correlation IDs from `updated_by` fields, session variables, metadata, or custom fields based on your application's data structure.
+The TrackingTokenExtractionPlugin demonstrates how to extract correlation IDs from Hasura event payloads using multiple extraction strategies. It can pull correlation IDs from `updated_by` fields, session variables, metadata, or custom fields based on your application's data structure.
 
 ## Features
 
@@ -19,9 +19,9 @@ The CorrelationIdExtractionPlugin demonstrates how to extract correlation IDs fr
 ## Configuration
 
 ```typescript
-import { CorrelationIdExtractionPlugin } from './example-plugins/correlation-id-extraction/plugin.js';
+import { TrackingTokenExtractionPlugin } from './example-plugins/tracking-token-extraction/plugin.js';
 
-const correlationExtractor = new CorrelationIdExtractionPlugin({
+const trackingExtractor = new TrackingTokenExtractionPlugin({
   enabled: true,
   extractFromUpdatedBy: true,     // Extract from updated_by field
   extractFromMetadata: true,      // Extract from event metadata
@@ -44,15 +44,15 @@ const correlationExtractor = new CorrelationIdExtractionPlugin({
 
 ```typescript
 import { pluginManager } from '@hopdrive/hasura-event-detector';
-import { CorrelationIdExtractionPlugin } from './example-plugins/correlation-id-extraction/plugin.js';
+import { TrackingTokenExtractionPlugin } from './example-plugins/tracking-token-extraction/plugin.js';
 
 // Register the plugin
-const correlationExtractor = new CorrelationIdExtractionPlugin({
+const trackingExtractor = new TrackingTokenExtractionPlugin({
   extractFromUpdatedBy: true,
   sessionVariables: ['x-correlation-id']
 });
 
-pluginManager.register(correlationExtractor);
+pluginManager.register(trackingExtractor);
 
 // Initialize the plugin system
 await pluginManager.initialize();
@@ -142,13 +142,13 @@ This plugin integrates with the event detector's correlation ID system:
 
 ```typescript
 // Example: Auto-extract correlation IDs for all events
-const correlationExtractor = new CorrelationIdExtractionPlugin({
+const trackingExtractor = new TrackingTokenExtractionPlugin({
   extractFromUpdatedBy: true,
   // Extract correlation ID from 2nd position: "user.correlation-id.source-job-id"
   updatedByPattern: /^user\.([0-9a-f-]+)(?:\.[^.]+)?$/i,
 });
 
-pluginManager.register(correlationExtractor);
+pluginManager.register(trackingExtractor);
 
 // Now all events will have correlation IDs automatically extracted
 await listenTo(hasuraEvent, {
@@ -179,49 +179,41 @@ You can customize extraction patterns for your specific use case:
 
 ```typescript
 // Extract from custom format: "workflow:abc-123:step:2"
-const customExtractor = new CorrelationIdExtractionPlugin({
+const customExtractor = new TrackingTokenExtractionPlugin({
   extractFromCustomField: 'workflow_context',
   // Custom pattern to extract correlation ID from complex format
   updatedByPattern: /workflow:([^:]+):/
 });
 
 // Example: Extract from job-chaining format with source job tracking
-const jobChainExtractor = new CorrelationIdExtractionPlugin({
+const jobChainExtractor = new TrackingTokenExtractionPlugin({
   extractFromUpdatedBy: true,
   // Extract correlation ID from "system.correlation-id.source-job-id" format
   updatedByPattern: /^system\.([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.job-[0-9a-f-]+$/i
 });
 ```
 
-## UpdatedBy Utilities
+## Working with Tracking Tokens
 
-This plugin also exports `UpdatedByUtils` for working with the `updated_by` column format used to pass correlation IDs and job IDs between database mutations:
+For creating and parsing tracking tokens in the `updated_by` column format, use the `TrackingToken` utility from the core library:
 
 ```typescript
-import { UpdatedByUtils } from './example-plugins/correlation-id-extraction/plugin';
+import { TrackingToken } from '@hopdrive/hasura-event-detector';
 
-// Parse updated_by format: "something.correlation_id.job_id"
-const parsed = UpdatedByUtils.parse('user.abc-123-def.job-456-ghi');
-// Returns: { source: 'user', correlationId: 'abc-123-def', jobId: 'job-456-ghi' }
+// Create a tracking token for updated_by columns
+const token = TrackingToken.create('system', correlationId, jobId);
+// Returns: 'system.550e8400-e29b-41d4-a716-446655440000.job-123'
+
+// Parse updated_by values
+const parsed = TrackingToken.parse(updatedBy);
+// Returns: { source: 'system', correlationId: '550e8400-...', jobId: 'job-123' }
 
 // Extract just the correlation ID
-const correlationId = UpdatedByUtils.extractCorrelationId('user.abc-123-def.job-456-ghi');
-// Returns: 'abc-123-def'
-
-// Extract just the job ID
-const jobId = UpdatedByUtils.extractJobId('user.abc-123-def.job-456-ghi');
-// Returns: 'job-456-ghi'
-
-// Generate updated_by values
-const updatedBy = UpdatedByUtils.generate('system', 'correlation-id-123', 'job-456');
-// Returns: 'system.correlation-id-123.job-456'
-
-// Legacy format (without job ID)
-const legacyUpdatedBy = UpdatedByUtils.generate('user', 'correlation-id-123');
-// Returns: 'user.correlation-id-123'
+const correlationId = TrackingToken.getCorrelationId(updatedBy);
+// Returns: '550e8400-e29b-41d4-a716-446655440000'
 ```
 
-### UpdatedBy Format
+### Updated_by Column Format
 
 The `updated_by` column uses a structured format to pass information between database mutations:
 

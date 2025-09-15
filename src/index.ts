@@ -13,6 +13,9 @@ export {
 export { parseHasuraEvent, columnHasChanged, log, logError, logWarn, handleSuccess, handleFailure, getObjectSafely, type NetlifyResponse } from './helpers/index';
 export { run, job } from './handler';
 
+// Tracking token utilities for execution chain tracing
+export { TrackingToken, type TrackingTokenComponents, type TrackingTokenSource } from './helpers/tracking-token';
+
 // Example jobs (for reference and testing)
 export {
   jobSimulator,
@@ -52,5 +55,8 @@ export type {
   // Additional types used by plugins
   DatabaseConfig,
   LogEntry,
-  HasuraOperation
+  HasuraOperation,
+
+  // Tracking token type (re-export for convenience)
+  TrackingToken as TrackingTokenType
 } from "./types";

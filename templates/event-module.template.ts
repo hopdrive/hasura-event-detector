@@ -25,8 +25,8 @@
  *    await listenTo(hasuraEvent, { correlationId });
  * 
  * 2. Plugin-based extraction (automatic):
- *    Use UpdatedByCorrelationPlugin's onPreConfigure hook to automatically extract from payload
- *    await listenTo(hasuraEvent); // System extracts or generates correlation ID
+ *    Use TrackingTokenExtractionPlugin to automatically extract from various sources
+ *    await listenTo(hasuraEvent); // Plugin extracts or generates correlation ID
  * 
  * See examples below for how to access and use correlation IDs in jobs.
  */

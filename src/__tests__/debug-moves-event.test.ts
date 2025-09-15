@@ -13,7 +13,7 @@
 import { listenTo } from '../detector';
 import { pluginManager } from '../plugin';
 import { ObservabilityPlugin } from '../../example-plugins/observability/plugin';
-import { CorrelationIdExtractionPlugin } from '../../example-plugins/correlation-id-extraction/plugin';
+import { TrackingTokenExtractionPlugin } from '../../example-plugins/tracking-token-extraction/plugin';
 import * as path from 'path';
 import { config } from 'dotenv';
 config({ path: 'example-plugins/observability/.env' });
@@ -236,7 +236,7 @@ describe('Debug Moves Event', () => {
   };
 
   it('should process moves UPDATE event with debugging', async () => {
-    const correlationIdExtractionPlugin = new CorrelationIdExtractionPlugin({
+    const trackingTokenExtractionPlugin = new TrackingTokenExtractionPlugin({
       enabled: true,
       extractFromUpdatedBy: true,
       extractFromMetadata: false,
@@ -257,7 +257,7 @@ describe('Debug Moves Event', () => {
       captureErrorStacks: true,
     });
 
-    pluginManager.register(correlationIdExtractionPlugin);
+    pluginManager.register(trackingTokenExtractionPlugin);
     pluginManager.register(observabilityPlugin);
 
     // Initialize (usually done once at startup)
