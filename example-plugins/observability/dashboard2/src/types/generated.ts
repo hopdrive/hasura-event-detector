@@ -89133,12 +89133,14 @@ export type InvocationsRealtimeSubscriptionVariables = Exact<{ [key: string]: ne
 
 export type InvocationsRealtimeSubscription = { __typename?: 'subscription_root', invocations: Array<{ __typename?: 'invocations', id: string, created_at: string, source_function: string, status: string, total_duration_ms?: number | null, events_detected_count?: number | null, total_jobs_run?: number | null, total_jobs_succeeded?: number | null, total_jobs_failed?: number | null, correlation_id?: string | null }> };
 
-export type InvocationFlowQueryVariables = Exact<{
+export type InvocationTreeFlowQueryVariables = Exact<{
   invocationId: Scalars['uuid']['input'];
 }>;
 
 
-export type InvocationFlowQuery = { __typename?: 'query_root', invocations_by_pk?: { __typename?: 'invocations', id: string, source_function: string, status: string, total_duration_ms?: number | null, events_detected_count?: number | null, correlation_id?: string | null, source_job_id?: string | null, total_jobs_run?: number | null, total_jobs_succeeded?: number | null, total_jobs_failed?: number | null, source_job_execution?: { __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, invocation_id: string, event_execution_id: string, correlation_id?: string | null } | null, event_executions: Array<{ __typename?: 'event_executions', id: string, event_name: string, detected: boolean, status: string, detection_duration_ms?: number | null, handler_duration_ms?: number | null, jobs_count?: number | null, jobs_succeeded?: number | null, jobs_failed?: number | null, job_executions: Array<{ __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, result?: object | null, error_message?: string | null, correlation_id?: string | null }> }> } | null };
+export type InvocationTreeFlowQuery = { __typename?: 'query_root', invocations_by_pk?: { __typename?: 'invocations', id: string, source_event_id?: string | null, source_function: string, status: string, total_duration_ms?: number | null, correlation_id?: string | null, source_job_id?: string | null, correlated_invocations: Array<{ __typename?: 'invocations', id: string, source_event_id?: string | null, source_function: string, status: string, total_duration_ms?: number | null, correlation_id?: string | null, source_job_id?: string | null, source_job_execution?: { __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, correlation_id?: string | null } | null, event_executions: Array<{ __typename?: 'event_executions', id: string, event_name: string, detected: boolean, status: string, detection_duration_ms?: number | null, handler_duration_ms?: number | null, correlation_id?: string | null, job_executions: Array<{ __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, result?: object | null, error_message?: string | null, correlation_id?: string | null, triggered_invocations: Array<{ __typename?: 'invocations', id: string, correlation_id?: string | null }> }> }> }>, source_job_execution?: { __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, correlation_id?: string | null } | null, event_executions: Array<{ __typename?: 'event_executions', id: string, event_name: string, detected: boolean, status: string, detection_duration_ms?: number | null, handler_duration_ms?: number | null, correlation_id?: string | null, job_executions: Array<{ __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, result?: object | null, error_message?: string | null, correlation_id?: string | null, triggered_invocations: Array<{ __typename?: 'invocations', id: string, correlation_id?: string | null }> }> }> } | null };
+
+export type InvocationTreeFragment = { __typename?: 'invocations', id: string, source_event_id?: string | null, source_function: string, status: string, total_duration_ms?: number | null, correlation_id?: string | null, source_job_id?: string | null, source_job_execution?: { __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, correlation_id?: string | null } | null, event_executions: Array<{ __typename?: 'event_executions', id: string, event_name: string, detected: boolean, status: string, detection_duration_ms?: number | null, handler_duration_ms?: number | null, correlation_id?: string | null, job_executions: Array<{ __typename?: 'job_executions', id: string, job_name: string, job_function_name?: string | null, status: string, duration_ms?: number | null, result?: object | null, error_message?: string | null, correlation_id?: string | null, triggered_invocations: Array<{ __typename?: 'invocations', id: string, correlation_id?: string | null }> }> }> };
 
 export type InvocationsListQueryVariables = Exact<{
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -89164,7 +89166,48 @@ export type CorrelationSearchQueryVariables = Exact<{
 
 export type CorrelationSearchQuery = { __typename?: 'query_root', invocations: Array<{ __typename?: 'invocations', id: string, correlation_id?: string | null, source_function: string, source_user_email?: string | null, created_at: string, status: string, total_duration_ms?: number | null, events_detected_count?: number | null, total_jobs_run?: number | null }> };
 
-
+export const InvocationTreeFragmentDoc = gql`
+    fragment invocationTree on invocations {
+  id
+  source_event_id
+  source_function
+  status
+  total_duration_ms
+  correlation_id
+  source_job_id
+  source_job_execution {
+    id
+    job_name
+    job_function_name
+    status
+    duration_ms
+    correlation_id
+  }
+  event_executions {
+    id
+    event_name
+    detected
+    status
+    detection_duration_ms
+    handler_duration_ms
+    correlation_id
+    job_executions {
+      id
+      job_name
+      job_function_name
+      status
+      duration_ms
+      result
+      error_message
+      correlation_id
+      triggered_invocations {
+        id
+        correlation_id
+      }
+    }
+  }
+}
+    `;
 export const AnalyticsOverviewDocument = gql`
     query AnalyticsOverview($timeRange: timestamptz!) {
   invocations_aggregate(where: {created_at: {_gte: $timeRange}}) {
@@ -89421,86 +89464,49 @@ export function useInvocationsRealtimeSubscription(baseOptions?: Apollo.Subscrip
       }
 export type InvocationsRealtimeSubscriptionHookResult = ReturnType<typeof useInvocationsRealtimeSubscription>;
 export type InvocationsRealtimeSubscriptionResult = Apollo.SubscriptionResult<InvocationsRealtimeSubscription>;
-export const InvocationFlowDocument = gql`
-    query InvocationFlow($invocationId: uuid!) {
+export const InvocationTreeFlowDocument = gql`
+    query InvocationTreeFlow($invocationId: uuid!) {
   invocations_by_pk(id: $invocationId) {
-    id
-    source_function
-    status
-    total_duration_ms
-    events_detected_count
-    correlation_id
-    source_job_id
-    total_jobs_run
-    total_jobs_succeeded
-    total_jobs_failed
-    source_job_execution {
-      id
-      job_name
-      job_function_name
-      status
-      duration_ms
-      invocation_id
-      event_execution_id
-      correlation_id
-    }
-    event_executions {
-      id
-      event_name
-      detected
-      status
-      detection_duration_ms
-      handler_duration_ms
-      jobs_count
-      jobs_succeeded
-      jobs_failed
-      job_executions {
-        id
-        job_name
-        job_function_name
-        status
-        duration_ms
-        result
-        error_message
-        correlation_id
-      }
+    ...invocationTree
+    correlated_invocations(order_by: {created_at: asc}) {
+      ...invocationTree
     }
   }
 }
-    `;
+    ${InvocationTreeFragmentDoc}`;
 
 /**
- * __useInvocationFlowQuery__
+ * __useInvocationTreeFlowQuery__
  *
- * To run a query within a React component, call `useInvocationFlowQuery` and pass it any options that fit your needs.
- * When your component renders, `useInvocationFlowQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * To run a query within a React component, call `useInvocationTreeFlowQuery` and pass it any options that fit your needs.
+ * When your component renders, `useInvocationTreeFlowQuery` returns an object from Apollo Client that contains loading, error, and data properties
  * you can use to render your UI.
  *
  * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
  *
  * @example
- * const { data, loading, error } = useInvocationFlowQuery({
+ * const { data, loading, error } = useInvocationTreeFlowQuery({
  *   variables: {
  *      invocationId: // value for 'invocationId'
  *   },
  * });
  */
-export function useInvocationFlowQuery(baseOptions: Apollo.QueryHookOptions<InvocationFlowQuery, InvocationFlowQueryVariables> & ({ variables: InvocationFlowQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+export function useInvocationTreeFlowQuery(baseOptions: Apollo.QueryHookOptions<InvocationTreeFlowQuery, InvocationTreeFlowQueryVariables> & ({ variables: InvocationTreeFlowQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
         const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<InvocationFlowQuery, InvocationFlowQueryVariables>(InvocationFlowDocument, options);
+        return Apollo.useQuery<InvocationTreeFlowQuery, InvocationTreeFlowQueryVariables>(InvocationTreeFlowDocument, options);
       }
-export function useInvocationFlowLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<InvocationFlowQuery, InvocationFlowQueryVariables>) {
+export function useInvocationTreeFlowLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<InvocationTreeFlowQuery, InvocationTreeFlowQueryVariables>) {
           const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<InvocationFlowQuery, InvocationFlowQueryVariables>(InvocationFlowDocument, options);
+          return Apollo.useLazyQuery<InvocationTreeFlowQuery, InvocationTreeFlowQueryVariables>(InvocationTreeFlowDocument, options);
         }
-export function useInvocationFlowSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<InvocationFlowQuery, InvocationFlowQueryVariables>) {
+export function useInvocationTreeFlowSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<InvocationTreeFlowQuery, InvocationTreeFlowQueryVariables>) {
           const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<InvocationFlowQuery, InvocationFlowQueryVariables>(InvocationFlowDocument, options);
+          return Apollo.useSuspenseQuery<InvocationTreeFlowQuery, InvocationTreeFlowQueryVariables>(InvocationTreeFlowDocument, options);
         }
-export type InvocationFlowQueryHookResult = ReturnType<typeof useInvocationFlowQuery>;
-export type InvocationFlowLazyQueryHookResult = ReturnType<typeof useInvocationFlowLazyQuery>;
-export type InvocationFlowSuspenseQueryHookResult = ReturnType<typeof useInvocationFlowSuspenseQuery>;
-export type InvocationFlowQueryResult = Apollo.QueryResult<InvocationFlowQuery, InvocationFlowQueryVariables>;
+export type InvocationTreeFlowQueryHookResult = ReturnType<typeof useInvocationTreeFlowQuery>;
+export type InvocationTreeFlowLazyQueryHookResult = ReturnType<typeof useInvocationTreeFlowLazyQuery>;
+export type InvocationTreeFlowSuspenseQueryHookResult = ReturnType<typeof useInvocationTreeFlowSuspenseQuery>;
+export type InvocationTreeFlowQueryResult = Apollo.QueryResult<InvocationTreeFlowQuery, InvocationTreeFlowQueryVariables>;
 export const InvocationsListDocument = gql`
     query InvocationsList($limit: Int = 20, $offset: Int = 0, $where: invocations_bool_exp = {}, $order_by: [invocations_order_by!] = {created_at: desc}) {
   invocations(limit: $limit, offset: $offset, where: $where, order_by: $order_by) {

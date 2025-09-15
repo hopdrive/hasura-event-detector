@@ -15,7 +15,7 @@ import ReactFlow, {
   ConnectionMode,
 } from 'reactflow';
 import { AnimatePresence } from 'framer-motion';
-import { useInvocationFlowQuery } from '../types/generated';
+import { useInvocationTreeFlowQuery } from '../types/generated';
 import InvocationDetailDrawer from './InvocationDetailDrawer';
 import 'reactflow/dist/style.css';
 import JobDetailDrawer from './JobDetailDrawer';
@@ -41,8 +41,8 @@ const FlowDiagramContent = () => {
   const invocationId = searchParams.get('invocationId');
   const autoFocus = searchParams.get('autoFocus') === 'true';
 
-  // GraphQL Query for invocation flow
-  const { data, loading, error } = useInvocationFlowQuery({
+  // GraphQL Query for invocation tree flow
+  const { data, loading, error } = useInvocationTreeFlowQuery({
     variables: { invocationId: invocationId || '' },
     skip: !invocationId,
     fetchPolicy: 'cache-first',
@@ -50,7 +50,10 @@ const FlowDiagramContent = () => {
   });
 
   // Use the positioning hook to generate nodes and edges
-  const invocations = data?.invocations_by_pk ? [data.invocations_by_pk] : [];
+  // Combine the main invocation with its correlated invocations for recursive rendering
+  const invocations = data?.invocations_by_pk
+    ? [data.invocations_by_pk, ...(data.invocations_by_pk.correlated_invocations || [])]
+    : [];
   const { nodes: generatedNodes, edges: generatedEdges } = useFlowPositioning(invocations);
 
 

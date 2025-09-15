@@ -1,47 +1,52 @@
-query InvocationFlow($invocationId: uuid!) {
+query InvocationTreeFlow($invocationId: uuid!) {
   invocations_by_pk(id: $invocationId) {
-    id
-    source_function
-    status
-    total_duration_ms
-    events_detected_count
-    correlation_id
-    source_job_id
-    total_jobs_run
-    total_jobs_succeeded
-    total_jobs_failed
+    ...invocationTree
+    correlated_invocations(order_by: {created_at: asc}) {
+      ...invocationTree
+    }
+  }
+}
 
-    # Parent job that triggered this invocation (if any)
-    source_job_execution {
+fragment invocationTree on invocations {
+  id
+  source_event_id
+  source_function
+  status
+  total_duration_ms
+  correlation_id
+  source_job_id
+
+  source_job_execution {
+    id
+    job_name
+    job_function_name
+    status
+    duration_ms
+    correlation_id
+  }
+
+  event_executions {
+    id
+    event_name
+    detected
+    status
+    detection_duration_ms
+    handler_duration_ms
+    correlation_id
+
+    job_executions {
       id
       job_name
       job_function_name
       status
       duration_ms
-      invocation_id
-      event_execution_id
+      result
+      error_message
       correlation_id
-    }
 
-    event_executions {
-      id
-      event_name
-      detected
-      status
-      detection_duration_ms
-      handler_duration_ms
-      jobs_count
-      jobs_succeeded
-      jobs_failed
-
-      job_executions {
+      # Jobs that trigger new invocations
+      triggered_invocations {
         id
-        job_name
-        job_function_name
-        status
-        duration_ms
-        result
-        error_message
         correlation_id
       }
     }

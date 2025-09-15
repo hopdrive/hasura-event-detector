@@ -24,6 +24,10 @@ interface JobExecution {
   result?: any;
   error?: string;
   triggers_invocation?: boolean;
+  triggered_invocations?: Array<{
+    id: string;
+    correlation_id: string;
+  }>;
 }
 
 interface EventExecution {
@@ -46,6 +50,7 @@ interface Invocation {
   event_executions?: EventExecution[];
   source_job_id?: string;
   source_job_execution?: JobExecution;
+  correlated_invocations?: Invocation[];
 }
 
 export interface PositionedNode extends Node {
@@ -75,6 +80,7 @@ export const useFlowPositioning = (
   return useMemo(() => {
     const nodes: PositionedNode[] = [];
     const edges: Edge[] = [];
+    const processedInvocations = new Set<string>();
 
     // Calculate vertical position for centered child nodes
     const calculateChildPositions = (childCount: number, parentY: number, spacing?: number): number[] => {
@@ -104,10 +110,10 @@ export const useFlowPositioning = (
       });
     };
 
-    // Position nodes for each invocation
-    invocations.forEach((invocation, invocationIndex) => {
-      const baseX = 200;
-      const baseY = 100 + (invocationIndex * 600); // Vertical separation between invocations
+    // Helper function to process a single invocation with custom positioning
+    const processInvocation = (invocation: Invocation, baseX: number, baseY: number) => {
+      if (processedInvocations.has(invocation.id)) return;
+      processedInvocations.add(invocation.id);
 
       const events = invocation.event_executions || [];
       const detectedEvents = events.filter(e => e.detected);
@@ -262,7 +268,7 @@ export const useFlowPositioning = (
                   duration: job.duration,
                   result: job.result,
                   error: job.error,
-                  triggersInvocation: job.triggers_invocation
+                  triggersInvocation: job.triggers_invocation || (job.triggered_invocations && job.triggered_invocations.length > 0)
                 }
               };
               nodes.push(jobNode);
@@ -281,6 +287,40 @@ export const useFlowPositioning = (
                   height: 20,
                 }
               });
+
+              // Process triggered invocations recursively - position them to the right of the job
+              if (job.triggered_invocations && job.triggered_invocations.length > 0) {
+                job.triggered_invocations.forEach((triggeredRef: any, triggerIndex: number) => {
+                  // Find the full invocation data from the invocations array
+                  const fullTriggeredInvocation = invocations.find(inv => inv.id === triggeredRef.id);
+
+                  if (fullTriggeredInvocation) {
+                    // Position child invocations closer to the triggering job
+                    const childX = jobX + horizontalSpacing; // Use standard horizontal spacing
+                    const childY = jobY + (triggerIndex * 200); // Reduced vertical spacing between multiple child invocations
+
+                    // Process the child invocation recursively with full data
+                    processInvocation(fullTriggeredInvocation, childX, childY);
+
+                    // Create edge from job to triggered invocation
+                    edges.push({
+                      id: `job-${job.id}-to-invocation-${fullTriggeredInvocation.id}`,
+                      source: `job-${job.id}`,
+                      sourceHandle: 'right',
+                      target: fullTriggeredInvocation.id,
+                      targetHandle: 'left',
+                      type: 'default',
+                      animated: true,
+                      style: { stroke: '#f59e0b', strokeWidth: 3 }, // Orange color for recursive edges
+                      markerEnd: {
+                        type: 'arrowclosed',
+                        width: 20,
+                        height: 20,
+                      }
+                    });
+                  }
+                });
+              }
             });
           }
 
@@ -347,8 +387,35 @@ export const useFlowPositioning = (
           }
         });
       }
+    };
+
+    // Process invocations - prioritize root invocations (without source_job_id) but include all
+    // This handles cases where invocations might be passed directly without parent context
+    const rootInvocations = invocations.filter(inv => !inv.source_job_id);
+    const childInvocations = invocations.filter(inv => inv.source_job_id);
+
+    // Process root invocations first with standard positioning
+    rootInvocations.forEach((invocation, invocationIndex) => {
+      const baseX = 200;
+      const baseY = 100 + (invocationIndex * 600); // Vertical separation between root invocations only
+      processInvocation(invocation, baseX, baseY);
     });
 
-    return { nodes, edges };
+    // Process any remaining child invocations that weren't processed recursively
+    // This handles edge cases where child invocations are passed directly
+    childInvocations.forEach((invocation, invocationIndex) => {
+      if (!processedInvocations.has(invocation.id)) {
+        const baseX = 200;
+        const baseY = 100 + ((rootInvocations.length + invocationIndex) * 600);
+        processInvocation(invocation, baseX, baseY);
+      }
+    });
+
+    // Deduplicate edges to prevent duplicate key warnings
+    const uniqueEdges = edges.filter((edge, index, self) =>
+      index === self.findIndex(e => e.id === edge.id)
+    );
+
+    return { nodes: nodes, edges: uniqueEdges };
   }, [invocations, horizontalSpacing, verticalSpacing, nodeHeight, minVerticalSpacing]);
 };
