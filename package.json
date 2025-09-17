@@ -61,8 +61,7 @@
     "lint": "eslint src --ext .ts",
     "prepublishOnly": "npm run build",
     "deploy": "node scripts/deploy-wrapper.js",
-    "deploy-force": "node scripts/modified-deploy.js",
-    "event-console": "hasura-event-detector console start --port 3000"
+    "deploy-force": "node scripts/modified-deploy.js"
   },
   "repository": {
     "type": "git",

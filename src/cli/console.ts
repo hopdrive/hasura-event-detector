@@ -17,6 +17,7 @@ interface ConsoleOptions {
   outputDir?: string;
   publicUrl?: string;
   scriptName?: string;
+  addScript?: boolean;
   databaseUrl?: string;
   hasuraEndpoint?: string;
   hasuraAdminSecret?: string;
@@ -49,7 +50,7 @@ export async function startConsoleCommand(options: ConsoleOptions) {
       CONSOLE_HOST: options.host || config.console.host,
       CONSOLE_PUBLIC_URL: options.publicUrl || config.console.publicUrl,
       CONSOLE_AUTO_OPEN: options.open !== false ? 'true' : 'false',
-      NODE_ENV: options.watch !== false ? 'development' : 'production'
+      NODE_ENV: options.watch !== false ? 'development' : 'production',
     };
 
     // Change to console directory
@@ -74,7 +75,6 @@ export async function startConsoleCommand(options: ConsoleOptions) {
 
     // Start the React development server
     execSync('npm start', { stdio: 'inherit', env });
-
   } catch (error) {
     console.error('❌ Failed to start console:', error.message);
     process.exit(1);
@@ -96,10 +96,10 @@ export async function initConsoleCommand(options: ConsoleOptions) {
       const readline = require('readline');
       const rl = readline.createInterface({
         input: process.stdin,
-        output: process.stdout
+        output: process.stdout,
       });
 
-      const answer = await new Promise<string>((resolve) => {
+      const answer = await new Promise<string>(resolve => {
         rl.question('Do you want to overwrite it? (y/N): ', resolve);
       });
       rl.close();
@@ -121,7 +121,9 @@ export async function initConsoleCommand(options: ConsoleOptions) {
 module.exports = {
   // Database configuration
   database: {
-    url: process.env.DATABASE_URL || '${options.databaseUrl || 'postgresql://localhost:5432/hasura_event_detector_observability'}',
+    url: process.env.DATABASE_URL || '${
+      options.databaseUrl || 'postgresql://localhost:5432/hasura_event_detector_observability'
+    }',
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
   },
 
@@ -163,8 +165,8 @@ module.exports = {
     console.log(`✅ Created configuration file: ${configPath}`);
 
     // Add npm script to package.json if requested
-    if (options.scriptName) {
-      await addNpmScript(options.scriptName, options.port || 3000);
+    if (options.addScript) {
+      await addNpmScript('event-console', options.port || 3000);
     }
 
     console.log('\n🎉 Console initialized successfully!');
@@ -172,7 +174,6 @@ module.exports = {
     console.log('1. Configure your database connection in the config file');
     console.log('2. Start the console: hasura-event-detector console start');
     console.log('3. Or use the npm script: npm run event-console');
-
   } catch (error) {
     console.error('❌ Failed to initialize console:', error.message);
     process.exit(1);
