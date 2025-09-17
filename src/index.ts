@@ -9,12 +9,12 @@ export {
   CorrelationIdUtils
 } from './plugin';
 
-// Utility functions for event processing and job handling
-export { parseHasuraEvent, columnHasChanged, log, logError, logWarn, handleSuccess, handleFailure, getObjectSafely, type NetlifyResponse } from './helpers/index';
+// Job handling
 export { run, job } from './handler';
 
-// Tracking token utilities for execution chain tracing
-export { TrackingToken, type TrackingTokenComponents, type TrackingTokenSource } from './helpers/tracking-token';
+// Utility functions (optional imports)
+// Import from 'hasura-event-detector/utils' for utility functions
+export * from './utils';
 
 // Example jobs (for reference and testing)
 export {

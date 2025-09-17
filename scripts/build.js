@@ -26,7 +26,7 @@ function buildPackage() {
       execSync('tsc -p tsconfig.relaxed.json --outDir dist/cjs --module commonjs', { stdio: 'inherit' });
       execSync('tsc-alias -p tsconfig.relaxed.json --outDir dist/cjs', { stdio: 'inherit' });
       execSync('tsc -p tsconfig.relaxed.json --outDir dist/esm --module esnext', { stdio: 'inherit' });
-      execSync('tsc-alias -p tsconfig.relaxed.json --outDir dist/esm', { stdio: 'inherit' });
+      execSync('tsc-alias -p tsconfig.relaxed.json --outDir dist/esm --resolve-full-paths --resolve-full-extension .js', { stdio: 'inherit' });
       execSync('tsc -p tsconfig.relaxed.json --declaration --emitDeclarationOnly --outDir dist/types', { stdio: 'inherit' });
     } else {
       execSync('npm run build:cjs', { stdio: 'inherit' });
