@@ -2,7 +2,7 @@
 
 /**
  * Hasura Event Detector CLI
- * 
+ *
  * Command-line interface for managing and testing event detection.
  */
 
@@ -15,6 +15,14 @@ const { createEventCommand } = require('../dist/cjs/cli/create-event.js');
 const { testEventCommand } = require('../dist/cjs/cli/test-event.js');
 const { listEventsCommand } = require('../dist/cjs/cli/list-events.js');
 const { validateConfigCommand } = require('../dist/cjs/cli/validate-config.js');
+const {
+  startConsoleCommand,
+  initConsoleCommand,
+  buildConsoleCommand,
+  addScriptCommand,
+  removeScriptCommand,
+  checkConsoleCommand,
+} = require('../dist/cjs/cli/console.js');
 
 // Set up the CLI program
 program
@@ -51,41 +59,97 @@ program
   .option('-c, --config <file>', 'Configuration file', './hasura-event-detector.config.js')
   .action(validateConfigCommand);
 
+// Console commands
+const consoleCommand = program
+  .command('console')
+  .description('Manage the observability console');
+
+consoleCommand
+  .command('start')
+  .description('Start the observability console')
+  .option('-c, --config <file>', 'Configuration file', './console.config.js')
+  .option('-p, --port <port>', 'Port to run on', '3000')
+  .option('--host <host>', 'Host to bind to', 'localhost')
+  .option('--no-open', 'Do not open browser automatically')
+  .option('--no-watch', 'Disable watch mode')
+  .option('--database-url <url>', 'Database URL')
+  .option('--hasura-endpoint <url>', 'Hasura GraphQL endpoint')
+  .option('--hasura-admin-secret <secret>', 'Hasura admin secret')
+  .action(startConsoleCommand);
+
+consoleCommand
+  .command('init')
+  .description('Initialize console configuration')
+  .option('-c, --config <file>', 'Configuration file', './console.config.js')
+  .option('-p, --port <port>', 'Port to run on', '3000')
+  .option('--host <host>', 'Host to bind to', 'localhost')
+  .option('--database-url <url>', 'Database URL')
+  .option('--hasura-endpoint <url>', 'Hasura GraphQL endpoint')
+  .option('--hasura-admin-secret <secret>', 'Hasura admin secret')
+  .option('--add-script', 'Add event-console script to package.json')
+  .action(initConsoleCommand);
+
+consoleCommand
+  .command('build')
+  .description('Build console for production')
+  .option('-c, --config <file>', 'Configuration file', './console.config.js')
+  .option('-o, --output-dir <dir>', 'Output directory')
+  .option('--public-url <url>', 'Public URL for the console')
+  .option('--database-url <url>', 'Database URL')
+  .option('--hasura-endpoint <url>', 'Hasura GraphQL endpoint')
+  .option('--hasura-admin-secret <secret>', 'Hasura admin secret')
+  .action(buildConsoleCommand);
+
+consoleCommand
+  .command('add-script')
+  .description('Add event-console script to package.json')
+  .option('-p, --port <port>', 'Port to run on', '3000')
+  .option('--script-name <name>', 'Script name', 'event-console')
+  .action(addScriptCommand);
+
+consoleCommand
+  .command('remove-script')
+  .description('Remove event-console script from package.json')
+  .action(removeScriptCommand);
+
+consoleCommand
+  .command('check')
+  .description('Check console configuration')
+  .option('-c, --config <file>', 'Configuration file', './console.config.js')
+  .action(checkConsoleCommand);
+
 program
   .command('init')
   .description('Initialize a new Hasura Event Detector project')
   .option('--typescript', 'Initialize with TypeScript support')
   .action(async (options) => {
     console.log('🚀 Initializing Hasura Event Detector project...');
-    
+
     // Create events directory
     const eventsDir = './events';
     if (!fs.existsSync(eventsDir)) {
       fs.mkdirSync(eventsDir, { recursive: true });
       console.log(`✅ Created events directory: ${eventsDir}`);
     }
-    
+
     // Create sample event
-    const templateSource = options.typescript 
+    const templateSource = options.typescript
       ? path.join(__dirname, '../templates/user-activation-event.ts')
       : path.join(__dirname, '../templates/user-activation-event.js');
-    
-    const targetFile = options.typescript 
-      ? './events/user-activation.ts'
-      : './events/user-activation.js';
-      
+
+    const targetFile = options.typescript ? './events/user-activation.ts' : './events/user-activation.js';
+
     if (fs.existsSync(templateSource)) {
       fs.copyFileSync(templateSource, targetFile);
       console.log(`✅ Created sample event: ${targetFile}`);
     }
-    
+
     // Create config file
-    const configTemplate = options.typescript 
-      ? 'hasura-event-detector.config.ts'
-      : 'hasura-event-detector.config.js';
-      
+    const configTemplate = options.typescript ? 'hasura-event-detector.config.ts' : 'hasura-event-detector.config.js';
+
     if (!fs.existsSync(configTemplate)) {
-      const configContent = options.typescript ? `
+      const configContent = options.typescript
+        ? `
 import type { ListenToOptions } from '@hopdrive/hasura-event-detector';
 
 export const config: Partial<ListenToOptions> = {
@@ -98,7 +162,8 @@ export const config: Partial<ListenToOptions> = {
 };
 
 export default config;
-` : `
+`
+        : `
 module.exports = {
   autoLoadEventModules: true,
   eventModulesDirectory: './events',
@@ -108,11 +173,11 @@ module.exports = {
   }
 };
 `;
-      
+
       fs.writeFileSync(configTemplate, configContent.trim());
       console.log(`✅ Created config file: ${configTemplate}`);
     }
-    
+
     console.log('\n🎉 Project initialized successfully!');
     console.log('\nNext steps:');
     console.log('1. Configure your database connection in the config file');

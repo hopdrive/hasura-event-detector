@@ -10,6 +10,7 @@ A powerful TypeScript-first framework for detecting and responding to business e
 
 - **TypeScript-First**: Full type safety with comprehensive TypeScript support
 - **Plugin Architecture**: Extensible observability and logging system
+- **Observability Console**: React-based dashboard for real-time monitoring and debugging
 - **Parallel Job Execution**: Run multiple jobs concurrently with proper error isolation
 - **CLI Tools**: Command-line interface for development and testing
 - **Correlation Tracking**: Built-in correlation ID system for tracing business processes
@@ -43,7 +44,17 @@ npx hasura-event-detector create user-activation --template user-activation
 npx hasura-event-detector test user-activation
 ```
 
-### 4. Use in Production
+### 4. Set Up Observability Console
+
+```bash
+# Initialize console with configuration
+hasura-event-detector console init --add-script
+
+# Start console for monitoring
+npm run event-console
+```
+
+### 5. Use in Production
 
 **TypeScript/ESM:**
 ```typescript
@@ -505,6 +516,12 @@ hasura-event-detector list [--detailed]
 
 # Validate configuration
 hasura-event-detector validate [--config <file>]
+
+# Console commands
+hasura-event-detector console init [--add-script]
+hasura-event-detector console start [--port 3000]
+hasura-event-detector console build [--output-dir ./dist]
+hasura-event-detector console check
 ```
 
 ### Testing
@@ -518,6 +535,102 @@ hasura-event-detector test user-activation --file test-data.json
 
 # Dry run (detection only)
 hasura-event-detector test user-activation --dry-run
+```
+
+## 🖥️ Observability Console
+
+The framework includes a powerful React-based console for monitoring and debugging your event detection system in real-time.
+
+### Features
+
+- **Real-time Event Monitoring**: Watch events as they're detected and processed
+- **Correlation Tracking**: Visualize business process flows across multiple events
+- **Performance Analytics**: Track job execution times and success rates
+- **Error Debugging**: Detailed error logs with context and stack traces
+- **Flow Diagrams**: Interactive visualizations of event processing flows
+- **Data Export**: Export event data for analysis
+
+### Quick Start
+
+```bash
+# Initialize console in your project
+hasura-event-detector console init --add-script
+
+# Start the console
+npm run event-console
+# OR
+hasura-event-detector console start
+```
+
+### Console Commands
+
+```bash
+# Initialize console configuration
+hasura-event-detector console init [options]
+
+# Start development server
+hasura-event-detector console start [options]
+
+# Build for production
+hasura-event-detector console build [options]
+
+# Add npm script to package.json
+hasura-event-detector console add-script
+
+# Check configuration
+hasura-event-detector console check
+```
+
+### Configuration
+
+The console uses a `console.config.js` file for configuration:
+
+```javascript
+module.exports = {
+  // Database configuration
+  database: {
+    url: process.env.DATABASE_URL || 'postgresql://localhost:5432/hasura_event_detector_observability',
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  },
+
+  // Hasura configuration
+  hasura: {
+    endpoint: process.env.HASURA_ENDPOINT || 'http://localhost:8080/v1/graphql',
+    adminSecret: process.env.HASURA_ADMIN_SECRET || 'myadminsecretkey'
+  },
+
+  // Console server configuration
+  console: {
+    port: 3000,
+    host: 'localhost',
+    publicUrl: 'http://localhost:3000',
+    autoOpen: true,
+    watchMode: true
+  }
+};
+```
+
+### Production Deployment
+
+```bash
+# Build console for production
+hasura-event-detector console build --output-dir ./dist
+
+# Deploy to your hosting platform
+# The console is a standard React app that can be deployed anywhere
+```
+
+### Integration with Netlify Functions
+
+```bash
+# In your Netlify project
+npm install @hopdrive/hasura-event-detector
+
+# Initialize console
+hasura-event-detector console init --add-script
+
+# Start console for development
+npm run event-console
 ```
 
 ## 📚 Documentation
@@ -545,14 +658,16 @@ hasura-event-detector create user-signup --template user-activation
 
 ## 🔍 Observability
 
-The framework includes a comprehensive observability system:
+The framework includes a comprehensive observability system with both programmatic APIs and a visual console:
 
 ### Features
 
+- **Observability Console**: React-based dashboard for real-time monitoring
 - **Correlation ID Tracking**: Trace business processes across multiple events
 - **Performance Monitoring**: Track job execution times and success rates
 - **Error Tracking**: Comprehensive error logging with context
 - **Database Integration**: Store metrics in PostgreSQL for analysis
+- **Flow Visualization**: Interactive diagrams of event processing flows
 
 ### Plugin System
 
@@ -578,6 +693,18 @@ Use the provided templates for easy deployment:
 // netlify/functions/hasura-events.ts
 import { handler } from '../../templates/netlify-function';
 export { handler };
+```
+
+**With Console:**
+```bash
+# Initialize console in your Netlify project
+hasura-event-detector console init --add-script
+
+# Start console for development
+npm run event-console
+
+# Build console for production
+hasura-event-detector console build --output-dir ./public/console
 ```
 
 ### Vercel
