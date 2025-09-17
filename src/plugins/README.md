@@ -119,7 +119,7 @@ Plugins enable:
 
 ```typescript
 import { pluginManager, listenTo } from '@hopdrive/hasura-event-detector';
-import { SimpleLoggingPlugin } from './example-plugins/simple-logging/plugin';
+import { SimpleLoggingPlugin } from 'hasura-event-detector/plugins';
 
 // Create and configure plugin
 const logger = new SimpleLoggingPlugin({
@@ -141,9 +141,9 @@ await listenTo(hasuraEvent, options);
 
 ```typescript
 import { pluginManager } from '@hopdrive/hasura-event-detector';
-import { SimpleLoggingPlugin } from './example-plugins/simple-logging/plugin';
-import { ConsoleInterceptorPlugin } from './example-plugins/console-interceptor/plugin';
-import { TrackingTokenExtractionPlugin } from './example-plugins/tracking-token-extraction/plugin';
+import { SimpleLoggingPlugin } from 'hasura-event-detector/plugins';
+import { ConsoleInterceptorPlugin } from 'hasura-event-detector/plugins';
+import { TrackingTokenExtractionPlugin } from 'hasura-event-detector/plugins';
 
 // Create plugins
 const consoleInterceptor = new ConsoleInterceptorPlugin();
@@ -163,9 +163,9 @@ await pluginManager.initialize();
 ### 3. Production Monitoring Setup
 
 ```typescript
-import { ObservabilityPlugin } from './example-plugins/observability/plugin';
-import { SimpleLoggingPlugin } from './example-plugins/simple-logging/plugin';
-import { ConsoleInterceptorPlugin } from './example-plugins/console-interceptor/plugin';
+import { ObservabilityPlugin } from 'hasura-event-detector/plugins';
+import { SimpleLoggingPlugin } from 'hasura-event-detector/plugins';
+import { ConsoleInterceptorPlugin } from 'hasura-event-detector/plugins';
 
 // Production-ready monitoring stack
 const observability = new ObservabilityPlugin({

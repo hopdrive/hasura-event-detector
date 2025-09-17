@@ -1,6 +1,6 @@
 import { Pool, PoolClient } from 'pg';
 import { v4 as uuidv4 } from 'uuid';
-import { BasePlugin } from '../../src/plugin';
+import { BasePlugin } from '../../plugin';
 import {
   type PluginConfig,
   type CorrelationId,
@@ -13,9 +13,9 @@ import {
   type ListenToResponse,
   type DatabaseConfig,
   type HasuraOperation,
-} from '../../src/types';
-import { log, logError } from '../../src/helpers/log';
-import { parseHasuraEvent } from '../../src/helpers/hasura';
+} from '../../types';
+import { log, logError } from '../../helpers/log';
+import { parseHasuraEvent } from '../../helpers/hasura';
 
 // Observability-specific types moved from core types
 export interface ObservabilityMetrics {
@@ -88,7 +88,7 @@ export interface ObservabilityQueryVariables {
   endTime?: string;
 }
 
-interface ObservabilityConfig extends PluginConfig {
+export interface ObservabilityConfig extends PluginConfig {
   enabled?: boolean;
   database: DatabaseConfig & {
     connectionString?: string | undefined;
@@ -434,7 +434,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
 
       // Insert/update invocations
       if (this.buffer.invocations.size > 0) {
-        await this.bulkUpsertInvocations(client, Array.from(this.buffer.invocations.values()));
+        const res = await this.bulkUpsertInvocations(client, Array.from(this.buffer.invocations.values()));
         this.buffer.invocations.clear();
       }
 
@@ -514,7 +514,8 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       ON CONFLICT (id) DO UPDATE SET ${updateSet}
     `;
 
-    await client.query(query, values.flat());
+    const res = await client.query(query, values.flat());
+    console.log('Bulk upsert invocations result:', res);
   }
 
   /**
@@ -629,13 +630,16 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     const invocationData = {
       correlationId: hasuraEvent.__correlationId,
       sourceFunction: options.sourceFunction || 'unknown',
-      sourceTable: `${dbEvent?.table?.schema || 'public'}.${dbEvent?.table?.name || 'unknown'}`,
+      sourceTable: `${hasuraEvent?.table?.schema || 'public'}.${hasuraEvent?.table?.name || 'unknown'}`,
       sourceOperation: hasuraEvent.event?.op || 'MANUAL',
-      sourceUser: hasuraEvent.event?.session_variables?.['x-hasura-user-id'] || hasuraEvent.event?.session_variables?.['x-hasura-user-email'] || null,
+      sourceUser:
+        hasuraEvent.event?.session_variables?.['x-hasura-user-id'] ||
+        hasuraEvent.event?.session_variables?.['x-hasura-user-email'] ||
+        null,
       sourceJobId: (hasuraEvent as any).__sourceJobId || null,
       hasuraEventId: hasuraEvent.id || null,
       hasuraEventPayload: hasuraEvent,
-      hasuraEventTime: new Date(hasuraEvent.event?.timestamp || hasuraEvent.created_at || Date.now()),
+      hasuraEventTime: new Date(hasuraEvent.created_at || Date.now()),
       hasuraUserEmail: hasuraEvent.event?.session_variables?.['x-hasura-user-email'] || null,
       hasuraUserRole: hasuraEvent.event?.session_variables?.['x-hasura-role'] || null,
       autoLoadModules: options.autoLoadEventModules !== false,
@@ -912,7 +916,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     // Clean up job tracking
     this.activeJobExecutions.delete(jobExecutionKey);
 
-    const status = result.success || result.completed ? 'succeeded' : 'failed';
+    const status = result.completed && !result.error ? 'succeeded' : 'failed';
     log('ObservabilityPlugin', `Job completed: ${jobName} (${status}, ${durationMs}ms)`);
   }
 

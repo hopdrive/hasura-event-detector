@@ -18,7 +18,7 @@ The ConsoleInterceptorPlugin captures console logs from ANY source within job ex
 ## Configuration
 
 ```typescript
-import { ConsoleInterceptorPlugin } from './example-plugins/console-interceptor/plugin.js';
+import { ConsoleInterceptorPlugin } from 'hasura-event-detector/plugins';
 
 const consoleInterceptor = new ConsoleInterceptorPlugin({
   enabled: true,
@@ -32,7 +32,7 @@ const consoleInterceptor = new ConsoleInterceptorPlugin({
 
 ```typescript
 import { pluginManager } from '@hopdrive/hasura-event-detector';
-import { ConsoleInterceptorPlugin } from './example-plugins/console-interceptor/plugin.js';
+import { ConsoleInterceptorPlugin } from 'hasura-event-detector/plugins';
 
 // Register the plugin
 const consoleInterceptor = new ConsoleInterceptorPlugin();

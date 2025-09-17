@@ -10,7 +10,7 @@ This guide shows how to integrate the ObservabilityPlugin with your Event Detect
 // In your Netlify function or event detector setup
 import { listenTo } from '@/src/detector';
 import { pluginManager } from '@/src/plugin';
-import { ObservabilityPlugin } from './example-plugins/observability/plugin';
+import { ObservabilityPlugin } from 'hasura-event-detector/plugins';
 
 // Initialize the plugin
 const observabilityPlugin = new ObservabilityPlugin({

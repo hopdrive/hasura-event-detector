@@ -48,7 +48,7 @@ Events are traced through the system using correlation IDs that follow this patt
 The observability plugin is organized into the following directories:
 
 ```
-example-plugins/observability/
+src/plugins/observability/
 ├── README.md              # Main plugin documentation
 ├── plugin.ts              # Plugin implementation
 ├── dashboard/             # React dashboard application
@@ -84,7 +84,7 @@ CREATE DATABASE hasura_event_detector_observability;
 Run the schema migration:
 
 ```bash
-psql -d hasura_event_detector_observability -f example-plugins/observability/model/schema.sql
+psql -d hasura_event_detector_observability -f src/src/plugins/observability/model/schema.sql
 ```
 
 ### 2. Hasura Configuration
@@ -96,7 +96,7 @@ Add the observability database to your Hasura instance and apply the metadata:
 hasura metadata apply --database-name observability
 
 # Apply table and relationship metadata
-hasura metadata apply --from-file example-plugins/observability/model/hasura-metadata/
+hasura metadata apply --from-file src/src/plugins/observability/model/hasura-metadata/
 ```
 
 ### 3. Plugin Registration
@@ -105,7 +105,7 @@ Register the observability plugin with your event detector:
 
 ```typescript
 import { pluginManager } from '@hopdrive/hasura-event-detector';
-import { ObservabilityPlugin } from './example-plugins/observability/plugin.js';
+import { ObservabilityPlugin } from 'hasura-event-detector/plugins';
 
 const observabilityPlugin = new ObservabilityPlugin({
   enabled: process.env.OBSERVABILITY_ENABLED === 'true',

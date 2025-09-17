@@ -60,3 +60,7 @@ export type {
   // Tracking token type (re-export for convenience)
   TrackingToken as TrackingTokenType
 } from "./types";
+
+// Example plugins (optional imports)
+// Import from 'hasura-event-detector/plugins' for example plugins
+export * from './plugins';

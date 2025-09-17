@@ -12,11 +12,11 @@
 
 import { listenTo } from '../detector';
 import { pluginManager } from '../plugin';
-import { ObservabilityPlugin } from '../../example-plugins/observability/plugin';
-import { TrackingTokenExtractionPlugin } from '../../example-plugins/tracking-token-extraction/plugin';
+import { ObservabilityPlugin } from '../plugins/observability/plugin';
+import { TrackingTokenExtractionPlugin } from '../plugins/tracking-token-extraction/plugin';
 import * as path from 'path';
 import { config } from 'dotenv';
-config({ path: 'example-plugins/observability/.env' });
+config({ path: 'src/plugins/observability/.env' });
 
 describe('Debug Moves Event', () => {
   // Your actual Hasura payload from Insomnia

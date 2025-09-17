@@ -26,15 +26,15 @@
 ### For Plugin Users
 ```typescript
 // Old
-import { CorrelationIdExtractionPlugin } from './example-plugins/correlation-id-extraction/plugin';
+import { CorrelationIdExtractionPlugin } from 'hasura-event-detector/example-plugins';
 const plugin = new CorrelationIdExtractionPlugin({...});
 
 // New
-import { TrackingTokenExtractionPlugin } from './example-plugins/tracking-token-extraction/plugin';
+import { TrackingTokenExtractionPlugin } from 'hasura-event-detector/example-plugins';
 const plugin = new TrackingTokenExtractionPlugin({...});
 
 // Or use backward compatibility export
-import { CorrelationIdExtractionPlugin } from './example-plugins/tracking-token-extraction/plugin';
+import { CorrelationIdExtractionPlugin } from 'hasura-event-detector/example-plugins';
 const plugin = new CorrelationIdExtractionPlugin({...}); // Still works!
 ```
 
@@ -68,8 +68,8 @@ export const myJob: JobFunction = async (event, hasuraEvent, options) => {
 - Supports complete job lineage tracking
 
 ### Files Modified
-- `example-plugins/tracking-token-extraction/` (renamed directory)
-- `example-plugins/observability/plugin.ts` (added source_job_id support)
+- `src/example-plugins/tracking-token-extraction/` (renamed directory)
+- `src/example-plugins/observability/plugin.ts` (added source_job_id support)
 - All documentation and reference files updated
 - Backward compatibility exports maintained
 

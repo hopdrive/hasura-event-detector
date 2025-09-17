@@ -50,7 +50,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/your-org/hasura-event-detector",
-    "directory": "example-plugins/observability/dashboard"
+    "directory": "src/plugins/observability/dashboard"
   },
   "engines": {
     "node": ">=16.0.0",

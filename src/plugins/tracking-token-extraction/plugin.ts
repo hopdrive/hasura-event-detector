@@ -6,11 +6,11 @@
  * for use by other plugins and jobs.
  */
 
-import type { HasuraEventPayload, ParsedHasuraEvent, PluginName, PluginConfig, ListenToOptions } from '../../src/types';
-import { BasePlugin } from '../../src/plugin';
-import { log, logWarn } from '../../src/helpers/log';
-import { parseHasuraEvent } from '../../src/helpers/hasura';
-import { TrackingToken } from '../../src/helpers/tracking-token';
+import type { HasuraEventPayload, ParsedHasuraEvent, PluginName, PluginConfig, ListenToOptions } from '../../types';
+import { BasePlugin } from '../../plugin';
+import { log, logWarn } from '../../helpers/log';
+import { parseHasuraEvent } from '../../helpers/hasura';
+import { TrackingToken } from '../../helpers/tracking-token';
 
 export interface TrackingTokenExtractionConfig extends PluginConfig {
   enabled?: boolean;

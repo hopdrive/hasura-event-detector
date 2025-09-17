@@ -51,13 +51,13 @@ import { listenTo } from '@hopdrive/hasura-event-detector';
 
 export const handler = async (event, context) => {
   const hasuraEvent = JSON.parse(event.body);
-  
+
   const result = await listenTo(hasuraEvent, {
     context: { environment: 'production' },
     autoLoadEventModules: true,
     eventModulesDirectory: './events'
   });
-  
+
   return {
     statusCode: 200,
     body: JSON.stringify(result)
@@ -71,13 +71,13 @@ const { listenTo } = require('@hopdrive/hasura-event-detector');
 
 exports.handler = async (event, context) => {
   const hasuraEvent = JSON.parse(event.body);
-  
+
   const result = await listenTo(hasuraEvent, {
     context: { environment: 'production' },
     autoLoadEventModules: true,
     eventModulesDirectory: './events'
   });
-  
+
   return {
     statusCode: 200,
     body: JSON.stringify(result)
@@ -236,13 +236,13 @@ const jobs = [
     template: 'welcome',
     variables: { name: user.name }
   }),
-  
+
   job(analyticsTrackingJob, {
     eventName: 'User Activated',
     userId: user.id,
     properties: { plan: user.plan }
   }),
-  
+
   job(webhookNotificationJob, {
     url: 'https://api.external.com/webhooks',
     secret: process.env.WEBHOOK_SECRET
@@ -261,13 +261,13 @@ const result = await listenTo(hasuraEvent, config, {
   // Environment information
   environment: process.env.NODE_ENV,
   requestId: req.headers['x-request-id'],
-  
+
   // Feature flags
   featureFlags: {
     enableNotifications: true,
     useNewAlgorithm: false
   },
-  
+
   // Testing
   testMode: false,
   dryRun: false
@@ -279,30 +279,30 @@ const result = await listenTo(hasuraEvent, config, {
 ```typescript
 export const detector = async (event, hasuraEvent) => {
   const context = hasuraEvent.__context;
-  
+
   // Skip detection in test mode
   if (context?.testMode && !context?.forceDetection) {
     return false;
   }
-  
+
   // Environment-specific logic
   if (context?.environment === 'production') {
     // Stricter validation in production
   }
-  
+
   return true;
 };
 
 export const handler = async (event, hasuraEvent) => {
   const context = hasuraEvent.__context;
-  
+
   const jobs = [];
-  
+
   // Conditionally add jobs based on context
   if (context?.featureFlags?.enableNotifications) {
     jobs.push(job(sendEmailJob));
   }
-  
+
   return await run(event, hasuraEvent, jobs);
 };
 ```
@@ -337,7 +337,7 @@ const result = await listenTo(hasuraEvent, {
 
 ### Plugin-Based Extraction (Automatic)
 ```typescript
-import { TrackingTokenExtractionPlugin } from './example-plugins/tracking-token-extraction/plugin';
+import { TrackingTokenExtractionPlugin } from 'hasura-event-detector/example-plugins';
 
 // Create plugin to extract from various sources
 const correlationPlugin = new TrackingTokenExtractionPlugin({
@@ -360,7 +360,7 @@ const result = await listenTo(hasuraEvent, {
 ```typescript
 job(async function trackAnalytics(event, hasuraEvent, options) {
   const correlationId = options?.correlationId;
-  
+
   // Create database record with correlation ID
   await db.analytics.create({
     correlation_id: correlationId,
@@ -368,7 +368,7 @@ job(async function trackAnalytics(event, hasuraEvent, options) {
     user_id: hasuraEvent.event.data.new?.id,
     timestamp: new Date()
   });
-  
+
   return { correlationId, tracked: true };
 })
 ```
@@ -386,42 +386,42 @@ import { BasePluginInterface } from '@hopdrive/hasura-event-detector';
 
 class OrderEnrichmentPlugin implements BasePluginInterface {
   readonly name = 'order-enrichment' as PluginName;
-  
+
   // Called before processing starts - perfect for payload enrichment and correlation ID extraction
   async onPreConfigure(hasuraEvent, options) {
     // Step 1: Enrich payload with related data (by reference)
     if (hasuraEvent.table?.name === 'orders') {
       const orderId = hasuraEvent.event.data.new?.id;
       const relatedData = await this.fetchOrderRelatedData(orderId);
-      
+
       // Modify payload directly - all event detectors and jobs will see enriched data
       hasuraEvent.event.data.new = {
         ...hasuraEvent.event.data.new,
         lanes: relatedData.lanes,     // Child lanes
-        driver: relatedData.driver,   // Assigned driver  
+        driver: relatedData.driver,   // Assigned driver
         vehicle: relatedData.vehicle, // Vehicle details
         customer: relatedData.customer // Customer info
       };
     }
-    
+
     // Step 2: Extract correlation ID from enriched payload
     const updatedBy = parseHasuraEvent(hasuraEvent).dbEvent?.new?.updated_by;
     const match = updatedBy?.match(/^user\.([0-9a-f-]{36})$/i);
-    
+
     return match ? { ...options, correlationId: match[1] } : options;
   }
-  
+
   private async fetchOrderRelatedData(orderId) {
     // Single optimized database query to prevent N+1 queries later
     return await db.query(`
-      SELECT 
+      SELECT
         json_agg(DISTINCT l.*) as lanes,
         row_to_json(d.*) as driver,
         row_to_json(v.*) as vehicle,
         row_to_json(c.*) as customer
       FROM orders o
       LEFT JOIN lanes l ON l.order_id = o.id
-      LEFT JOIN drivers d ON d.id = o.driver_id  
+      LEFT JOIN drivers d ON d.id = o.driver_id
       LEFT JOIN vehicles v ON v.id = o.vehicle_id
       LEFT JOIN customers c ON c.id = o.customer_id
       WHERE o.id = $1
@@ -472,7 +472,7 @@ const config = {
 const config = {
   autoLoadEventModules: true,
   eventModulesDirectory: './events',
-  
+
   observability: {
     enabled: process.env.NODE_ENV === 'production',
     database: {
@@ -522,7 +522,7 @@ hasura-event-detector test user-activation --dry-run
 
 ## 📚 Documentation
 
-- [Plugin System Guide](./example-plugins/README.md) - Create plugins for observability and customization
+- [Plugin System Guide](./src/example-plugins/README.md) - Create plugins for observability and customization
 - [Templates](./templates/) - Ready-to-use templates
 
 ## 🎨 Templates

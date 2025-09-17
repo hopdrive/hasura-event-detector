@@ -19,7 +19,7 @@ The TrackingTokenExtractionPlugin demonstrates how to extract correlation IDs fr
 ## Configuration
 
 ```typescript
-import { TrackingTokenExtractionPlugin } from './example-plugins/tracking-token-extraction/plugin.js';
+import { TrackingTokenExtractionPlugin } from 'hasura-event-detector/plugins';
 
 const trackingExtractor = new TrackingTokenExtractionPlugin({
   enabled: true,
@@ -44,7 +44,7 @@ const trackingExtractor = new TrackingTokenExtractionPlugin({
 
 ```typescript
 import { pluginManager } from '@hopdrive/hasura-event-detector';
-import { TrackingTokenExtractionPlugin } from './example-plugins/tracking-token-extraction/plugin.js';
+import { TrackingTokenExtractionPlugin } from 'hasura-event-detector/plugins';
 
 // Register the plugin
 const trackingExtractor = new TrackingTokenExtractionPlugin({

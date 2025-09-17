@@ -1,22 +1,22 @@
 /**
  * Order Enrichment Plugin Example
- * 
+ *
  * This plugin demonstrates how to enrich Hasura event payloads with related records
  * to prevent N+1 database queries in event detectors and jobs.
- * 
+ *
  * It modifies the payload by reference in the onPreConfigure hook, ensuring all
  * subsequent event detectors and jobs have access to the enriched data.
  */
 
+import type { BasePluginInterface } from '../../types';
 import type {
   HasuraEventPayload,
   ParsedHasuraEvent,
-  BasePluginInterface,
   PluginName,
   PluginConfig,
   ListenToOptions
-} from '@hopdrive/hasura-event-detector';
-import { log, logWarn, parseHasuraEvent } from '@hopdrive/hasura-event-detector';
+} from '../../types';
+import { log, logWarn, parseHasuraEvent } from '../../helpers/index';
 
 export interface OrderEnrichmentConfig extends PluginConfig {
   enabled?: boolean;
@@ -84,11 +84,11 @@ export class OrderEnrichmentPlugin implements BasePluginInterface<OrderEnrichmen
    * Enrich the Hasura payload with related records to prevent N+1 queries
    */
   private async enrichPayloadWithRelatedData(
-    hasuraEvent: HasuraEventPayload, 
+    hasuraEvent: HasuraEventPayload,
     parsedEvent: ParsedHasuraEvent
   ): Promise<void> {
     const tableName = hasuraEvent.table?.name;
-    
+
     // Only enrich configured tables
     if (!this.config.enrichTables?.includes(tableName)) {
       return;
@@ -110,7 +110,7 @@ export class OrderEnrichmentPlugin implements BasePluginInterface<OrderEnrichmen
     try {
       // Fetch related data based on table type
       let relatedData = {};
-      
+
       switch (tableName) {
         case 'orders':
           relatedData = await this.fetchOrderRelatedData(recordId);
@@ -140,8 +140,8 @@ export class OrderEnrichmentPlugin implements BasePluginInterface<OrderEnrichmen
       log('OrderEnrichment', `✅ Enriched ${tableName} ${recordId} with: ${enrichedKeys.join(', ')}`);
 
     } catch (error) {
-      logWarn('OrderEnrichment', 
-        `Failed to enrich ${tableName} ${recordId}`, 
+      logWarn('OrderEnrichment',
+        `Failed to enrich ${tableName} ${recordId}`,
         error as Error
       );
       // Don't throw - continue processing even if enrichment fails
@@ -154,7 +154,7 @@ export class OrderEnrichmentPlugin implements BasePluginInterface<OrderEnrichmen
   private async fetchOrderRelatedData(orderId: string): Promise<Record<string, any>> {
     // In a real application, this would be a single database query
     // joining multiple tables for optimal performance
-    
+
     // Simulated database query result
     return {
       // Child lanes for this order
@@ -168,7 +168,7 @@ export class OrderEnrichmentPlugin implements BasePluginInterface<OrderEnrichmen
           status: 'assigned'
         },
         {
-          id: 'lane_2', 
+          id: 'lane_2',
           order_id: orderId,
           pickup_location: 'Portland, OR',
           delivery_location: 'San Francisco, CA',
@@ -176,7 +176,7 @@ export class OrderEnrichmentPlugin implements BasePluginInterface<OrderEnrichmen
           status: 'pending'
         }
       ],
-      
+
       // Assigned driver details
       driver: {
         id: 'driver_123',
@@ -189,7 +189,7 @@ export class OrderEnrichmentPlugin implements BasePluginInterface<OrderEnrichmen
           lng: -122.3321
         }
       },
-      
+
       // Vehicle information
       vehicle: {
         id: 'truck_456',
@@ -200,7 +200,7 @@ export class OrderEnrichmentPlugin implements BasePluginInterface<OrderEnrichmen
         capacity_lbs: 80000,
         fuel_type: 'diesel'
       },
-      
+
       // Customer details
       customer: {
         id: 'customer_789',
@@ -242,20 +242,20 @@ export class OrderEnrichmentPlugin implements BasePluginInterface<OrderEnrichmen
   }
 
   /**
-   * Fetch booking-related data  
+   * Fetch booking-related data
    */
   private async fetchBookingRelatedData(bookingId: string): Promise<Record<string, any>> {
     // Simulated booking enrichment
     return {
       appointments: [
-        { 
+        {
           type: 'pickup',
           scheduled_time: '2024-01-15T10:00:00Z',
           location: 'Origin Terminal',
           status: 'confirmed'
         },
         {
-          type: 'delivery', 
+          type: 'delivery',
           scheduled_time: '2024-01-16T14:00:00Z',
           location: 'Destination Terminal',
           status: 'pending'
@@ -284,7 +284,7 @@ export class OrderEnrichmentPlugin implements BasePluginInterface<OrderEnrichmen
     }
 
     // Try to extract from workflow_id or process_id
-    const workflowId = parsedEvent.dbEvent?.new?.workflow_id || 
+    const workflowId = parsedEvent.dbEvent?.new?.workflow_id ||
                        parsedEvent.dbEvent?.new?.process_id;
     if (workflowId && typeof workflowId === 'string') {
       return workflowId;

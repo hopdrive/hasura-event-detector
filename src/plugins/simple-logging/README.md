@@ -19,7 +19,7 @@ The SimpleLoggingPlugin listens to log events through the plugin system's `onLog
 ## Configuration
 
 ```typescript
-import { SimpleLoggingPlugin } from './example-plugins/simple-logging/plugin.js';
+import { SimpleLoggingPlugin } from 'hasura-event-detector/plugins';
 
 const simpleLogger = new SimpleLoggingPlugin({
   enabled: true,
@@ -37,7 +37,7 @@ const simpleLogger = new SimpleLoggingPlugin({
 
 ```typescript
 import { pluginManager } from '@hopdrive/hasura-event-detector';
-import { SimpleLoggingPlugin } from './example-plugins/simple-logging/plugin.js';
+import { SimpleLoggingPlugin } from 'hasura-event-detector/plugins';
 
 // Register the plugin
 const simpleLogger = new SimpleLoggingPlugin({

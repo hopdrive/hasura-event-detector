@@ -1,5 +1,5 @@
+import { BasePlugin } from '../../plugin';
 import {
-  BasePlugin,
   type PluginConfig,
   type CorrelationId,
   type EventName,
@@ -8,9 +8,9 @@ import {
   type JobOptions,
   type HasuraEventPayload,
   type LogEntry
-} from '@hopdrive/hasura-event-detector';
+} from '../../types';
 
-interface ConsoleInterceptorConfig extends PluginConfig {
+export interface ConsoleInterceptorConfig extends PluginConfig {
   levels: string[];
   includeTimestamp: boolean;
   includeJobContext: boolean;

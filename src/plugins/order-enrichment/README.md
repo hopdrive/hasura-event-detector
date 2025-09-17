@@ -19,7 +19,7 @@ The OrderEnrichmentPlugin demonstrates how to enrich Hasura event payloads with 
 ## Configuration
 
 ```typescript
-import { OrderEnrichmentPlugin } from './example-plugins/order-enrichment/plugin.js';
+import { OrderEnrichmentPlugin } from 'hasura-event-detector/plugins';
 
 const orderEnrichment = new OrderEnrichmentPlugin({
   enabled: true,
@@ -48,7 +48,7 @@ const orderEnrichment = new OrderEnrichmentPlugin({
 
 ```typescript
 import { pluginManager } from '@hopdrive/hasura-event-detector';
-import { OrderEnrichmentPlugin } from './example-plugins/order-enrichment/plugin.js';
+import { OrderEnrichmentPlugin } from 'hasura-event-detector/plugins';
 
 // Register the plugin
 const orderEnrichment = new OrderEnrichmentPlugin({

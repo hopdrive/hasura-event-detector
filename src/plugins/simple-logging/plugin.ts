@@ -1,5 +1,5 @@
+import { BasePlugin } from '../../plugin';
 import {
-  BasePlugin,
   type PluginConfig,
   type CorrelationId,
   type EventName,
@@ -10,9 +10,9 @@ import {
   type ListenToOptions,
   type ListenToResponse,
   type LogEntry
-} from '@hopdrive/hasura-event-detector';
+} from '../../types';
 
-interface SimpleLoggingConfig extends PluginConfig {
+export interface SimpleLoggingConfig extends PluginConfig {
   format: 'simple' | 'structured' | 'json';
   includeTimestamp: boolean;
   includeCorrelationId: boolean;
