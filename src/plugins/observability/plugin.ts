@@ -1382,12 +1382,13 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
 
     const invocationData = {
       correlationId: hasuraEvent.__correlationId,
-      sourceFunction: options.sourceFunction || 'unknown',
+      sourceFunction: options?.context?.functionName || hasuraEvent.trigger.name || 'unknown',
       sourceTable: `${hasuraEvent?.table?.schema || 'public'}.${hasuraEvent?.table?.name || 'unknown'}`,
       sourceOperation: hasuraEvent.event?.op || 'MANUAL',
       sourceUser:
         hasuraEvent.event?.session_variables?.['x-hasura-user-id'] ||
         hasuraEvent.event?.session_variables?.['x-hasura-user-email'] ||
+        hasuraEvent.event?.session_variables?.['x-hasura-role'] ||
         null,
       sourceJobId: (hasuraEvent as any).__sourceJobId || null,
       hasuraEventId: hasuraEvent.id || null,
