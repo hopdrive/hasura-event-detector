@@ -75,7 +75,6 @@ export const GroupedEventsNode: React.FC<NodeProps<GroupedEventsNodeData>> = ({ 
         ) : (
           // Expanded View - Show Individual Events
           <div className='space-y-3'>
-            <div className='text-sm font-medium text-gray-900 dark:text-white mb-3'>Individual Events:</div>
             <div className='space-y-2 max-h-48 overflow-y-auto'>
               {data.events?.map((event, index) => (
                 <div

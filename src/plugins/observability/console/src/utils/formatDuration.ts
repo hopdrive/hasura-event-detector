@@ -6,6 +6,9 @@
 export function formatDuration(ms: number | null | undefined): string {
   if (ms === null || ms === undefined) return 'N/A';
 
+  // Handle 0 value explicitly
+  if (ms === 0) return '0ms';
+
   // For very small durations, show in ms
   if (ms < 1000) {
     return `${ms}ms`;

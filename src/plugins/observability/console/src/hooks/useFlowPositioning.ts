@@ -196,7 +196,11 @@ export const useFlowPositioning = (invocations: Invocation[], config: Positionin
             totalCount: events.length,
             detectedCount: detectedEvents.length,
             undetectedCount: undetectedEvents.length,
-            events: undetectedEvents,
+            events: undetectedEvents.map(event => ({
+              name: event.event_name,
+              detected: event.detected,
+              duration: event.detection_duration_ms || 0
+            })),
             invocationId: invocation.id,
           },
         };

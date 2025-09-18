@@ -147,8 +147,8 @@ const EventTreeNode = ({ event, eventIndex, expandedEvents, toggleEvent }: any) 
                 {event.name}
               </p>
               <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400 mt-1">
-                <span>Duration: {formatDuration(event.duration)}</span>
-                {hasJobs && <span>{event.jobs.length} jobs</span>}
+                <span className="whitespace-nowrap">Detection time: {formatDuration(event.duration)}</span>
+                {hasJobs && <span className="whitespace-nowrap">{event.jobs.length} jobs</span>}
               </div>
             </div>
           </div>
@@ -326,18 +326,46 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
   const oldPayload = sourceEventPayload?.event?.data?.old || sourceEventPayload?.data?.old || {};
   const newPayload = sourceEventPayload?.event?.data?.new || sourceEventPayload?.data?.new || {};
 
+  // Extract additional information from the Hasura event payload if database fields are missing
+  const hasuraEvent = sourceEventPayload?.event || sourceEventPayload;
+  const hasuraTable = hasuraEvent?.table || {};
+  const hasuraSessionVars = hasuraEvent?.session_variables || {};
+
+  // Try to extract operation from the event and format it properly
+  const rawOperation = hasuraEvent?.op || invocation.source_operation || 'UNKNOWN';
+  const extractedOperation = rawOperation.toUpperCase();
+
+  // Try to extract table information
+  const extractedTable = hasuraTable?.name || invocation.source_table || 'unknown';
+  const extractedSchema = hasuraTable?.schema || 'public';
+
+  // Try to extract user information from session variables
+  const extractedUserEmail = hasuraSessionVars?.['x-hasura-user-email'] ||
+                             hasuraSessionVars?.['x-hasura-user-id'] ||
+                             invocation.source_user_email ||
+                             'system';
+  const extractedUserRole = hasuraSessionVars?.['x-hasura-role'] ||
+                           invocation.source_user_role ||
+                           'system';
+
+  // Try to get delivery info if available
+  const deliveryInfo = hasuraEvent?.delivery_info || {};
+  const triggerId = hasuraEvent?.id || invocation.source_event_id;
+  const triggerName = hasuraEvent?.trigger?.name || '';
+
   // Transform real data into the structure expected by the UI
   const invocationDisplayData = {
     id: invocation.id,
-    sourceFunction: invocation.source_function,
+    sourceFunction: invocation.source_function || triggerName || 'event-detector',
     correlationId: invocation.correlation_id || '',
-    operation: invocation.source_operation || 'UNKNOWN',
-    tableName: invocation.source_table || 'unknown',
-    userEmail: invocation.source_user_email || 'system',
-    userRole: invocation.source_user_role || 'system',
+    operation: extractedOperation,
+    tableName: extractedSchema !== 'public' ? `${extractedSchema}.${extractedTable}` : extractedTable,
+    userEmail: extractedUserEmail,
+    userRole: extractedUserRole,
     duration: invocation.total_duration_ms || 0,
     status: invocation.status,
     createdAt: invocation.created_at,
+    triggerId,
 
     oldPayload,
     newPayload,
@@ -345,7 +373,7 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
     events: invocation.event_executions.map(event => ({
       name: event.event_name,
       detected: event.detected,
-      duration: event.detection_duration_ms || 0,
+      duration: event.detection_duration_ms ?? 0,  // Use nullish coalescing to preserve 0 values
       jobs: event.job_executions.map(job => ({
         name: job.job_name,
         status: job.status,
@@ -456,11 +484,21 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
             {/* Record ID - prominently displayed */}
             <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
               <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                Record ID
+                Invocation ID
               </label>
               <p className="mt-1 text-sm font-mono text-gray-900 dark:text-white">
-                {node.id}
+                {invocation.id}
               </p>
+              {invocationDisplayData.triggerId && (
+                <>
+                  <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mt-3 block">
+                    Event Trigger ID
+                  </label>
+                  <p className="mt-1 text-sm font-mono text-gray-900 dark:text-white">
+                    {invocationDisplayData.triggerId}
+                  </p>
+                </>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -533,7 +571,45 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
                   <div>x-hasura-role: {invocationDisplayData.userRole}</div>
                   <div>x-hasura-user-email: {invocationDisplayData.userEmail}</div>
                   <div>x-request-id: {invocationDisplayData.id}</div>
+                  {invocation.source_system && (
+                    <div>source-system: {invocation.source_system}</div>
+                  )}
                 </code>
+              </div>
+            </div>
+
+            {/* Additional debug info */}
+            <div>
+              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                Execution Summary
+              </label>
+              <div className="mt-2 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Events Detected:</span>
+                  <span className="font-medium text-gray-900 dark:text-white">
+                    {invocation.events_detected_count || 0}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Jobs Run:</span>
+                  <span className="font-medium text-gray-900 dark:text-white">
+                    {invocation.total_jobs_run || 0}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Jobs Succeeded:</span>
+                  <span className="font-medium text-green-600 dark:text-green-400">
+                    {invocation.total_jobs_succeeded || 0}
+                  </span>
+                </div>
+                {(invocation.total_jobs_failed || 0) > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">Jobs Failed:</span>
+                    <span className="font-medium text-red-600 dark:text-red-400">
+                      {invocation.total_jobs_failed || 0}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -541,46 +617,73 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
 
         {activeTab === 'json' && (
           <div className="space-y-4">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Old Payload
-                </h4>
-                <span className="text-xs text-gray-500">
-                  {Object.keys(invocationDisplayData.oldPayload).length} fields
-                </span>
+            {/* Show old/new if they exist */}
+            {Object.keys(invocationDisplayData.oldPayload).length > 0 || Object.keys(invocationDisplayData.newPayload).length > 0 ? (
+              <>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Old Payload
+                    </h4>
+                    <span className="text-xs text-gray-500">
+                      {Object.keys(invocationDisplayData.oldPayload).length} fields
+                    </span>
+                  </div>
+                  <div className="bg-gray-900 rounded-lg p-4 overflow-auto max-h-64">
+                    <JSONTree
+                      data={invocationDisplayData.oldPayload}
+                      theme={jsonTreeTheme}
+                      invertTheme={false}
+                      hideRoot
+                      shouldExpandNode={(keyName, data, level) => level < 2}
+                      sortObjectKeys
+                    />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      New Payload
+                    </h4>
+                    <span className="text-xs text-gray-500">
+                      {Object.keys(invocationDisplayData.newPayload).length} fields
+                    </span>
+                  </div>
+                  <div className="bg-gray-900 rounded-lg p-4 overflow-auto max-h-64">
+                    <JSONTree
+                      data={invocationDisplayData.newPayload}
+                      theme={jsonTreeTheme}
+                      invertTheme={false}
+                      hideRoot
+                      shouldExpandNode={(keyName, data, level) => level < 2}
+                      sortObjectKeys
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              /* Show full source event payload if no old/new structure */
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Source Event Payload
+                  </h4>
+                  <span className="text-xs text-gray-500">
+                    Full event data
+                  </span>
+                </div>
+                <div className="bg-gray-900 rounded-lg p-4 overflow-auto max-h-96">
+                  <JSONTree
+                    data={sourceEventPayload}
+                    theme={jsonTreeTheme}
+                    invertTheme={false}
+                    hideRoot
+                    shouldExpandNode={(keyName, data, level) => level < 2}
+                    sortObjectKeys
+                  />
+                </div>
               </div>
-              <div className="bg-gray-900 rounded-lg p-4 overflow-auto max-h-64">
-                <JSONTree
-                  data={invocationDisplayData.oldPayload}
-                  theme={jsonTreeTheme}
-                  invertTheme={false}
-                  hideRoot
-                  shouldExpandNode={(keyName, data, level) => level < 2}
-                  sortObjectKeys
-                />
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  New Payload
-                </h4>
-                <span className="text-xs text-gray-500">
-                  {Object.keys(invocationDisplayData.newPayload).length} fields
-                </span>
-              </div>
-              <div className="bg-gray-900 rounded-lg p-4 overflow-auto max-h-64">
-                <JSONTree
-                  data={invocationDisplayData.newPayload}
-                  theme={jsonTreeTheme}
-                  invertTheme={false}
-                  hideRoot
-                  shouldExpandNode={(keyName, data, level) => level < 2}
-                  sortObjectKeys
-                />
-              </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -588,11 +691,18 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
           <div className="space-y-4">
             <div className="bg-gray-900 rounded-lg p-4">
               <h4 className="text-sm font-medium text-gray-300 mb-3">Payload Changes</h4>
-              <JsonDiffViewer
-                oldData={invocationDisplayData.oldPayload}
-                newData={invocationDisplayData.newPayload}
-                jsondiff={jsondiff}
-              />
+              {Object.keys(invocationDisplayData.oldPayload).length > 0 || Object.keys(invocationDisplayData.newPayload).length > 0 ? (
+                <JsonDiffViewer
+                  oldData={invocationDisplayData.oldPayload}
+                  newData={invocationDisplayData.newPayload}
+                  jsondiff={jsondiff}
+                />
+              ) : (
+                <div className="text-center py-8 text-gray-400">
+                  <p>No old/new data comparison available for this event type</p>
+                  <p className="text-sm mt-2">View the Raw JSON tab to see the full event payload</p>
+                </div>
+              )}
             </div>
           </div>
         )}
