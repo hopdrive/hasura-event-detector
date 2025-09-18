@@ -14,6 +14,7 @@ export { run, job } from './handler';
 
 // Utility functions (optional imports)
 // Import from 'hasura-event-detector/utils' for utility functions
+// Note: Netlify-specific utilities are available at 'hasura-event-detector/netlify'
 export * from './utils';
 
 // Example jobs (for reference and testing)

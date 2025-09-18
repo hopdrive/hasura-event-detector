@@ -20,6 +20,11 @@
       "import": "./dist/esm/utils/index.js",
       "require": "./dist/cjs/utils/index.js",
       "types": "./dist/types/utils/index.d.ts"
+    },
+    "./netlify": {
+      "import": "./dist/esm/netlify/index.js",
+      "require": "./dist/cjs/netlify/index.js",
+      "types": "./dist/types/netlify/index.d.ts"
     }
   },
   "bin": {

@@ -24,12 +24,8 @@ export {
   getObjectSafely
 } from '../helpers/object';
 
-// Netlify-specific utilities
-export {
-  handleSuccess,
-  handleFailure,
-  type NetlifyResponse
-} from '../helpers/netlify';
+// Netlify-specific utilities are now available at 'hasura-event-detector/netlify'
+// This keeps the main utils package focused on general utilities
 
 // Tracking token utilities
 export {

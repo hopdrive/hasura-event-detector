@@ -695,6 +695,11 @@ import { handler } from '../../templates/netlify-function';
 export { handler };
 ```
 
+**Import Netlify utilities:**
+```typescript
+import { handleSuccess, handleFailure } from '@hopdrive/hasura-event-detector/netlify';
+```
+
 **With Console:**
 ```bash
 # Initialize console in your Netlify project
@@ -711,16 +716,14 @@ hasura-event-detector console build --output-dir ./public/console
 
 ```typescript
 // api/hasura-events.ts
-import { listenTo, handleSuccess, handleFailure } from '@hopdrive/hasura-event-detector';
+import { listenTo } from '@hopdrive/hasura-event-detector';
 
 export default async function handler(req, res) {
   try {
     const result = await listenTo(req.body, config);
-    const response = handleSuccess(result);
-    res.status(response.statusCode).json(JSON.parse(response.body));
+    res.status(200).json(result);
   } catch (error) {
-    const response = handleFailure(error);
-    res.status(response.statusCode).json(JSON.parse(response.body));
+    res.status(500).json({ errors: [error] });
   }
 }
 ```
@@ -730,15 +733,21 @@ export default async function handler(req, res) {
 ```typescript
 // lambda/hasura-events.ts
 import { APIGatewayProxyHandler } from 'aws-lambda';
-import { listenTo, handleSuccess, handleFailure } from '@hopdrive/hasura-event-detector';
+import { listenTo } from '@hopdrive/hasura-event-detector';
 
 export const handler: APIGatewayProxyHandler = async (event) => {
   try {
     const hasuraEvent = JSON.parse(event.body || '{}');
     const result = await listenTo(hasuraEvent, config);
-    return handleSuccess(result);
+    return {
+      statusCode: 200,
+      body: JSON.stringify(result)
+    };
   } catch (error) {
-    return handleFailure(error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ errors: [error] })
+    };
   }
 };
 ```

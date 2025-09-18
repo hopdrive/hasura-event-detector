@@ -37,4 +37,3 @@ export const handleFailure = (error: Error): NetlifyResponse => {
     headers: { 'Content-Type': 'application/json' },
   };
 };
-
