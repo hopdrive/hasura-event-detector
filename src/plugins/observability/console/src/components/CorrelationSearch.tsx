@@ -7,37 +7,21 @@ import {
   CogIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
+import { useCorrelationSearchLazyQuery } from '../types/generated';
 
 interface CorrelationSearchProps {
   value: string;
   onChange: (value: string) => void;
 }
 
-// Mock suggestions for now - will be replaced with GraphQL when backend is ready
-const mockSuggestions = [
-  {
-    id: '1',
-    correlation_id: 'event_detector.job.550e8400',
-    source_function: 'event-detector-rides',
-    user_email: 'driver@hopdrive.com',
-    status: 'completed',
-    created_at: new Date().toISOString()
-  },
-  {
-    id: '2',
-    correlation_id: 'user@example.com',
-    source_function: 'event-detector-users',
-    user_email: 'user@example.com',
-    status: 'failed',
-    created_at: new Date().toISOString()
-  }
-];
-
 const CorrelationSearch: React.FC<CorrelationSearchProps> = ({ value, onChange }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Use real data from GraphQL
+  const [searchCorrelations, { data: searchData, loading }] = useCorrelationSearchLazyQuery();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -50,6 +34,16 @@ const CorrelationSearch: React.FC<CorrelationSearchProps> = ({ value, onChange }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Trigger search when input changes
+  useEffect(() => {
+    if (value.length >= 2) {
+      const searchTerm = `%${value}%`;
+      searchCorrelations({
+        variables: { searchTerm }
+      });
+    }
+  }, [value, searchCorrelations]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
@@ -90,11 +84,8 @@ const CorrelationSearch: React.FC<CorrelationSearchProps> = ({ value, onChange }
     }
   };
 
-  const filteredSuggestions = mockSuggestions.filter(suggestion =>
-    suggestion.correlation_id?.toLowerCase().includes(value.toLowerCase()) ||
-    suggestion.user_email?.toLowerCase().includes(value.toLowerCase()) ||
-    suggestion.source_function?.toLowerCase().includes(value.toLowerCase())
-  );
+  // Get suggestions from real GraphQL data
+  const suggestions = searchData?.invocations || [];
 
   return (
     <div ref={containerRef} className="relative w-full max-w-md">
@@ -140,24 +131,30 @@ const CorrelationSearch: React.FC<CorrelationSearchProps> = ({ value, onChange }
             transition={{ duration: 0.2 }}
             className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-80 overflow-auto"
           >
-            {filteredSuggestions.length === 0 && value.length >= 2 && (
+            {loading && value.length >= 2 && (
+              <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                Searching...
+              </div>
+            )}
+
+            {!loading && suggestions.length === 0 && value.length >= 2 && (
               <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
                 No results found for "{value}"
               </div>
             )}
 
-            {filteredSuggestions.length > 0 && (
+            {suggestions.length > 0 && (
               <div className="py-2">
                 <div className="px-3 py-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide border-b border-gray-100 dark:border-gray-700">
                   Recent Matches
                 </div>
-                {filteredSuggestions.map((suggestion, index) => (
+                {suggestions.map((suggestion, index) => (
                   <motion.button
                     key={suggestion.id}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    onClick={() => handleSuggestionClick(suggestion.correlation_id || suggestion.user_email || suggestion.source_function)}
+                    onClick={() => handleSuggestionClick(suggestion.correlation_id || suggestion.source_user_email || suggestion.source_function)}
                     className="w-full px-3 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-50 dark:border-gray-700/50 last:border-b-0"
                   >
                     <div className="flex items-center space-x-3">
@@ -180,10 +177,10 @@ const CorrelationSearch: React.FC<CorrelationSearchProps> = ({ value, onChange }
                             </div>
                           )}
 
-                          {suggestion.user_email && (
+                          {suggestion.source_user_email && (
                             <div className="flex items-center space-x-1">
                               <UserIcon className="h-3 w-3" />
-                              <span className="truncate">{suggestion.user_email}</span>
+                              <span className="truncate">{suggestion.source_user_email}</span>
                             </div>
                           )}
 
