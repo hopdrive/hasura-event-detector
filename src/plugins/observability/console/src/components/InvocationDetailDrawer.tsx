@@ -5,6 +5,7 @@ import { JSONTree } from 'react-json-tree';
 import { create, formatters } from 'jsondiffpatch';
 import { Node } from 'reactflow';
 import { formatDuration } from '../utils/formatDuration';
+import { useInvocationDetailQuery } from '../types/generated';
 
 interface InvocationDetailDrawerProps {
   node: Node | null;
@@ -252,6 +253,12 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
   const [activeTab, setActiveTab] = useState('summary');
   const [expandedEvents, setExpandedEvents] = useState<Record<number, boolean>>({});
 
+  // Fetch real invocation data using GraphQL
+  const { data: invocationData, loading, error } = useInvocationDetailQuery({
+    variables: { id: node?.id || '' },
+    skip: !node?.id
+  });
+
   const toggleEvent = (eventIndex: number) => {
     setExpandedEvents(prev => ({
       ...prev,
@@ -261,7 +268,7 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
 
   const expandAllEvents = () => {
     const newExpandedState: Record<number, boolean> = {};
-    mockInvocationData.events.forEach((_, index) => {
+    invocationData?.invocations_by_pk?.event_executions.forEach((_, index) => {
       newExpandedState[index] = true;
     });
     setExpandedEvents(newExpandedState);
@@ -273,6 +280,40 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
 
   if (!node) return null;
 
+  if (loading) {
+    return (
+      <motion.div
+        initial={{ x: '100%' }}
+        animate={{ x: 0 }}
+        exit={{ x: '100%' }}
+        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+        className="fixed right-0 top-0 h-full w-[600px] bg-white dark:bg-gray-800 shadow-2xl z-50 flex flex-col"
+      >
+        <div className="flex items-center justify-center h-full">
+          <div className="text-gray-500">Loading invocation details...</div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  if (error || !invocationData?.invocations_by_pk) {
+    return (
+      <motion.div
+        initial={{ x: '100%' }}
+        animate={{ x: 0 }}
+        exit={{ x: '100%' }}
+        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+        className="fixed right-0 top-0 h-full w-[600px] bg-white dark:bg-gray-800 shadow-2xl z-50 flex flex-col"
+      >
+        <div className="flex items-center justify-center h-full">
+          <div className="text-red-500">Failed to load invocation details</div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  const invocation = invocationData.invocations_by_pk;
+
   // Create jsondiffpatch instance
   const jsondiff = create({
     objectHash: (obj: any) => obj.id || obj._id || JSON.stringify(obj),
@@ -280,103 +321,50 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
     textDiff: { minLength: 60 }
   });
 
-  // Mock data for demonstration
-  const mockInvocationData = {
-    id: node.id,
-    sourceFunction: node.data.sourceFunction || node.data.eventName || node.data.jobName,
-    correlationId: node.data.correlationId || 'event_detector.job.550e8400',
-    operation: 'UPDATE',
-    tableName: 'rides',
-    userEmail: 'driver@hopdrive.com',
-    userRole: 'driver',
-    duration: node.data.duration || 245,
-    status: node.data.status,
-    createdAt: '2024-01-15T10:30:00Z',
-    
-    oldPayload: {
-      id: 12345,
-      status: 'scheduled',
-      driver_id: null,
-      pickup_time: '2024-01-15T14:00:00Z',
-      dropoff_time: null,
-      notes: 'Please wait at door',
-      metadata: {
-        source: 'mobile_app',
-        version: '2.1.0'
-      }
-    },
-    
-    newPayload: {
-      id: 12345,
-      status: 'pickup_successful',
-      driver_id: 789,
-      pickup_time: '2024-01-15T14:00:00Z',
-      dropoff_time: '2024-01-15T14:30:00Z',
-      notes: 'Please wait at door - Pickup completed',
-      metadata: {
-        source: 'mobile_app',
-        version: '2.1.0',
-        updated_by: 'event_detector.job.550e8400'
-      }
-    },
-    
-    events: [
-      {
-        name: 'ride.status.change',
-        detected: true,
-        duration: 15,
-        jobs: [
-          {
-            name: 'sendNotification',
-            status: 'completed',
-            duration: 120,
-            function: 'notifications.sendEmail',
-            result: { emailSent: true, messageId: 'msg_123' }
-          },
-          {
-            name: 'updateAnalytics',
-            status: 'completed',
-            duration: 45,
-            function: 'analytics.recordEvent',
-            result: { eventRecorded: true, analyticsId: 'evt_456' }
-          }
-        ]
-      },
-      {
-        name: 'ride.pickup.successful',
-        detected: true,
-        duration: 12,
-        jobs: [
-          {
-            name: 'recalculateSLA',
-            status: 'failed',
-            duration: 180,
-            function: 'sla.recalculate',
-            error: 'Timeout after 3s - External API not responding'
-          },
-          {
-            name: 'triggerWorkflow',
-            status: 'completed',
-            duration: 67,
-            function: 'workflow.trigger',
-            triggersInvocation: true,
-            result: { workflowId: 'wf_789', nextSteps: ['driver.rating', 'payment.process'] }
-          }
-        ]
-      },
-      {
-        name: 'ride.driver.assigned',
-        detected: false,
-        duration: 8,
-        jobs: [] // No jobs executed since event was not detected
-      }
-    ],
-    
-    jobs: [
-      { name: 'sendNotification', status: 'completed', duration: 120 },
-      { name: 'updateAnalytics', status: 'completed', duration: 45 },
-      { name: 'recalculateSLA', status: 'failed', duration: 180, error: 'Timeout after 3s' }
-    ]
+  // Extract old and new payloads from source_event_payload
+  const sourceEventPayload = invocation.source_event_payload as any;
+  const oldPayload = sourceEventPayload?.event?.data?.old || sourceEventPayload?.data?.old || {};
+  const newPayload = sourceEventPayload?.event?.data?.new || sourceEventPayload?.data?.new || {};
+
+  // Transform real data into the structure expected by the UI
+  const invocationDisplayData = {
+    id: invocation.id,
+    sourceFunction: invocation.source_function,
+    correlationId: invocation.correlation_id || '',
+    operation: invocation.source_operation || 'UNKNOWN',
+    tableName: invocation.source_table || 'unknown',
+    userEmail: invocation.source_user_email || 'system',
+    userRole: invocation.source_user_role || 'system',
+    duration: invocation.total_duration_ms || 0,
+    status: invocation.status,
+    createdAt: invocation.created_at,
+
+    oldPayload,
+    newPayload,
+
+    events: invocation.event_executions.map(event => ({
+      name: event.event_name,
+      detected: event.detected,
+      duration: event.detection_duration_ms || 0,
+      jobs: event.job_executions.map(job => ({
+        name: job.job_name,
+        status: job.status,
+        duration: job.duration_ms || 0,
+        function: job.job_function_name,
+        result: job.result,
+        error: job.error_message,
+        triggersInvocation: false // TODO: implement detection for recursive invocations
+      }))
+    })),
+
+    jobs: invocation.event_executions.flatMap(event =>
+      event.job_executions.map(job => ({
+        name: job.job_name,
+        status: job.status,
+        duration: job.duration_ms || 0,
+        error: job.error_message
+      }))
+    )
   };
 
   const jsonTreeTheme = {
@@ -415,7 +403,7 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
               {node.type === 'invocation' ? 'Invocation' : node.type === 'event' ? 'Event' : 'Job'} Details
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 font-mono mt-1">
-              {mockInvocationData.correlationId}
+              {invocationDisplayData.correlationId}
             </p>
           </div>
           <button
@@ -481,7 +469,7 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
                   Source Function
                 </label>
                 <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
-                  {mockInvocationData.sourceFunction}
+                  {invocationDisplayData.sourceFunction}
                 </p>
               </div>
               <div>
@@ -489,7 +477,7 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
                   Operation
                 </label>
                 <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
-                  {mockInvocationData.operation}
+                  {invocationDisplayData.operation}
                 </p>
               </div>
               <div>
@@ -497,7 +485,7 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
                   Table
                 </label>
                 <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
-                  {mockInvocationData.tableName}
+                  {invocationDisplayData.tableName}
                 </p>
               </div>
               <div>
@@ -505,7 +493,7 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
                   Duration
                 </label>
                 <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
-                  {formatDuration(mockInvocationData.duration)}
+                  {formatDuration(invocationDisplayData.duration)}
                 </p>
               </div>
               <div>
@@ -513,7 +501,7 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
                   User
                 </label>
                 <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
-                  {mockInvocationData.userEmail}
+                  {invocationDisplayData.userEmail}
                 </p>
               </div>
               <div>
@@ -523,14 +511,14 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
                 <p className="mt-1">
                   <span className={`
                     inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                    ${mockInvocationData.status === 'completed' 
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
-                      : mockInvocationData.status === 'failed'
+                    ${invocationDisplayData.status === 'completed'
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                      : invocationDisplayData.status === 'failed'
                       ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                       : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
                     }
                   `}>
-                    {mockInvocationData.status}
+                    {invocationDisplayData.status}
                   </span>
                 </p>
               </div>
@@ -542,9 +530,9 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
               </label>
               <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
                 <code className="text-xs text-gray-700 dark:text-gray-300">
-                  <div>x-hasura-role: {mockInvocationData.userRole}</div>
-                  <div>x-hasura-user-email: {mockInvocationData.userEmail}</div>
-                  <div>x-request-id: {mockInvocationData.id}</div>
+                  <div>x-hasura-role: {invocationDisplayData.userRole}</div>
+                  <div>x-hasura-user-email: {invocationDisplayData.userEmail}</div>
+                  <div>x-request-id: {invocationDisplayData.id}</div>
                 </code>
               </div>
             </div>
@@ -559,12 +547,12 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
                   Old Payload
                 </h4>
                 <span className="text-xs text-gray-500">
-                  {Object.keys(mockInvocationData.oldPayload).length} fields
+                  {Object.keys(invocationDisplayData.oldPayload).length} fields
                 </span>
               </div>
               <div className="bg-gray-900 rounded-lg p-4 overflow-auto max-h-64">
                 <JSONTree
-                  data={mockInvocationData.oldPayload}
+                  data={invocationDisplayData.oldPayload}
                   theme={jsonTreeTheme}
                   invertTheme={false}
                   hideRoot
@@ -579,12 +567,12 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
                   New Payload
                 </h4>
                 <span className="text-xs text-gray-500">
-                  {Object.keys(mockInvocationData.newPayload).length} fields
+                  {Object.keys(invocationDisplayData.newPayload).length} fields
                 </span>
               </div>
               <div className="bg-gray-900 rounded-lg p-4 overflow-auto max-h-64">
                 <JSONTree
-                  data={mockInvocationData.newPayload}
+                  data={invocationDisplayData.newPayload}
                   theme={jsonTreeTheme}
                   invertTheme={false}
                   hideRoot
@@ -601,8 +589,8 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
             <div className="bg-gray-900 rounded-lg p-4">
               <h4 className="text-sm font-medium text-gray-300 mb-3">Payload Changes</h4>
               <JsonDiffViewer
-                oldData={mockInvocationData.oldPayload}
-                newData={mockInvocationData.newPayload}
+                oldData={invocationDisplayData.oldPayload}
+                newData={invocationDisplayData.newPayload}
                 jsondiff={jsondiff}
               />
             </div>
@@ -618,7 +606,7 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
                   Event Execution Hierarchy
                 </h4>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  {mockInvocationData.events.length} events detected • Click to expand and view jobs
+                  {invocationDisplayData.events.length} events detected • Click to expand and view jobs
                 </p>
               </div>
               <div className="flex items-center space-x-2">
@@ -639,7 +627,7 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
 
             {/* Event Tree */}
             <div className="space-y-3">
-              {mockInvocationData.events.map((event, index) => (
+              {invocationDisplayData.events.map((event, index) => (
                 <EventTreeNode
                   key={index}
                   event={event}
@@ -654,8 +642,8 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
 
         {activeTab === 'jobs' && (
           <div className="space-y-3">
-            {mockInvocationData.jobs.map((job, index) => (
-              <div 
+            {invocationDisplayData.jobs.map((job, index) => (
+              <div
                 key={index}
                 className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700"
               >
@@ -675,8 +663,8 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
                   </div>
                   <span className={`
                     inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                    ${job.status === 'completed' 
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
+                    ${job.status === 'completed'
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                       : job.status === 'failed'
                       ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                       : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'

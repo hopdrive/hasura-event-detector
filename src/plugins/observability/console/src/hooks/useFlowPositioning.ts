@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Node, Edge } from 'reactflow';
+import { Node, Edge, MarkerType } from 'reactflow';
 
 // Constants for positioning
 const HORIZONTAL_SPACING = 450; // Space between node levels
@@ -18,12 +18,13 @@ interface JobExecution {
   id: string;
   job_name: string;
   job_function_name?: string;
-  correlation_id: string;
+  correlation_id?: string;
   status: string;
-  duration: number;
+  duration_ms?: number;
   result?: any;
-  error?: string;
-  triggers_invocation?: boolean;
+  error_message?: string;
+  created_at: string;
+  updated_at?: string;
   triggered_invocations?: Array<{
     id: string;
     correlation_id: string;
@@ -33,11 +34,13 @@ interface JobExecution {
 interface EventExecution {
   id: string;
   event_name: string;
-  correlation_id: string;
+  correlation_id?: string;
   detected: boolean;
   status: string;
-  detection_duration: number;
-  handler_duration?: number;
+  detection_duration_ms?: number;
+  handler_duration_ms?: number;
+  created_at: string;
+  updated_at?: string;
   job_executions?: JobExecution[];
 }
 
@@ -47,6 +50,8 @@ interface Invocation {
   correlation_id: string;
   status: string;
   total_duration_ms: number;
+  created_at: string;
+  updated_at?: string;
   event_executions?: EventExecution[];
   source_job_id?: string;
   source_job_execution?: JobExecution;
@@ -66,15 +71,12 @@ export interface FlowData {
  * Hook for calculating flow diagram positions
  * Provides reusable positioning logic for flow diagrams
  */
-export const useFlowPositioning = (
-  invocations: Invocation[],
-  config: PositioningConfig = {}
-): FlowData => {
+export const useFlowPositioning = (invocations: Invocation[], config: PositioningConfig = {}): FlowData => {
   const {
     horizontalSpacing = HORIZONTAL_SPACING,
     verticalSpacing = VERTICAL_SPACING,
     nodeHeight = NODE_HEIGHT,
-    minVerticalSpacing = MIN_VERTICAL_SPACING
+    minVerticalSpacing = MIN_VERTICAL_SPACING,
   } = config;
 
   return useMemo(() => {
@@ -94,7 +96,7 @@ export const useFlowPositioning = (
       const totalHeight = (childCount - 1) * actualSpacing;
       const startY = parentY - totalHeight / 2;
 
-      return Array.from({ length: childCount }, (_, i) => startY + (i * actualSpacing));
+      return Array.from({ length: childCount }, (_, i) => startY + i * actualSpacing);
     };
 
     // Calculate spacing requirements for event groups
@@ -134,8 +136,8 @@ export const useFlowPositioning = (
           detectedEvents: detectedEvents,
           undetectedEvents: undetectedEvents,
           createdAt: invocation.created_at,
-          updatedAt: invocation.updated_at
-        }
+          updatedAt: invocation.updated_at,
+        },
       };
       nodes.push(invocationNode);
 
@@ -152,12 +154,14 @@ export const useFlowPositioning = (
             status: invocation.source_job_execution.status,
             duration: invocation.source_job_execution.duration_ms,
             result: invocation.source_job_execution.result,
-            error: invocation.source_job_execution.error,
-            triggersInvocation: invocation.source_job_execution.triggers_invocation,
+            error: invocation.source_job_execution.error_message,
+            triggersInvocation:
+              invocation.source_job_execution.triggered_invocations &&
+              invocation.source_job_execution.triggered_invocations.length > 0,
             isSourceJob: true,
             createdAt: invocation.source_job_execution.created_at,
-            updatedAt: invocation.source_job_execution.updated_at
-          }
+            updatedAt: invocation.source_job_execution.updated_at,
+          },
         };
         nodes.push(sourceJobNode);
 
@@ -172,47 +176,51 @@ export const useFlowPositioning = (
           animated: true,
           style: { stroke: '#3b82f6', strokeWidth: 2 }, // Blue for invocations
           markerEnd: {
-            type: 'arrowclosed',
+            type: MarkerType.ArrowClosed,
             width: 20,
             height: 20,
-          }
+          },
         });
       }
 
-      // Always create undetected events group node for all invocations
-      const groupedEventsNode: PositionedNode = {
-        id: `grouped-${invocation.id}`,
-        type: 'groupedEvents',
-        position: {
-          x: baseX,
-          y: baseY + verticalSpacing * 1.5
-        },
-        data: {
-          totalCount: events.length,
-          detectedCount: detectedEvents.length,
-          undetectedCount: undetectedEvents.length,
-          events: undetectedEvents.length > 0 ? undetectedEvents : events,
-          invocationId: invocation.id
-        }
-      };
-      nodes.push(groupedEventsNode);
+      // Create undetected events group node only if there are undetected events
+      if (undetectedEvents.length > 0) {
+        const groupedEventsNode: PositionedNode = {
+          id: `grouped-${invocation.id}`,
+          type: 'groupedEvents',
+          position: {
+            x: baseX,
+            y: baseY + verticalSpacing * 1.5,
+          },
+          data: {
+            totalCount: events.length,
+            detectedCount: detectedEvents.length,
+            undetectedCount: undetectedEvents.length,
+            events: undetectedEvents,
+            invocationId: invocation.id,
+          },
+        };
+        nodes.push(groupedEventsNode);
+      }
 
-      // Edge from invocation to grouped events (always show, gray for undetected content)
-      edges.push({
-        id: `${invocation.id}-to-grouped-${invocation.id}`,
-        source: invocation.id,
-        sourceHandle: 'bottom',
-        target: `grouped-${invocation.id}`,
-        targetHandle: 'top',
-        type: 'default',
-        animated: true,
-        style: { stroke: '#6b7280', strokeWidth: 2, strokeDasharray: '5,5' }, // Gray color for grouped events
-        markerEnd: {
-          type: 'arrowclosed',
-          width: 20,
-          height: 20,
-        }
-      });
+      // Edge from invocation to grouped events (only if there are undetected events)
+      if (undetectedEvents.length > 0) {
+        edges.push({
+          id: `${invocation.id}-to-grouped-${invocation.id}`,
+          source: invocation.id,
+          sourceHandle: 'bottom',
+          target: `grouped-${invocation.id}`,
+          targetHandle: 'top',
+          type: 'default',
+          animated: true,
+          style: { stroke: '#6b7280', strokeWidth: 2, strokeDasharray: '5,5' }, // Gray color for grouped events
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 20,
+            height: 20,
+          },
+        });
+      }
 
       // Position detected events
       if (detectedEvents.length > 0) {
@@ -220,8 +228,9 @@ export const useFlowPositioning = (
 
         let currentEventY = baseY;
         if (eventSpacingData.length > 1) {
-          const totalHeight = eventSpacingData.reduce((sum, data, index) =>
-            sum + (index < eventSpacingData.length - 1 ? data.requiredSpacing : 0), 0
+          const totalHeight = eventSpacingData.reduce(
+            (sum, data, index) => sum + (index < eventSpacingData.length - 1 ? data.requiredSpacing : 0),
+            0
           );
           currentEventY = baseY - totalHeight / 2;
         }
@@ -246,8 +255,8 @@ export const useFlowPositioning = (
               jobsCount: event.job_executions?.length || 0,
               hasFailedJobs: (event.job_executions || []).some((job: JobExecution) => job.status === 'failed'),
               createdAt: event.created_at,
-              updatedAt: event.updated_at
-            }
+              updatedAt: event.updated_at,
+            },
           };
           nodes.push(eventNode);
 
@@ -261,10 +270,10 @@ export const useFlowPositioning = (
             animated: true,
             style: { stroke: '#10b981', strokeWidth: 2 }, // Green for events
             markerEnd: {
-              type: 'arrowclosed',
+              type: MarkerType.ArrowClosed,
               width: 20,
               height: 20,
-            }
+            },
           });
 
           // Position jobs for this event
@@ -288,12 +297,12 @@ export const useFlowPositioning = (
                   status: job.status,
                   duration: job.duration_ms,
                   result: job.result,
-                  error: job.error,
-                  triggersInvocation: job.triggers_invocation || (job.triggered_invocations && job.triggered_invocations.length > 0),
+                  error: job.error_message,
+                  triggersInvocation: job.triggered_invocations && job.triggered_invocations.length > 0,
                   triggeredInvocationsCount: job.triggered_invocations?.length || 0,
                   createdAt: job.created_at,
-                  updatedAt: job.updated_at
-                }
+                  updatedAt: job.updated_at,
+                },
               };
               nodes.push(jobNode);
 
@@ -306,10 +315,10 @@ export const useFlowPositioning = (
                 animated: true,
                 style: { stroke: '#8b5cf6', strokeWidth: 2 }, // Purple for jobs
                 markerEnd: {
-                  type: 'arrowclosed',
+                  type: MarkerType.ArrowClosed,
                   width: 20,
                   height: 20,
-                }
+                },
               });
 
               // Process triggered invocations recursively - position them to the right of the job
@@ -321,7 +330,7 @@ export const useFlowPositioning = (
                   if (fullTriggeredInvocation) {
                     // Position child invocations closer to the triggering job
                     const childX = jobX + horizontalSpacing; // Use standard horizontal spacing
-                    const childY = jobY + (triggerIndex * 200); // Reduced vertical spacing between multiple child invocations
+                    const childY = jobY + triggerIndex * 200; // Reduced vertical spacing between multiple child invocations
 
                     // Process the child invocation recursively with full data
                     processInvocation(fullTriggeredInvocation, childX, childY);
@@ -337,75 +346,16 @@ export const useFlowPositioning = (
                       animated: true,
                       style: { stroke: '#3b82f6', strokeWidth: 2 }, // Blue for invocations
                       markerEnd: {
-                        type: 'arrowclosed',
+                        type: MarkerType.ArrowClosed,
                         width: 20,
                         height: 20,
-                      }
+                      },
                     });
                   }
                 });
               }
             });
           }
-
-          // Update current Y position for next event
-          if (eventIndex < eventSpacingData.length - 1) {
-            currentEventY += eventData.requiredSpacing;
-          }
-        });
-      }
-
-      // Handle case where all events are undetected
-      if (detectedEvents.length === 0 && undetectedEvents.length > 0) {
-        const eventSpacingData = calculateEventSpacing(undetectedEvents);
-
-        let currentEventY = baseY;
-        if (eventSpacingData.length > 1) {
-          const totalHeight = eventSpacingData.reduce((sum, data, index) =>
-            sum + (index < eventSpacingData.length - 1 ? data.requiredSpacing : 0), 0
-          );
-          currentEventY = baseY - totalHeight / 2;
-        }
-
-        eventSpacingData.forEach((eventData, eventIndex) => {
-          const eventY = currentEventY;
-          const eventX = baseX + horizontalSpacing + 80;
-          const { event } = eventData;
-
-          const eventNode: PositionedNode = {
-            id: `event-${event.id}`,
-            type: 'event',
-            position: { x: eventX, y: eventY },
-            data: {
-              eventName: event.event_name,
-              correlationId: event.correlation_id,
-              detected: event.detected,
-              status: event.status,
-              detectionDuration: event.detection_duration_ms,
-              handlerDuration: event.handler_duration_ms,
-              jobsCount: 0,
-              hasFailedJobs: false,
-              createdAt: event.created_at,
-              updatedAt: event.updated_at
-            }
-          };
-          nodes.push(eventNode);
-
-          // Edge from invocation to undetected event (event colored - green, dashed)
-          edges.push({
-            id: `${invocation.id}-to-event-${event.id}`,
-            source: invocation.id,
-            sourceHandle: 'right',
-            target: `event-${event.id}`,
-            type: 'default',
-            animated: true,
-            style: { stroke: '#10b981', strokeWidth: 2, strokeDasharray: '5,5' }, // Green for events, dashed for undetected
-            markerEnd: {
-              type: 'arrowclosed',
-              width: 20,
-              height: 20,
-            }
-          });
 
           // Update current Y position for next event
           if (eventIndex < eventSpacingData.length - 1) {
@@ -423,7 +373,7 @@ export const useFlowPositioning = (
     // Process root invocations first with standard positioning
     rootInvocations.forEach((invocation, invocationIndex) => {
       const baseX = 200;
-      const baseY = 100 + (invocationIndex * 600); // Vertical separation between root invocations only
+      const baseY = 100 + invocationIndex * 600; // Vertical separation between root invocations only
       processInvocation(invocation, baseX, baseY);
     });
 
@@ -432,15 +382,13 @@ export const useFlowPositioning = (
     childInvocations.forEach((invocation, invocationIndex) => {
       if (!processedInvocations.has(invocation.id)) {
         const baseX = 200;
-        const baseY = 100 + ((rootInvocations.length + invocationIndex) * 600);
+        const baseY = 100 + (rootInvocations.length + invocationIndex) * 600;
         processInvocation(invocation, baseX, baseY);
       }
     });
 
     // Deduplicate edges to prevent duplicate key warnings
-    const uniqueEdges = edges.filter((edge, index, self) =>
-      index === self.findIndex(e => e.id === edge.id)
-    );
+    const uniqueEdges = edges.filter((edge, index, self) => index === self.findIndex(e => e.id === edge.id));
 
     return { nodes: nodes, edges: uniqueEdges };
   }, [invocations, horizontalSpacing, verticalSpacing, nodeHeight, minVerticalSpacing]);
