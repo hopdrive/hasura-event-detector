@@ -16,6 +16,7 @@
     "framer-motion": "^10.16.0",
     "graphql": "^16.8.0",
     "jsondiffpatch": "^0.6.0",
+    "lodash-es": "^4.17.21",
     "open": "^8.4.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

@@ -15,7 +15,13 @@ export default defineConfig({
     // Define environment variables for the client
     'process.env': {}
   },
+  resolve: {
+    alias: {
+      // Map lodash to lodash-es for ESM compatibility
+      'lodash': 'lodash-es'
+    }
+  },
   optimizeDeps: {
-    include: ['lodash']
+    include: ['lodash-es']
   }
 });
