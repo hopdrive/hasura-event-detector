@@ -31,7 +31,10 @@ export async function startConsoleCommand(options: ConsoleOptions) {
   console.log('🚀 Starting Hasura Event Detector Console...');
 
   try {
-    const consolePath = path.join(__dirname, '../../../src/plugins/observability/console');
+    // Resolve console path relative to package root
+    // When compiled: __dirname is dist/cjs/cli or dist/esm/cli
+    // When installed: node_modules/@hopdrive/hasura-event-detector/dist/cjs/cli
+    const consolePath = path.resolve(__dirname, '../../../src/plugins/observability/console');
 
     // Check if console directory exists
     if (!fs.existsSync(consolePath)) {
@@ -201,7 +204,7 @@ export async function buildConsoleCommand(options: ConsoleOptions) {
   console.log('🏗️  Building Hasura Event Detector Console for production...');
 
   try {
-    const consolePath = path.join(__dirname, '../../../src/plugins/observability/console');
+    const consolePath = path.resolve(__dirname, '../../../src/plugins/observability/console');
 
     // Check if console directory exists
     if (!fs.existsSync(consolePath)) {
@@ -317,7 +320,7 @@ export async function checkConsoleCommand(options: ConsoleOptions) {
     console.log(`🌐 Console URL: ${config.console.publicUrl}`);
 
     // Check if console directory exists
-    const consolePath = path.join(__dirname, '../../../src/plugins/observability/console');
+    const consolePath = path.resolve(__dirname, '../../../src/plugins/observability/console');
     if (fs.existsSync(consolePath)) {
       console.log('✅ Console directory found');
     } else {
