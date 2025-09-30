@@ -55,7 +55,10 @@ export async function startConsoleCommand(options: ConsoleOptions) {
       CONSOLE_PUBLIC_URL: options.publicUrl || config.console.publicUrl,
       CONSOLE_AUTO_OPEN: options.open !== false ? 'true' : 'false',
       NODE_ENV: options.watch !== false ? 'development' : 'production',
-      // Add VITE_ prefixed variables from the env file
+      // Expose config values as VITE_ prefixed vars for the React app
+      VITE_GRAPHQL_ENDPOINT: options.hasuraEndpoint || config.hasura.endpoint,
+      VITE_HASURA_ADMIN_SECRET: options.hasuraAdminSecret || config.hasura.adminSecret,
+      // Add VITE_ prefixed variables from the env file (can override config)
       ...Object.entries(envVars).reduce((acc, [key, value]) => {
         if (key.startsWith('VITE_')) {
           acc[key] = value;
