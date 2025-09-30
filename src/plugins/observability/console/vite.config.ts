@@ -14,5 +14,8 @@ export default defineConfig({
   define: {
     // Define environment variables for the client
     'process.env': {}
+  },
+  optimizeDeps: {
+    include: ['lodash']
   }
 });
