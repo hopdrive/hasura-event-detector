@@ -181,6 +181,25 @@ module.exports = {
     fs.writeFileSync(configPath, configContent);
     console.log(`✅ Created configuration file: ${configPath}`);
 
+    // Install console dependencies
+    const consolePath = path.resolve(__dirname, '../../../src/plugins/observability/console');
+    if (fs.existsSync(consolePath)) {
+      const nodeModulesPath = path.join(consolePath, 'node_modules');
+      if (!fs.existsSync(nodeModulesPath)) {
+        console.log('\n📦 Installing console dependencies...');
+        const originalCwd = process.cwd();
+        try {
+          process.chdir(consolePath);
+          execSync('npm install', { stdio: 'inherit' });
+          process.chdir(originalCwd);
+          console.log('✅ Console dependencies installed');
+        } catch (error) {
+          process.chdir(originalCwd);
+          console.error('⚠️  Failed to install console dependencies. You may need to run npm install manually in the console directory.');
+        }
+      }
+    }
+
     // Add npm script to package.json if requested
     if (options.addScript) {
       await addNpmScript('event-console', options.port || 3000);
