@@ -22,6 +22,10 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    include: ['lodash-es']
+    include: [
+      'lodash-es',
+      'react-is',
+      'recharts'
+    ]
   }
 });
