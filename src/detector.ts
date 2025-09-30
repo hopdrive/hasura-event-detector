@@ -10,6 +10,7 @@ import type {
   ListenToOptions,
   ListenToResponse,
   EventResponse,
+  EventProcessingResult,
   EventName,
   CorrelationId,
   DetectorFunction,
@@ -177,32 +178,32 @@ export const listenTo = async (
     };
   }
 
-  const eventHandlersToRun: Promise<JobResult[]>[] = [];
-  const detectedEventNames: EventName[] = [];
+  const eventProcessingPromises: Promise<EventProcessingResult>[] = [];
 
   // Run all event detectors in parallel.
-  await Promise.allSettled(
-    (resolvedOptions.listenedEvents || []).map(async eventName => {
-      try {
-        const eventHandler = runDetectorWithHooks(
-          eventName,
-          hasuraEvent,
-          resolvedOptions.eventModulesDirectory || './events',
-          finalCorrelationId
-        );
-        eventHandlersToRun.push(eventHandler);
-        detectedEventNames.push(eventName);
-      } catch (error) {
-        await pluginManager.callOnError(error as Error, 'event_detection', finalCorrelationId);
-        logError(eventName, 'Error detecting events', error as Error);
-      }
-    })
-  );
+  for (const eventName of (resolvedOptions.listenedEvents || [])) {
+    const processingPromise = runDetectorWithHooks(
+      eventName,
+      hasuraEvent,
+      resolvedOptions.eventModulesDirectory || './events',
+      finalCorrelationId
+    ).catch(error => {
+      // If there's an error in detection, still return a result indicating not detected
+      pluginManager.callOnError(error as Error, 'event_detection', finalCorrelationId);
+      logError(eventName, 'Error detecting events', error as Error);
+      return {
+        eventName,
+        detected: false,
+        jobs: []
+      };
+    });
+    eventProcessingPromises.push(processingPromise);
+  }
 
-  // Run all event handlers in parallel.
-  log('EventHandlers', 'Event handlers to run', eventHandlersToRun.length);
-  const response = await Promise.allSettled(eventHandlersToRun);
-  const preppedRes = preparedResponse(detectedEventNames, response);
+  // Run all event processors in parallel.
+  log('EventHandlers', 'Event processors to run', eventProcessingPromises.length);
+  const response = await Promise.allSettled(eventProcessingPromises);
+  const preppedRes = preparedResponse(response);
 
   preppedRes.durationMs = Date.now() - start;
 
@@ -220,30 +221,29 @@ export const listenTo = async (
     logError('PluginSystem', 'Error during plugin shutdown', error as Error);
   }
 
-  consoleLogResponse(detectedEventNames, preppedRes);
+  consoleLogResponse(preppedRes);
 
   return preppedRes;
 };
 
 const preparedResponse = (
-  detectedEvents: EventName[],
-  response: PromiseSettledResult<JobResult[]>[]
+  response: PromiseSettledResult<EventProcessingResult>[]
 ): ListenToResponse => {
   const res: ListenToResponse = {
     events: [],
     durationMs: 0, // Will be set by caller
   };
 
-  for (let i = 0; i < response.length; i++) {
-    const handlerResponse = response[i];
-    const handlerResponseDetails = handlerResponse?.status === 'fulfilled' ? handlerResponse.value : [];
-    const event = detectedEvents[i];
-    if (event) {
+  for (const result of response) {
+    if (result.status === 'fulfilled' && result.value) {
+      const { eventName, detected, jobs } = result.value;
       res.events.push({
-        name: event,
-        jobs: handlerResponseDetails || [],
+        name: eventName,
+        detected,
+        jobs: jobs || [],
       });
     }
+    // Note: If result.status === 'rejected', the error was already handled in the catch block
   }
 
   return res;
@@ -276,7 +276,7 @@ const runDetectorWithHooks = async (
   hasuraEvent: HasuraEventPayload,
   eventModulesDirectory: string,
   correlationId: CorrelationId
-): Promise<JobResult[]> => {
+): Promise<EventProcessingResult> => {
   const detectionStart = Date.now();
 
   // Call plugin hook for event detection start
@@ -295,9 +295,22 @@ const runDetectorWithHooks = async (
     detectionDuration
   );
 
-  if (!eventHandler || typeof eventHandler !== 'function') throw new Error('Event handler not defined');
+  // If event was not detected, return empty job list
+  if (!eventHandler || typeof eventHandler !== 'function') {
+    return {
+      eventName,
+      detected: false,
+      jobs: []
+    };
+  }
 
-  return runEventHandlerWithHooks(eventHandler, eventName, hasuraEvent, correlationId);
+  // Event was detected, run the handler
+  const jobs = await runEventHandlerWithHooks(eventHandler, eventName, hasuraEvent, correlationId);
+  return {
+    eventName,
+    detected: true,
+    jobs
+  };
 };
 
 /**
@@ -401,16 +414,24 @@ const detect = async (
  * @param detectedEvents - List of event names that were detected in the data
  * @param response - Results from event handler execution
  */
-const consoleLogResponse = (detectedEvents: EventName[], response: ListenToResponse): void => {
+const consoleLogResponse = (response: ListenToResponse): void => {
+  const detectedCount = response.events.filter(e => e.detected).length;
+  const totalCount = response.events.length;
   log(
     'EventDetection',
-    `🔔 Detected ${detectedEvents.length} events from the database event in ${response?.durationMs} ms`
+    `🔔 Detected ${detectedCount} of ${totalCount} events from the database event in ${response?.durationMs} ms`
   );
 
   if (!Array.isArray(response?.events) || response?.events.length < 1) return;
 
   for (const event of response.events) {
-    log('EventDetection', `   ⭐️ ${event.name}`);
+    const statusIcon = event.detected ? '⭐️' : '⏭️';
+    const statusText = event.detected ? '' : ' (not detected)';
+    log('EventDetection', `   ${statusIcon} ${event.name}${statusText}`);
+
+    if (!event.detected) {
+      continue;
+    }
 
     if (!Array.isArray(event?.jobs) || event?.jobs?.length < 1) {
       log('EventDetection', '      No jobs');

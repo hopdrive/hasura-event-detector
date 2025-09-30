@@ -632,10 +632,15 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       )
       .join(', ');
 
+    const updateSet = columns
+      .filter((col: string) => col !== 'id' && col !== 'created_at')
+      .map((col: string) => `${col} = EXCLUDED.${col}`)
+      .join(', ');
+
     const query = `
       INSERT INTO event_executions (${columns.join(', ')})
       VALUES ${placeholders}
-      ON CONFLICT (id) DO NOTHING
+      ON CONFLICT (id) DO UPDATE SET ${updateSet}
     `;
 
     try {
@@ -714,10 +719,15 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       )
       .join(', ');
 
+    const updateSet = columns
+      .filter((col: string) => col !== 'id' && col !== 'created_at')
+      .map((col: string) => `${col} = EXCLUDED.${col}`)
+      .join(', ');
+
     const query = `
       INSERT INTO job_executions (${columns.join(', ')})
       VALUES ${placeholders}
-      ON CONFLICT (id) DO NOTHING
+      ON CONFLICT (id) DO UPDATE SET ${updateSet}
     `;
 
     try {
@@ -1451,7 +1461,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
 
     const endData = {
       durationMs: result.durationMs || durationMs,
-      eventsDetectedCount: result.events.length, // All events that were processed
+      eventsDetectedCount: result.events.filter(e => e.detected).length, // Only count events where detected = true
       totalJobsRun,
       totalJobsSucceeded,
       totalJobsFailed,

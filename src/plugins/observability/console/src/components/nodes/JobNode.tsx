@@ -41,10 +41,11 @@ export const JobNode: React.FC<NodeProps<JobNodeData>> = ({ data, selected }) =>
       ring: 'ring-red-400'
     },
     running: {
-      border: 'border-blue-500',
-      accent: 'bg-blue-500',
-      text: 'text-blue-600 dark:text-blue-400',
-      ring: 'ring-blue-400'
+      border: 'border-purple-500',
+      accent: 'bg-purple-500',
+      text: 'text-purple-600 dark:text-purple-400',
+      ring: 'ring-purple-400',
+      animation: 'animate-pulse-slow'
     },
   };
 
@@ -66,6 +67,7 @@ export const JobNode: React.FC<NodeProps<JobNodeData>> = ({ data, selected }) =>
         relative bg-white dark:bg-gray-800 rounded-lg border-2 ${colors.border}
         ${selected ? `ring-4 ${colors.ring} ring-opacity-50` : ''}
         ${needsSourceHandle ? `ring-2 ${colors.border.replace('border-', 'ring-')} ring-offset-2` : ''}
+        ${status === 'running' ? 'animate-pulse-subtle' : ''}
         shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer
         min-w-[180px]
       `}
@@ -91,12 +93,18 @@ export const JobNode: React.FC<NodeProps<JobNodeData>> = ({ data, selected }) =>
               </svg>
             )}
             {status === 'completed' && !isFailed && (
-              <svg className='w-4 h-4 text-green-500' fill='currentColor' viewBox='0 0 20 20'>
+              <svg className='w-4 h-4 text-purple-500' fill='currentColor' viewBox='0 0 20 20'>
                 <path
                   fillRule='evenodd'
                   d='M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z'
                   clipRule='evenodd'
                 />
+              </svg>
+            )}
+            {status === 'running' && (
+              <svg className='w-4 h-4 text-purple-500 animate-spin' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                <circle className='opacity-25' cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='4'></circle>
+                <path className='opacity-75' fill='currentColor' d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'></path>
               </svg>
             )}
             {hasRecursion && (

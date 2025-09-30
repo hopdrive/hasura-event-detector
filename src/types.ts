@@ -302,6 +302,13 @@ export interface ListenToOptions {
 
 export interface EventResponse {
   name: EventName;
+  detected: boolean;
+  jobs: JobResult[];
+}
+
+export interface EventProcessingResult {
+  eventName: EventName;
+  detected: boolean;
   jobs: JobResult[];
 }
 

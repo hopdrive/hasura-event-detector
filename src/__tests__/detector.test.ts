@@ -87,7 +87,10 @@ describe('Event Detector', () => {
 
       const result = await listenTo(hasuraEvent, config);
 
-      expect(result.events).toHaveLength(0);
+      expect(result.events).toHaveLength(1);
+      expect(result.events[0].name).toBe('no-detection');
+      expect(result.events[0].detected).toBe(false);
+      expect(result.events[0].jobs).toHaveLength(0);
     });
 
     it('should validate Hasura event payload structure', async () => {

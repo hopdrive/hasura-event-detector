@@ -28,6 +28,7 @@ import {
 import InvocationDetailDrawer from './InvocationDetailDrawer';
 import { useInvocationsListQuery } from '../types/generated';
 import { Node } from 'reactflow';
+import { formatRelativeTime } from '../utils/formatTime';
 
 interface Invocation {
   id: string;
@@ -37,6 +38,7 @@ interface Invocation {
   sourceOperation: string;
   totalDuration: number;
   eventsDetectedCount: number;
+  totalEventsCount: number;
   totalJobsSucceeded: number;
   totalJobsFailed: number;
   totalJobsRun: number;
@@ -71,6 +73,7 @@ const InvocationsTable = () => {
       sourceOperation: inv.source_operation || '',
       totalDuration: inv.total_duration_ms || 0,
       eventsDetectedCount: inv.events_detected_count || 0,
+      totalEventsCount: inv.total_events_count || 0,
       totalJobsSucceeded: inv.total_jobs_succeeded || 0,
       totalJobsFailed: inv.total_jobs_failed || 0,
       totalJobsRun: inv.total_jobs_run || 0,
@@ -138,22 +141,6 @@ const InvocationsTable = () => {
         cell: info => <div className='font-medium text-gray-900 dark:text-gray-100'>{info.getValue()}</div>,
         filterFn: 'includesString',
       }),
-      columnHelper.accessor('correlationId', {
-        id: 'correlationId',
-        header: 'Correlation ID',
-        cell: info => (
-          <div className='text-gray-600 dark:text-gray-400 font-mono text-sm'>
-            <span className='truncate max-w-xs inline-block'>{info.getValue()}</span>
-          </div>
-        ),
-        filterFn: 'includesString',
-      }),
-      columnHelper.accessor('userEmail', {
-        id: 'userEmail',
-        header: 'User',
-        cell: info => <div className='text-gray-600 dark:text-gray-400 text-sm'>{info.getValue()}</div>,
-        filterFn: 'includesString',
-      }),
       columnHelper.accessor('sourceOperation', {
         id: 'sourceOperation',
         header: 'Operation',
@@ -164,16 +151,52 @@ const InvocationsTable = () => {
       columnHelper.accessor('totalDuration', {
         id: 'totalDuration',
         header: 'Duration',
-        cell: info => <div className='text-gray-600 dark:text-gray-400 text-sm'>{info.getValue()}ms</div>,
+        cell: info => {
+          const ms = info.getValue();
+          let displayValue: string;
+
+          if (ms < 1000) {
+            displayValue = `${ms}ms`;
+          } else if (ms < 60000) {
+            const seconds = (ms / 1000).toFixed(1);
+            displayValue = `${seconds}s`;
+          } else {
+            const minutes = (ms / 60000).toFixed(1);
+            displayValue = `${minutes}m`;
+          }
+
+          return <div className='text-gray-600 dark:text-gray-400 text-sm'>{displayValue}</div>;
+        },
       }),
-      columnHelper.accessor('eventsDetectedCount', {
-        id: 'eventsDetectedCount',
+      columnHelper.display({
+        id: 'events',
         header: 'Events',
-        cell: info => (
-          <span className='px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 rounded'>
-            {info.getValue()}
-          </span>
-        ),
+        cell: info => {
+          const row = info.row.original;
+          const detected = row.eventsDetectedCount;
+          const total = row.totalEventsCount;
+          const undetected = total - detected;
+
+          return (
+            <div className='flex items-center space-x-1'>
+              {detected > 0 && (
+                <span className='px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded'>
+                  {detected}
+                </span>
+              )}
+              {undetected > 0 && (
+                <span className='px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded'>
+                  {undetected}
+                </span>
+              )}
+              {total === 0 && (
+                <span className='px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded'>
+                  0
+                </span>
+              )}
+            </div>
+          );
+        },
       }),
       columnHelper.display({
         id: 'jobs',
@@ -182,7 +205,7 @@ const InvocationsTable = () => {
           const row = info.row.original;
           return (
             <div className='flex items-center space-x-1'>
-              <span className='px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded'>
+              <span className='px-2 py-1 text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 rounded'>
                 {row.totalJobsSucceeded}
               </span>
               {row.totalJobsFailed > 0 && (
@@ -221,11 +244,17 @@ const InvocationsTable = () => {
         cell: info => getStatusBadge(info.getValue()),
         filterFn: 'equals',
       }),
+      columnHelper.accessor('userEmail', {
+        id: 'userEmail',
+        header: 'User',
+        cell: info => <div className='text-gray-600 dark:text-gray-400 text-sm'>{info.getValue()}</div>,
+        filterFn: 'includesString',
+      }),
       columnHelper.accessor('createdAt', {
         id: 'createdAt',
         header: 'Created',
         cell: info => (
-          <div className='text-gray-600 dark:text-gray-400 text-sm'>{new Date(info.getValue()).toLocaleString()}</div>
+          <div className='text-gray-600 dark:text-gray-400 text-sm'>{formatRelativeTime(info.getValue())}</div>
         ),
       }),
       columnHelper.display({
