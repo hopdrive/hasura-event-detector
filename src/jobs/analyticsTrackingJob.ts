@@ -111,8 +111,8 @@ export const analyticsTrackingJob = async (
       timestamp,
       context: {
         source: options.source || 'hasura_event_detector',
-        correlationId: options.correlationId,
-        hasuraEventId: hasuraEvent.id
+        ...(options.correlationId ? { correlationId: options.correlationId } : {}),
+        ...(hasuraEvent.id ? { hasuraEventId: hasuraEvent.id } : {})
       }
     };
 
@@ -137,7 +137,7 @@ export const analyticsTrackingJob = async (
     return {
       action: 'analytics_tracked',
       eventName,
-      userId: analyticsEvent.userId,
+      ...(analyticsEvent.userId ? { userId: analyticsEvent.userId } : {}),
       trackingId: result.trackingId,
       timestamp
     };
@@ -147,8 +147,8 @@ export const analyticsTrackingJob = async (
     
     return {
       action: 'analytics_failed',
-      eventName: options.eventName,
-      userId: options.userId,
+      ...(options.eventName ? { eventName: options.eventName } : {}),
+      ...(options.userId ? { userId: options.userId } : {}),
       error: error instanceof Error ? error.message : 'Unknown error',
       timestamp
     };

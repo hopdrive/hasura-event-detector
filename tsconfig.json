@@ -31,5 +31,5 @@
     }
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts", "dashboard/**/*", "observability/**/*"]
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts", "dashboard/**/*", "observability/**/*", "src/plugins/observability/console/**/*"]
 }

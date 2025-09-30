@@ -105,7 +105,7 @@ const safeJobWrapper = async <T = any>(
     output.endTime = new Date();
 
     // Call plugin hook for error
-    await pluginManager.callOnError(error as Error, 'job', correlationId);
+    await pluginManager.callOnError(error as Error, 'job', (correlationId || '') as CorrelationId);
 
     log(event, `Job func crashed: ${(error as Error).message}`);
     const newError = new Error(`Job func crashed: ${(error as Error).message}`);

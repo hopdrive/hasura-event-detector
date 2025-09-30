@@ -32,8 +32,10 @@ interface JobContext {
  * The intercepted logs are forwarded through the plugin system's onLog hook,
  * allowing other plugins (like SimpleLoggingPlugin) to handle the actual logging.
  */
+type ConsoleMethod = 'log' | 'info' | 'warn' | 'error' | 'debug';
+
 export class ConsoleInterceptorPlugin extends BasePlugin<ConsoleInterceptorConfig> {
-  private originalConsole: Record<string, any> = {};
+  private originalConsole: Partial<Record<ConsoleMethod, (...args: any[]) => void>> = {};
   private isIntercepting: boolean = false;
   private currentJobContext: JobContext | null = null;
   private pluginManager: any = null;
@@ -74,7 +76,7 @@ export class ConsoleInterceptorPlugin extends BasePlugin<ConsoleInterceptorConfi
     this.currentJobContext = {
       jobName,
       eventName,
-      correlationId: hasuraEvent?.__correlationId,
+      correlationId: (hasuraEvent?.__correlationId || '') as CorrelationId,
       startTime: Date.now(),
     };
 
@@ -104,12 +106,13 @@ export class ConsoleInterceptorPlugin extends BasePlugin<ConsoleInterceptorConfi
 
     // Store original console methods
     this.config.levels.forEach(level => {
-      this.originalConsole[level] = console[level];
+      const method = level as ConsoleMethod;
+      this.originalConsole[method] = console[method];
 
       // Replace with intercepted version
-      console[level] = (...args) => {
+      console[method] = (...args: any[]) => {
         // Call original console method first
-        this.originalConsole[level](...args);
+        this.originalConsole[method]?.(...args);
 
         // Forward to plugin system for other plugins to handle
         this.forwardLogEvent(level, args);
@@ -127,8 +130,9 @@ export class ConsoleInterceptorPlugin extends BasePlugin<ConsoleInterceptorConfi
 
     // Restore original console methods
     this.config.levels.forEach(level => {
-      if (this.originalConsole[level]) {
-        console[level] = this.originalConsole[level];
+      const method = level as ConsoleMethod;
+      if (this.originalConsole[method]) {
+        console[method] = this.originalConsole[method]!;
       }
     });
 
@@ -138,7 +142,7 @@ export class ConsoleInterceptorPlugin extends BasePlugin<ConsoleInterceptorConfi
   /**
    * Forward intercepted log to other plugins via the plugin manager
    */
-  forwardLogEvent(level, args) {
+  forwardLogEvent(level: string, args: any[]) {
     if (!this.currentJobContext) return;
 
     const logData = {
@@ -159,12 +163,12 @@ export class ConsoleInterceptorPlugin extends BasePlugin<ConsoleInterceptorConfi
             logData.level,
             logData.message,
             logData,
-            this.currentJobContext.jobName,
-            this.currentJobContext.correlationId as CorrelationId
+            this.currentJobContext!.jobName,
+            this.currentJobContext!.correlationId as CorrelationId
           )
-          .catch(error => {
+          .catch((error: any) => {
             // Use original console to avoid recursion
-            this.originalConsole.error('[ConsoleInterceptorPlugin] Error forwarding log:', error.message);
+            this.originalConsole.error?.('[ConsoleInterceptorPlugin] Error forwarding log:', error.message);
           });
       });
     }
@@ -173,7 +177,7 @@ export class ConsoleInterceptorPlugin extends BasePlugin<ConsoleInterceptorConfi
   /**
    * Cleanup on shutdown
    */
-  async shutdown() {
+  override async shutdown() {
     this.stopIntercepting();
     // Note: Can't use internal logger here as it may already be torn down
     console.log('[ConsoleInterceptorPlugin] Shutdown complete');
@@ -182,7 +186,7 @@ export class ConsoleInterceptorPlugin extends BasePlugin<ConsoleInterceptorConfi
   /**
    * Attach plugin manager reference for forwarding logs
    */
-  setPluginManager(pluginManager) {
+  setPluginManager(pluginManager: any) {
     this.pluginManager = pluginManager;
   }
 

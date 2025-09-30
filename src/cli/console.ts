@@ -87,7 +87,7 @@ export async function startConsoleCommand(options: ConsoleOptions) {
     // Start the React development server
     execSync('npm start', { stdio: 'inherit', env });
   } catch (error) {
-    console.error('❌ Failed to start console:', error.message);
+    console.error('❌ Failed to start console:', error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 }
@@ -186,7 +186,7 @@ module.exports = {
     console.log('2. Start the console: hasura-event-detector console start');
     console.log('3. Or use the npm script: npm run event-console');
   } catch (error) {
-    console.error('❌ Failed to initialize console:', error.message);
+    console.error('❌ Failed to initialize console:', error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 }
@@ -248,7 +248,7 @@ export async function buildConsoleCommand(options: ConsoleOptions) {
     }
 
   } catch (error) {
-    console.error('❌ Failed to build console:', error.message);
+    console.error('❌ Failed to build console:', error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 }
@@ -265,7 +265,7 @@ export async function addScriptCommand(options: ConsoleOptions) {
     console.log('You can now run: npm run event-console');
 
   } catch (error) {
-    console.error('❌ Failed to add script:', error.message);
+    console.error('❌ Failed to add script:', error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 }
@@ -294,7 +294,7 @@ export async function removeScriptCommand() {
     }
 
   } catch (error) {
-    console.error('❌ Failed to remove script:', error.message);
+    console.error('❌ Failed to remove script:', error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 }
@@ -333,7 +333,7 @@ export async function checkConsoleCommand(options: ConsoleOptions) {
     }
 
   } catch (error) {
-    console.error('❌ Configuration check failed:', error.message);
+    console.error('❌ Configuration check failed:', error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 }
@@ -359,7 +359,7 @@ async function loadConsoleConfig(configPath?: string): Promise<any> {
       adminSecret: process.env.HASURA_ADMIN_SECRET || 'myadminsecretkey'
     },
     console: {
-      port: parseInt(process.env.CONSOLE_PORT) || 3000,
+      port: parseInt(process.env.CONSOLE_PORT || '3000') || 3000,
       host: process.env.CONSOLE_HOST || 'localhost',
       publicUrl: process.env.CONSOLE_PUBLIC_URL || 'http://localhost:3000'
     }
@@ -417,8 +417,10 @@ function loadEnvFile(envPath: string): Record<string, string> {
       // Parse KEY=VALUE format
       const match = line.match(/^([^=]+)=(.*)$/);
       if (match) {
-        const key = match[1].trim();
-        let value = match[2].trim();
+        const key = match[1]?.trim();
+        let value = match[2]?.trim();
+
+        if (!key || !value) return;
 
         // Remove quotes if present
         if ((value.startsWith('"') && value.endsWith('"')) ||
@@ -433,6 +435,6 @@ function loadEnvFile(envPath: string): Record<string, string> {
     console.log(`✅ Loaded ${Object.keys(envVars).length} environment variables from ${filePath}`);
     return envVars;
   } catch (error) {
-    throw new Error(`Failed to load environment file: ${error.message}`);
+    throw new Error(`Failed to load environment file: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

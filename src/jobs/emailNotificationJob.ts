@@ -137,8 +137,8 @@ export const emailNotificationJob = async (
     
     return {
       action: 'email_failed',
-      recipient: options.to,
-      template: options.template,
+      ...(options.to ? { recipient: options.to } : {}),
+      ...(options.template ? { template: options.template } : {}),
       error: error instanceof Error ? error.message : 'Unknown error',
       timestamp
     };

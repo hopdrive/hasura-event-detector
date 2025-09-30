@@ -293,7 +293,7 @@ export const useFlowPositioning = (invocations: Invocation[], config: Positionin
               const jobNode: PositionedNode = {
                 id: `job-${job.id}`,
                 type: 'job',
-                position: { x: jobX, y: jobY },
+                position: { x: jobX, y: jobY || 0 },
                 data: {
                   jobName: job.job_name,
                   functionName: job.job_function_name,
@@ -334,7 +334,7 @@ export const useFlowPositioning = (invocations: Invocation[], config: Positionin
                   if (fullTriggeredInvocation) {
                     // Position child invocations closer to the triggering job
                     const childX = jobX + horizontalSpacing; // Use standard horizontal spacing
-                    const childY = jobY + triggerIndex * 200; // Reduced vertical spacing between multiple child invocations
+                    const childY = (jobY || 0) + triggerIndex * 200; // Reduced vertical spacing between multiple child invocations
 
                     // Process the child invocation recursively with full data
                     processInvocation(fullTriggeredInvocation, childX, childY);

@@ -140,18 +140,20 @@ export const webhookNotificationJob = async (
       timestamp,
       data: {
         operation: hasuraEvent.event?.op || 'unknown',
-        table: hasuraEvent.table?.name,
-        record: hasuraEvent.event?.data?.new 
-          ? filterRecord(hasuraEvent.event.data.new, options.filterFields)
-          : undefined,
+        ...(hasuraEvent.table?.name ? { table: hasuraEvent.table.name } : {}),
+        ...(hasuraEvent.event?.data?.new ? {
+          record: filterRecord(hasuraEvent.event.data.new, options.filterFields)
+        } : {}),
         ...(options.includeOldRecord && hasuraEvent.event?.data?.old && {
           old_record: filterRecord(hasuraEvent.event.data.old, options.filterFields)
         })
       },
       metadata: {
         hasura_event_id: hasuraEvent.id || 'unknown',
-        correlation_id: options.correlationId,
-        user: hasuraEvent.event?.session_variables?.['x-hasura-user-email']
+        ...(options.correlationId ? { correlation_id: options.correlationId } : {}),
+        ...(hasuraEvent.event?.session_variables?.['x-hasura-user-email'] ? {
+          user: hasuraEvent.event.session_variables['x-hasura-user-email']
+        } : {})
       }
     };
 
@@ -199,7 +201,7 @@ export const webhookNotificationJob = async (
     
     return {
       action: 'webhook_failed',
-      url: options.url,
+      ...(options.url ? { url: options.url } : {}),
       error: error instanceof Error ? error.message : 'Unknown error',
       timestamp
     };

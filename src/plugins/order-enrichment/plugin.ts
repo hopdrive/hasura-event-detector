@@ -278,7 +278,7 @@ export class OrderEnrichmentPlugin implements BasePluginInterface<OrderEnrichmen
     if (updatedBy && typeof updatedBy === 'string') {
       // Extract UUID from "user.uuid" format
       const match = updatedBy.match(/^user\.([0-9a-f-]{36})$/i);
-      if (match) {
+      if (match && match[1]) {
         return match[1];
       }
     }

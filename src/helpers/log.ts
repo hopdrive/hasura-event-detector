@@ -32,7 +32,7 @@ export const log = (prefix: string, message: string, ...args: any[]): void => {
       source: 'internal_logger',
       prefix,
       originalArgs: args
-    }, 'system' as JobName, null as CorrelationId).catch(() => {
+    }, 'system' as JobName, '' as CorrelationId).catch(() => {
       // Fallback to console if plugin system fails
       console.log(`[${prefix}] ${formattedMessage}`);
     });
@@ -70,7 +70,7 @@ export const logError = (prefix: string, message: string, error: Error | null = 
           originalArgs: args,
         },
         'system' as JobName,
-        null as CorrelationId
+        '' as CorrelationId
       )
       .catch(() => {
         // Fallback to console if plugin system fails
@@ -102,7 +102,7 @@ export const logWarn = (prefix: string, message: string, ...args: any[]): void =
           originalArgs: args,
         },
         'system' as JobName,
-        null as CorrelationId
+        '' as CorrelationId
       )
       .catch(() => {
         // Fallback to console if plugin system fails

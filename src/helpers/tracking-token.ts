@@ -96,7 +96,7 @@ export class TrackingTokenUtils {
     return {
       source: parts[0]!,
       correlationId: parts[1]!,
-      jobId: parts[2] || undefined,
+      ...(parts[2] ? { jobId: parts[2] } : {}),
     };
   }
 

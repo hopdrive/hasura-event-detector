@@ -129,7 +129,7 @@ export class TrackingTokenExtractionPlugin extends BasePlugin<TrackingTokenExtra
     if (components) {
       return {
         correlationId: components.correlationId,
-        sourceJobId: components.jobId
+        ...(components.jobId ? { sourceJobId: components.jobId } : {})
       };
     }
 

@@ -89,7 +89,7 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
     };
   }
 
-  async initialize() {
+  override async initialize() {
     if (!this.config.enabled) return;
 
     // Note: Can't use internal logger here as it depends on plugin system
@@ -100,7 +100,7 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
   /**
    * Handle log events from the plugin system
    */
-  async onLog(level, message, data, jobName, correlationId) {
+  override async onLog(level: LogLevel, message: string, data: any, jobName: JobName, correlationId: CorrelationId) {
     if (!this.config.enabled) return;
 
     // Filter by log level
@@ -122,8 +122,8 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
   /**
    * Check if we should log based on configured log level
    */
-  shouldLog(level: string) {
-    const currentLevel = this.logLevels[level] || 1;
+  shouldLog(level: string): boolean {
+    const currentLevel = this.logLevels[level as keyof LogLevels] || 1;
     const minimumLevel = this.logLevels[this.config.logLevel] || 1;
     return currentLevel >= minimumLevel;
   }
@@ -131,7 +131,7 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
   /**
    * Output formatted log entry
    */
-  outputLog(logEntry: any) {
+  outputLog(logEntry: any): void {
     switch (this.config.format) {
       case 'json':
         this.outputJsonLog(logEntry);
@@ -177,7 +177,7 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
   /**
    * Output structured formatted log
    */
-  outputStructuredLog(logEntry) {
+  outputStructuredLog(logEntry: any): void {
     const timestamp = this.config.includeTimestamp
       ? this.colorize('dim', `[${new Date(logEntry.timestamp).toLocaleTimeString()}]`)
       : '';
@@ -232,10 +232,10 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
   /**
    * Apply colors if colorize is enabled
    */
-  colorize(level: string, text: string) {
+  colorize(level: string, text: string): string {
     if (!this.config.colorize) return text;
 
-    const color = this.colors[level] || this.colors.reset;
+    const color = this.colors[level as keyof Colors] || this.colors.reset;
     return `${color}${text}${this.colors.reset}`;
   }
 
@@ -270,8 +270,8 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
         hasuraEventId: hasuraEvent?.id,
         operation: hasuraEvent?.event?.op,
       },
-      null,
-      hasuraEvent?.__correlationId as CorrelationId
+      '' as JobName,
+      (hasuraEvent?.__correlationId || '') as CorrelationId
     );
   }
 
@@ -283,7 +283,7 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
 
     const durationMs = result?.durationMs || 0;
     const eventsCount = result?.events?.length || 0;
-    const totalJobs = result?.events?.reduce((sum, event) => sum + (event?.jobs?.length || 0), 0) || 0;
+    const totalJobs = result?.events?.reduce((sum: number, event: any) => sum + (event?.jobs?.length || 0), 0) || 0;
 
     await this.onLog(
       'info',
@@ -294,8 +294,8 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
         eventsCount,
         totalJobs,
       },
-      null,
-      hasuraEvent?.__correlationId as CorrelationId
+      '' as JobName,
+      (hasuraEvent?.__correlationId || '') as CorrelationId
     );
   }
 
@@ -362,7 +362,7 @@ export class SimpleLoggingPlugin extends BasePlugin<SimpleLoggingConfig> {
         errorName: error.name,
         errorStack: error.stack,
       },
-      null,
+      '' as JobName,
       correlationId
     );
   }
