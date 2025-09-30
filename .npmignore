@@ -1,0 +1,55 @@
+# Test files
+*.test.ts
+*.spec.ts
+**/__tests__
+**/__mocks__
+tests/
+coverage/
+.nyc_output/
+
+# Development files
+tsconfig*.json
+.eslintrc*
+.prettierrc*
+jest.config.js
+nodemon.json
+
+# Build scripts
+scripts/
+
+# Source TypeScript (compiled to dist/)
+# Keep minimal source for reference but exclude heavy subdirectories
+src/plugins/observability/console/node_modules/
+src/plugins/observability/console/dist/
+src/plugins/observability/console/build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+circle.yml
+
+# Misc
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
+.env.local
+.env.*.local
