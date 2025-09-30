@@ -21,6 +21,7 @@ interface ConsoleOptions {
   databaseUrl?: string;
   hasuraEndpoint?: string;
   hasuraAdminSecret?: string;
+  env?: string;
 }
 
 /**
@@ -40,6 +41,9 @@ export async function startConsoleCommand(options: ConsoleOptions) {
     // Load configuration
     const config = await loadConsoleConfig(options.config);
 
+    // Load environment variables from file if provided
+    const envVars = options.env ? loadEnvFile(options.env) : {};
+
     // Set environment variables
     const env = {
       ...process.env,
@@ -51,6 +55,13 @@ export async function startConsoleCommand(options: ConsoleOptions) {
       CONSOLE_PUBLIC_URL: options.publicUrl || config.console.publicUrl,
       CONSOLE_AUTO_OPEN: options.open !== false ? 'true' : 'false',
       NODE_ENV: options.watch !== false ? 'development' : 'production',
+      // Add VITE_ prefixed variables from the env file
+      ...Object.entries(envVars).reduce((acc, [key, value]) => {
+        if (key.startsWith('VITE_')) {
+          acc[key] = value;
+        }
+        return acc;
+      }, {} as Record<string, string>),
     };
 
     // Change to console directory
@@ -374,4 +385,54 @@ async function addNpmScript(scriptName: string, port: number): Promise<void> {
   packageJson.scripts[scriptName] = `hasura-event-detector console start --port ${port}`;
 
   fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+}
+
+/**
+ * Load environment variables from a file
+ * Supports file:// protocol and direct file paths
+ */
+function loadEnvFile(envPath: string): Record<string, string> {
+  try {
+    // Remove file:// protocol if present
+    let filePath = envPath.startsWith('file://') ? envPath.slice(7) : envPath;
+
+    // Resolve to absolute path
+    filePath = path.resolve(filePath);
+
+    if (!fs.existsSync(filePath)) {
+      throw new Error(`Environment file not found: ${filePath}`);
+    }
+
+    const envContent = fs.readFileSync(filePath, 'utf8');
+    const envVars: Record<string, string> = {};
+
+    // Parse .env file format
+    envContent.split('\n').forEach(line => {
+      // Skip comments and empty lines
+      line = line.trim();
+      if (!line || line.startsWith('#')) {
+        return;
+      }
+
+      // Parse KEY=VALUE format
+      const match = line.match(/^([^=]+)=(.*)$/);
+      if (match) {
+        const key = match[1].trim();
+        let value = match[2].trim();
+
+        // Remove quotes if present
+        if ((value.startsWith('"') && value.endsWith('"')) ||
+            (value.startsWith("'") && value.endsWith("'"))) {
+          value = value.slice(1, -1);
+        }
+
+        envVars[key] = value;
+      }
+    });
+
+    console.log(`✅ Loaded ${Object.keys(envVars).length} environment variables from ${filePath}`);
+    return envVars;
+  } catch (error) {
+    throw new Error(`Failed to load environment file: ${error.message}`);
+  }
 }

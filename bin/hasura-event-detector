@@ -75,6 +75,7 @@ consoleCommand
   .option('--database-url <url>', 'Database URL')
   .option('--hasura-endpoint <url>', 'Hasura GraphQL endpoint')
   .option('--hasura-admin-secret <secret>', 'Hasura admin secret')
+  .option('--env <path>', 'Path to environment file (e.g., file://path/to/.env)')
   .action(startConsoleCommand);
 
 consoleCommand
