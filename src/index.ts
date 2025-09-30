@@ -17,6 +17,9 @@ export { run, job } from './handler';
 // Note: Netlify-specific utilities are available at 'hasura-event-detector/netlify'
 export * from './utils';
 
+// Netlify utilities (for backward compatibility with v0.0.8)
+export { handleSuccess, handleFailure } from './netlify';
+
 // Example jobs (for reference and testing)
 export {
   jobSimulator,
