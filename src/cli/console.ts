@@ -31,14 +31,29 @@ export async function startConsoleCommand(options: ConsoleOptions) {
   console.log('🚀 Starting Hasura Event Detector Console...');
 
   try {
-    // Resolve console path relative to package root
-    // When compiled: __dirname is dist/cjs/cli or dist/esm/cli
-    // When installed: node_modules/@hopdrive/hasura-event-detector/dist/cjs/cli
-    const consolePath = path.resolve(__dirname, '../../../src/plugins/observability/console');
+    // Check if console package is installed
+    let consolePath: string | null = null;
 
-    // Check if console directory exists
-    if (!fs.existsSync(consolePath)) {
-      throw new Error('Console directory not found. Please run "hasura-event-detector console init" first.');
+    // Try to find the console package
+    const possiblePaths = [
+      path.join(process.cwd(), 'packages', 'console'),
+      path.join(process.cwd(), 'node_modules', '@hopdrive', 'hasura-event-detector-console'),
+    ];
+
+    for (const testPath of possiblePaths) {
+      if (fs.existsSync(testPath)) {
+        consolePath = testPath;
+        break;
+      }
+    }
+
+    if (!consolePath) {
+      console.error('\n❌ Console package not found!\n');
+      console.log('The console is now a separate package. Please install it:');
+      console.log('\n  npm install @hopdrive/hasura-event-detector-console --save-dev\n');
+      console.log('For more information, see:');
+      console.log('  https://github.com/hopdrive/hasura-event-detector#observability-console\n');
+      process.exit(1);
     }
 
     // Load configuration
@@ -319,12 +334,25 @@ export async function checkConsoleCommand(options: ConsoleOptions) {
     console.log(`🔗 Hasura Endpoint: ${config.hasura.endpoint}`);
     console.log(`🌐 Console URL: ${config.console.publicUrl}`);
 
-    // Check if console directory exists
-    const consolePath = path.resolve(__dirname, '../../../src/plugins/observability/console');
-    if (fs.existsSync(consolePath)) {
-      console.log('✅ Console directory found');
+    // Check if console package is installed
+    let consolePath: string | null = null;
+    const possiblePaths = [
+      path.join(process.cwd(), 'packages', 'console'),
+      path.join(process.cwd(), 'node_modules', '@hopdrive', 'hasura-event-detector-console'),
+    ];
+
+    for (const testPath of possiblePaths) {
+      if (fs.existsSync(testPath)) {
+        consolePath = testPath;
+        break;
+      }
+    }
+
+    if (consolePath) {
+      console.log('✅ Console package found');
     } else {
-      console.log('❌ Console directory not found');
+      console.log('⚠️  Console package not installed');
+      console.log('   Install with: npm install @hopdrive/hasura-event-detector-console --save-dev');
     }
 
     // Check if package.json has the script

@@ -106,3 +106,10 @@ dist
 
 # Local Netlify folder
 .netlify
+
+# Console package - ignore old location's node_modules
+src/plugins/observability/console/node_modules/
+
+# New console package location
+packages/console/node_modules/
+packages/console/dist/

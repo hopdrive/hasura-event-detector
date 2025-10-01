@@ -16,6 +16,7 @@ import {
 } from '../../types';
 import { log, logError } from '../../helpers/log';
 import { parseHasuraEvent } from '../../helpers/hasura';
+import { ConsoleServer, type ConsoleServerConfig } from './console-server';
 
 // Observability-specific types moved from core types
 export interface ObservabilityMetrics {
@@ -102,6 +103,7 @@ export interface ObservabilityConfig extends PluginConfig {
   retryAttempts: number;
   retryDelay: number;
   maxJsonSize: number;
+  console?: ConsoleServerConfig;
 }
 
 interface BufferedInvocation {
@@ -190,6 +192,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   private activeInvocations: Map<CorrelationId, string> = new Map(); // Track correlation ID -> invocation ID mapping
   private activeEventExecutions: Map<string, string> = new Map(); // Track "${correlationId}:${eventName}" -> event execution ID
   private activeJobExecutions: Map<string, string> = new Map(); // Track "${correlationId}:${eventName}:${jobName}" -> job execution ID
+  private consoleServer: ConsoleServer | null = null;
 
   constructor(config: Partial<ObservabilityConfig> = {}) {
     const defaultConfig: ObservabilityConfig = {
@@ -212,6 +215,12 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       retryAttempts: 3,
       retryDelay: 1000, // ms
       maxJsonSize: 1000000, // 1MB default limit
+      console: {
+        enabled: true,
+        port: 3001,
+        host: 'localhost',
+        serveInProduction: false,
+      },
       ...config,
     };
 
@@ -255,6 +264,17 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
         });
       }, this.config.flushInterval);
 
+      // Start console server if configured
+      if (this.config.console?.enabled && this.pool) {
+        try {
+          this.consoleServer = new ConsoleServer(this.config.console, this.pool);
+          await this.consoleServer.start();
+        } catch (error) {
+          logError('ObservabilityPlugin', 'Failed to start console server', error as Error);
+          // Don't throw, console is optional
+        }
+      }
+
       this.isInitialized = true;
       log('ObservabilityPlugin', 'Initialized successfully');
     } catch (error) {
@@ -268,6 +288,12 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     if (this.flushTimer) {
       clearInterval(this.flushTimer);
       this.flushTimer = null;
+    }
+
+    // Stop console server
+    if (this.consoleServer) {
+      await this.consoleServer.stop();
+      this.consoleServer = null;
     }
 
     // Final flush
@@ -1753,6 +1779,11 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
         invocations: this.buffer.invocations.size,
         eventExecutions: this.buffer.eventExecutions.size,
         jobExecutions: this.buffer.jobExecutions.size,
+      },
+      console: {
+        enabled: this.config.console?.enabled || false,
+        running: this.consoleServer !== null,
+        url: this.consoleServer ? `http://${this.config.console?.host || 'localhost'}:${this.config.console?.port || 3001}/console` : null,
       },
     };
   }

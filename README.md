@@ -537,9 +537,55 @@ hasura-event-detector test user-activation --file test-data.json
 hasura-event-detector test user-activation --dry-run
 ```
 
-## 🖥️ Observability Console
+## 🖥️ Observability Console (Optional)
 
-The framework includes a powerful React-based console for monitoring and debugging your event detection system in real-time.
+The observability console is an optional UI for monitoring your event detection system. It's a separate package to keep production bundles small.
+
+### Quick Start - Get Console Running Locally
+
+**Option 1: Run Console Standalone (Easiest)**
+
+```bash
+# 1. Install the console package
+npm install @hopdrive/hasura-event-detector-console --save-dev
+
+# 2. Navigate to the console package
+cd packages/console
+# OR if installed as dependency:
+cd node_modules/@hopdrive/hasura-event-detector-console
+
+# 3. Install console dependencies (first time only)
+npm install
+
+# 4. Start the console
+npm run start
+
+# 5. Open http://localhost:3000 in your browser
+```
+
+**Option 2: Serve Console via ObservabilityPlugin**
+
+```typescript
+// In your application code
+import { ObservabilityPlugin } from '@hopdrive/hasura-event-detector/plugins';
+
+const observability = new ObservabilityPlugin({
+  enabled: true,
+  console: {
+    enabled: true,
+    port: 3001,
+    serveInProduction: false
+  },
+  database: {
+    connectionString: 'postgresql://localhost:5432/observability'
+  }
+});
+
+// Initialize the plugin
+await observability.initialize();
+
+// Console available at http://localhost:3001/console
+```
 
 ### Features
 
@@ -548,67 +594,12 @@ The framework includes a powerful React-based console for monitoring and debuggi
 - **Performance Analytics**: Track job execution times and success rates
 - **Error Debugging**: Detailed error logs with context and stack traces
 - **Flow Diagrams**: Interactive visualizations of event processing flows
-- **Data Export**: Export event data for analysis
 
-### Quick Start
+### Why a Separate Package?
 
-```bash
-# Initialize console in your project
-hasura-event-detector console init --add-script
-
-# Start the console
-npm run event-console
-# OR
-hasura-event-detector console start
-```
-
-### Console Commands
-
-```bash
-# Initialize console configuration
-hasura-event-detector console init [options]
-
-# Start development server
-hasura-event-detector console start [options]
-
-# Build for production
-hasura-event-detector console build [options]
-
-# Add npm script to package.json
-hasura-event-detector console add-script
-
-# Check configuration
-hasura-event-detector console check
-```
-
-### Configuration
-
-The console uses a `console.config.js` file for configuration:
-
-```javascript
-module.exports = {
-  // Database configuration
-  database: {
-    url: process.env.DATABASE_URL || 'postgresql://localhost:5432/hasura_event_detector_observability',
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-  },
-
-  // Hasura configuration
-  hasura: {
-    endpoint: process.env.HASURA_ENDPOINT || 'http://localhost:8080/v1/graphql',
-    adminSecret: process.env.HASURA_ADMIN_SECRET || 'myadminsecretkey'
-  },
-
-  // Console server configuration
-  console: {
-    port: 3000,
-    host: 'localhost',
-    publicUrl: 'http://localhost:3000',
-    autoOpen: true,
-    watchMode: true
-  }
-};
-```
+- **Small Production Bundles**: Main package only 78KB (vs hundreds of MB with UI)
+- **No Netlify Issues**: Avoids function size deployment failures
+- **Optional**: Only install when you need the UI for development/debugging
 
 ### Production Deployment
 
