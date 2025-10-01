@@ -286,15 +286,13 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     if (!this.config.enabled) return null;
 
     const id = uuidv4();
-    const record = {
+    const record: BufferedInvocation = {
       id,
       correlation_id: data.correlationId,
       source_function: data.sourceFunction,
       source_table: data.sourceTable,
       source_operation: data.sourceOperation,
       source_system: 'hasura', // Default to hasura, can be overridden
-      source_user: data.sourceUser,
-      source_job_id: data.sourceJobId || null, // From tracking token extraction
       source_event_id: data.hasuraEventId,
       source_event_payload: this.config.captureHasuraPayload ? data.hasuraEventPayload : null,
       source_event_time: data.hasuraEventTime,
