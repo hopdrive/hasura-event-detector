@@ -9,7 +9,11 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true
+    sourcemap: true,
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true
+    }
   },
   define: {
     // Define environment variables for the client
@@ -22,10 +26,26 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
+    // Pre-bundle all dependencies to avoid CommonJS/ESM issues
     include: [
+      'react',
+      'react-dom',
+      'react-dom/client',
       'lodash-es',
       'react-is',
-      'recharts'
-    ]
+      'recharts',
+      'jsondiffpatch',
+      'react-json-tree',
+      'antd',
+      '@apollo/client',
+      'graphql',
+      'reactflow',
+      'framer-motion',
+      'use-sync-external-store/shim/with-selector'
+    ],
+    esbuildOptions: {
+      // Treat all as ESM
+      mainFields: ['module', 'main']
+    }
   }
 });

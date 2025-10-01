@@ -19,7 +19,7 @@ scripts/
 
 # Source TypeScript (compiled to dist/)
 # Keep minimal source for reference but exclude heavy subdirectories
-src/plugins/observability/console/node_modules/
+# src/plugins/observability/console/node_modules/
 src/plugins/observability/console/dist/
 src/plugins/observability/console/build/
 

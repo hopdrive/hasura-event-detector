@@ -74,10 +74,10 @@ export async function startConsoleCommand(options: ConsoleOptions) {
     process.chdir(consolePath);
 
     // Install dependencies if needed
-    if (!fs.existsSync(path.join(consolePath, 'node_modules'))) {
-      console.log('📦 Installing console dependencies...');
-      execSync('npm install', { stdio: 'inherit', env });
-    }
+    // if (!fs.existsSync(path.join(consolePath, 'node_modules'))) {
+    //   console.log('📦 Installing console dependencies...');
+    //   execSync('npm install', { stdio: 'inherit', env });
+    // }
 
     // Start the development server
     console.log(`🌐 Starting console on http://${env.CONSOLE_HOST}:${env.CONSOLE_PORT}`);
@@ -182,23 +182,23 @@ module.exports = {
     console.log(`✅ Created configuration file: ${configPath}`);
 
     // Install console dependencies
-    const consolePath = path.resolve(__dirname, '../../../src/plugins/observability/console');
-    if (fs.existsSync(consolePath)) {
-      const nodeModulesPath = path.join(consolePath, 'node_modules');
-      if (!fs.existsSync(nodeModulesPath)) {
-        console.log('\n📦 Installing console dependencies...');
-        const originalCwd = process.cwd();
-        try {
-          process.chdir(consolePath);
-          execSync('npm install', { stdio: 'inherit' });
-          process.chdir(originalCwd);
-          console.log('✅ Console dependencies installed');
-        } catch (error) {
-          process.chdir(originalCwd);
-          console.error('⚠️  Failed to install console dependencies. You may need to run npm install manually in the console directory.');
-        }
-      }
-    }
+    // const consolePath = path.resolve(__dirname, '../../../src/plugins/observability/console');
+    // if (fs.existsSync(consolePath)) {
+    //   const nodeModulesPath = path.join(consolePath, 'node_modules');
+    //   if (!fs.existsSync(nodeModulesPath)) {
+    //     console.log('\n📦 Installing console dependencies...');
+    //     const originalCwd = process.cwd();
+    //     try {
+    //       process.chdir(consolePath);
+    //       execSync('npm install', { stdio: 'inherit' });
+    //       process.chdir(originalCwd);
+    //       console.log('✅ Console dependencies installed');
+    //     } catch (error) {
+    //       process.chdir(originalCwd);
+    //       console.error('⚠️  Failed to install console dependencies. You may need to run npm install manually in the console directory.');
+    //     }
+    //   }
+    // }
 
     // Add npm script to package.json if requested
     if (options.addScript) {
