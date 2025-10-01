@@ -479,25 +479,121 @@ const config = {
 
 ### Advanced Configuration with Observability
 
-```typescript
-const config = {
-  autoLoadEventModules: true,
-  eventModulesDirectory: './events',
+The Observability Plugin now supports two transport modes for storing telemetry data:
+- **SQL Transport** (default) - Direct PostgreSQL connection for traditional deployments
+- **GraphQL Transport** - Hasura GraphQL API for serverless environments
 
-  observability: {
-    enabled: process.env.NODE_ENV === 'production',
-    database: {
-      host: process.env.DB_HOST,
-      port: 5432,
-      database: process.env.DB_NAME,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD
+#### SQL Transport (Default)
+
+The SQL transport uses a direct PostgreSQL connection pool. This is the default mode for backward compatibility.
+
+```typescript
+import { ObservabilityPlugin } from '@hopdrive/hasura-event-detector/plugins';
+
+const plugin = new ObservabilityPlugin({
+  transport: 'sql',  // Optional, this is the default
+  database: {
+    connectionString: process.env.DATABASE_URL,
+    // Or specify individual connection parameters:
+    host: 'localhost',
+    port: 5432,
+    database: 'observability',
+    user: 'postgres',
+    password: 'password',
+    ssl: { rejectUnauthorized: false }
+  },
+  // Other configuration options...
+  captureJobOptions: true,
+  captureHasuraPayload: true,
+  captureErrorStacks: true,
+  batchSize: 100,
+  flushInterval: 5000,
+});
+```
+
+#### GraphQL Transport (For Serverless)
+
+The GraphQL transport uses Hasura's GraphQL API to write data. This is ideal for serverless environments where connection pooling is problematic.
+
+```typescript
+import { ObservabilityPlugin } from '@hopdrive/hasura-event-detector/plugins';
+
+const plugin = new ObservabilityPlugin({
+  transport: 'graphql',
+  graphql: {
+    endpoint: process.env.HASURA_GRAPHQL_ENDPOINT,
+    headers: {
+      // Use admin secret
+      'x-hasura-admin-secret': process.env.HASURA_ADMIN_SECRET,
+      // Or use JWT
+      'authorization': `Bearer ${process.env.HASURA_JWT}`
     },
-    schema: 'event_detector',
-    batchSize: 25,
-    flushInterval: 10000
+    timeout: 30000,      // Request timeout in ms (default: 30000)
+    maxRetries: 3,       // Number of retries (default: 3)
+    retryDelay: 1000,    // Initial retry delay in ms (default: 1000)
+  },
+  // Other configuration options...
+  captureJobOptions: true,
+  captureHasuraPayload: true,
+  captureErrorStacks: true,
+  batchSize: 100,
+  flushInterval: 5000,
+});
+```
+
+#### Environment Variables
+
+Both transports support configuration via environment variables:
+
+**SQL Transport:**
+- `OBSERVABILITY_DB_URL` - Full connection string
+- `OBSERVABILITY_DB_HOST` - Database host
+- `OBSERVABILITY_DB_PORT` - Database port
+- `OBSERVABILITY_DB_NAME` - Database name
+- `OBSERVABILITY_DB_USER` - Database user
+- `OBSERVABILITY_DB_PASSWORD` - Database password
+
+**GraphQL Transport:**
+- `HASURA_GRAPHQL_ENDPOINT` - GraphQL endpoint URL
+- `HASURA_ADMIN_SECRET` - Admin secret for authentication
+- `HASURA_JWT` - JWT token for authentication (if not using admin secret)
+
+#### When to Use Each Transport
+
+**Use SQL Transport When:**
+- Running in traditional server environments (EC2, containers, VMs)
+- You have stable, long-running processes
+- Connection pooling is beneficial
+- You want minimal latency
+
+**Use GraphQL Transport When:**
+- Running in serverless environments (Lambda, Vercel, Netlify)
+- Dealing with connection pool exhaustion issues
+- You want to leverage Hasura's built-in features (permissions, webhooks, etc.)
+- You need better isolation between write and read operations
+
+#### Migration Example
+
+Switching from SQL to GraphQL transport:
+
+```typescript
+// Before
+const plugin = new ObservabilityPlugin({
+  database: {
+    connectionString: process.env.DATABASE_URL
   }
-};
+});
+
+// After
+const plugin = new ObservabilityPlugin({
+  transport: 'graphql',
+  graphql: {
+    endpoint: process.env.HASURA_GRAPHQL_ENDPOINT,
+    headers: {
+      'x-hasura-admin-secret': process.env.HASURA_ADMIN_SECRET
+    }
+  }
+});
 ```
 
 ## 🛠️ CLI Commands
