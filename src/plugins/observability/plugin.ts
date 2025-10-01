@@ -1,4 +1,3 @@
-import { Pool, PoolClient } from 'pg';
 import { v4 as uuidv4 } from 'uuid';
 import { BasePlugin } from '../../plugin';
 import {
@@ -17,6 +16,9 @@ import {
 import { log, logError } from '../../helpers/log';
 import { parseHasuraEvent } from '../../helpers/hasura';
 import { ConsoleServer, type ConsoleServerConfig } from './console-server';
+import type { ObservabilityTransport, BufferedInvocation, BufferedEventExecution, BufferedJobExecution } from './transports/types';
+import { SQLTransport } from './transports/sql-transport';
+import { GraphQLTransport, type GraphQLConfig } from './transports/graphql-transport';
 
 // Observability-specific types moved from core types
 export interface ObservabilityMetrics {
@@ -91,9 +93,19 @@ export interface ObservabilityQueryVariables {
 
 export interface ObservabilityConfig extends PluginConfig {
   enabled?: boolean;
-  database: DatabaseConfig & {
+
+  // Transport configuration
+  transport?: 'sql' | 'graphql';  // Default: 'sql' for backward compatibility
+
+  // SQL configuration (existing)
+  database?: DatabaseConfig & {
     connectionString?: string | undefined;
   };
+
+  // GraphQL configuration (new)
+  graphql?: GraphQLConfig;
+
+  // Shared configuration
   schema: string;
   captureJobOptions: boolean;
   captureHasuraPayload: boolean;
@@ -106,71 +118,6 @@ export interface ObservabilityConfig extends PluginConfig {
   console?: ConsoleServerConfig;
 }
 
-interface BufferedInvocation {
-  id: string;
-  correlation_id: CorrelationId;
-  source_function: string;
-  source_table: string;
-  source_operation: string;
-  source_system: string;
-  source_event_id: string | null;
-  source_event_payload: Record<string, any> | null;
-  source_event_time: Date;
-  source_user_email: string | null;
-  source_user_role: string | null;
-  auto_load_modules: boolean;
-  event_modules_directory: string;
-  context_data: Record<string, any> | null;
-  status: string;
-  created_at: Date;
-  updated_at?: Date;
-  total_duration_ms: number | null;
-  events_detected_count: number;
-  total_jobs_run: number;
-  total_jobs_succeeded: number;
-  total_jobs_failed: number;
-  error_message: string | null;
-  error_stack: string | null;
-}
-
-interface BufferedEventExecution {
-  id: string;
-  invocation_id: string;
-  correlation_id: CorrelationId;
-  event_name: EventName;
-  event_module_path: string | null;
-  detected: boolean;
-  detection_duration_ms: number | null;
-  detection_error: string | null;
-  detection_error_stack: string | null;
-  handler_duration_ms: number | null;
-  handler_error: string | null;
-  handler_error_stack: string | null;
-  jobs_count: number;
-  jobs_succeeded: number;
-  jobs_failed: number;
-  status: string;
-  created_at: Date;
-  updated_at: Date;
-}
-
-interface BufferedJobExecution {
-  id: string;
-  invocation_id: string;
-  event_execution_id: string;
-  correlation_id: CorrelationId;
-  job_name: JobName;
-  job_function_name: string | null;
-  job_options: Record<string, any> | null;
-  duration_ms: number | null;
-  status: string;
-  result: Record<string, any> | null;
-  error_message: string | null;
-  error_stack: string | null;
-  created_at: Date;
-  updated_at: Date;
-}
-
 /**
  * ObservabilityPlugin for Hasura Event Detector
  *
@@ -181,7 +128,7 @@ interface BufferedJobExecution {
  * Extends BasePlugin to integrate with the plugin system and support correlation ID tracking.
  */
 export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
-  private pool: Pool | null = null;
+  private transport: ObservabilityTransport | null = null;
   private buffer: {
     invocations: Map<string, BufferedInvocation>;
     eventExecutions: Map<string, BufferedEventExecution>;
@@ -195,8 +142,9 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   private consoleServer: ConsoleServer | null = null;
 
   constructor(config: Partial<ObservabilityConfig> = {}) {
-    const defaultConfig: ObservabilityConfig = {
+    const defaultConfig: Partial<ObservabilityConfig> = {
       enabled: true,
+      transport: 'sql',  // Default to SQL for backward compatibility
       database: {
         connectionString: process.env.OBSERVABILITY_DB_URL,
         host: process.env.OBSERVABILITY_DB_HOST || 'localhost',
@@ -221,10 +169,25 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
         host: 'localhost',
         serveInProduction: false,
       },
-      ...config,
     };
 
-    super(defaultConfig);
+    // Add graphql config if environment variable is set
+    if (process.env.HASURA_GRAPHQL_ENDPOINT) {
+      defaultConfig.graphql = {
+        endpoint: process.env.HASURA_GRAPHQL_ENDPOINT,
+        headers: process.env.HASURA_ADMIN_SECRET
+          ? { 'x-hasura-admin-secret': process.env.HASURA_ADMIN_SECRET }
+          : process.env.HASURA_JWT
+          ? { 'authorization': `Bearer ${process.env.HASURA_JWT}` }
+          : {},
+        timeout: 30000,
+        maxRetries: 3,
+        retryDelay: 1000,
+      };
+    }
+
+    const mergedConfig = { ...defaultConfig, ...config } as ObservabilityConfig;
+    super(mergedConfig);
 
     this.buffer = {
       invocations: new Map(),
@@ -244,18 +207,26 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     if (!this.config.enabled || this.isInitialized) return;
 
     try {
-      // Validate configuration
-      if (!this.config.database.connectionString && !this.config.database.host) {
-        throw new Error('Database connection configuration is required');
+      // Initialize appropriate transport based on configuration
+      if (this.config.transport === 'graphql') {
+        // Validate GraphQL configuration
+        if (!this.config.graphql?.endpoint) {
+          throw new Error('GraphQL endpoint is required when using GraphQL transport');
+        }
+
+        this.transport = new GraphQLTransport(this.config);
+      } else {
+        // Default to SQL transport
+        // Validate SQL configuration
+        if (!this.config.database?.connectionString && !this.config.database?.host) {
+          throw new Error('Database connection configuration is required for SQL transport');
+        }
+
+        this.transport = new SQLTransport(this.config);
       }
 
-      // Initialize connection pool
-      this.pool = new Pool(this.config.database);
-
-      // Test connection
-      const client: PoolClient = await this.pool.connect();
-      await client.query('SELECT 1');
-      client.release();
+      // Initialize the selected transport
+      await this.transport.initialize();
 
       // Setup periodic flush
       this.flushTimer = setInterval(() => {
@@ -264,11 +235,14 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
         });
       }, this.config.flushInterval);
 
-      // Start console server if configured
-      if (this.config.console?.enabled && this.pool) {
+      // Start console server if configured (only for SQL transport)
+      if (this.config.console?.enabled && this.transport instanceof SQLTransport) {
         try {
-          this.consoleServer = new ConsoleServer(this.config.console, this.pool);
-          await this.consoleServer.start();
+          const pool = this.transport.getPool();
+          if (pool) {
+            this.consoleServer = new ConsoleServer(this.config.console, pool);
+            await this.consoleServer.start();
+          }
         } catch (error) {
           logError('ObservabilityPlugin', 'Failed to start console server', error as Error);
           // Don't throw, console is optional
@@ -276,7 +250,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       }
 
       this.isInitialized = true;
-      log('ObservabilityPlugin', 'Initialized successfully');
+      log('ObservabilityPlugin', `Initialized successfully with ${this.config.transport || 'sql'} transport`);
     } catch (error) {
       logError('ObservabilityPlugin', 'Failed to initialize', error as Error);
       this.config.enabled = false;
@@ -299,9 +273,10 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     // Final flush
     await this.flush();
 
-    if (this.pool) {
-      await this.pool.end();
-      this.pool = null;
+    // Shutdown transport
+    if (this.transport) {
+      await this.transport.shutdown();
+      this.transport = null;
     }
 
     // Clean up tracking maps
@@ -442,962 +417,23 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   }
 
   /**
-   * Flush buffered data to database
+   * Flush buffered data to storage backend via transport
    */
   async flush() {
-    if (!this.config.enabled || !this.pool || !this.isInitialized) return;
+    if (!this.config.enabled || !this.transport || !this.isInitialized) return;
 
     const hasData =
       this.buffer.invocations.size > 0 || this.buffer.eventExecutions.size > 0 || this.buffer.jobExecutions.size > 0;
 
     if (!hasData) return;
 
-    let client;
     try {
-      client = await this.pool.connect();
-      await client.query('BEGIN');
-
-      // Insert/update invocations
-      if (this.buffer.invocations.size > 0) {
-        const res = await this.bulkUpsertInvocations(client, Array.from(this.buffer.invocations.values()));
-        this.buffer.invocations.clear();
-      }
-
-      // Insert event executions
-      if (this.buffer.eventExecutions.size > 0) {
-        await this.bulkInsertEventExecutions(client, Array.from(this.buffer.eventExecutions.values()));
-        this.buffer.eventExecutions.clear();
-      }
-
-      // Insert job executions
-      if (this.buffer.jobExecutions.size > 0) {
-        await this.bulkInsertJobExecutions(client, Array.from(this.buffer.jobExecutions.values()));
-        this.buffer.jobExecutions.clear();
-      }
-
-      await client.query('COMMIT');
+      // Use transport to flush data
+      await this.transport.flush(this.buffer);
     } catch (error) {
-      if (client) await client.query('ROLLBACK');
       logError('ObservabilityPlugin', 'Flush failed', error as Error);
-
       // Retry logic could be added here
       throw error;
-    } finally {
-      if (client) client.release();
-    }
-  }
-
-  /**
-   * Bulk insert/update invocations
-   */
-  async bulkUpsertInvocations(client: PoolClient, records: BufferedInvocation[]): Promise<void> {
-    if (records.length === 0) return;
-
-    const columns = [
-      'id',
-      'correlation_id',
-      'source_function',
-      'source_table',
-      'source_operation',
-      'source_system',
-      'source_event_id',
-      'source_event_payload',
-      'source_event_time',
-      'source_user_email',
-      'source_user_role',
-      'total_duration_ms',
-      'events_detected_count',
-      'total_jobs_run',
-      'total_jobs_succeeded',
-      'total_jobs_failed',
-      'auto_load_modules',
-      'event_modules_directory',
-      'status',
-      'error_message',
-      'error_stack',
-      'context_data',
-      'created_at',
-      'updated_at',
-    ];
-
-    const values = records.map((record: any) => {
-      const serializedValues = columns.map((col: string) => {
-        const value = record[col];
-        let serialized = this.serializeValue(value, col);
-
-        // Debug problematic JSON values
-        if (col.includes('payload') || col.includes('context') || col.includes('data')) {
-          if (typeof serialized === 'string' && serialized.startsWith('{')) {
-            try {
-              JSON.parse(serialized);
-            } catch (error) {
-              logError('ObservabilityPlugin', `Invalid JSON in column ${col}`, error as Error);
-              console.log('Problematic value:', { column: col, value, serialized });
-
-              // Replace with safe fallback
-              serialized = JSON.stringify({
-                _json_error: 'Invalid JSON detected during database insertion',
-                _column: col,
-                _error: (error as Error).message,
-                _timestamp: new Date().toISOString(),
-              });
-            }
-          }
-        }
-
-        return serialized;
-      });
-
-      return serializedValues;
-    });
-
-    const placeholders = values
-      .map(
-        (_: any, i: number) => `(${columns.map((_: string, j: number) => `$${i * columns.length + j + 1}`).join(', ')})`
-      )
-      .join(', ');
-
-    const updateSet = columns
-      .filter((col: string) => col !== 'id' && col !== 'created_at')
-      .map((col: string) => `${col} = EXCLUDED.${col}`)
-      .join(', ');
-
-    const query = `
-      INSERT INTO invocations (${columns.join(', ')})
-      VALUES ${placeholders}
-      ON CONFLICT (id) DO UPDATE SET ${updateSet}
-    `;
-
-    try {
-      // Validate all JSON values before sending to database
-      this.validateJsonValues(values, 'invocations');
-
-      const res = await client.query(query, values.flat());
-      console.log('Bulk upsert invocations result:', res);
-    } catch (error) {
-      logError('ObservabilityPlugin', 'Database query failed for invocations', error as Error);
-      console.log('Query values sample:', values.slice(0, 1)); // Log first record for debugging
-
-      // Log the actual query and values for debugging
-      console.log('Query:', query);
-      console.log('Values length:', values.flat().length);
-      console.log('First few values:', values.flat().slice(0, 10));
-
-      // Log the complete query with substituted values for manual testing
-      this.logCompleteQuery(query, values.flat(), 'invocations');
-
-      throw error;
-    }
-  }
-
-  /**
-   * Bulk insert event executions
-   */
-  async bulkInsertEventExecutions(client: PoolClient, records: BufferedEventExecution[]): Promise<void> {
-    if (records.length === 0) return;
-
-    const columns = [
-      'id',
-      'invocation_id',
-      'correlation_id',
-      'event_name',
-      'event_module_path',
-      'detected',
-      'detection_duration_ms',
-      'detection_error',
-      'detection_error_stack',
-      'handler_duration_ms',
-      'handler_error',
-      'handler_error_stack',
-      'jobs_count',
-      'jobs_succeeded',
-      'jobs_failed',
-      'status',
-      'created_at',
-      'updated_at',
-    ];
-
-    const values = records.map((record: any) => {
-      const serializedValues = columns.map((col: string) => {
-        const value = record[col];
-        let serialized = this.serializeValue(value, col);
-
-        // Debug problematic JSON values
-        if (col.includes('error') || col.includes('stack')) {
-          if (typeof serialized === 'string' && serialized.startsWith('{')) {
-            try {
-              JSON.parse(serialized);
-            } catch (error) {
-              logError('ObservabilityPlugin', `Invalid JSON in column ${col}`, error as Error);
-              console.log('Problematic value:', { column: col, value, serialized });
-
-              // Replace with safe fallback
-              serialized = JSON.stringify({
-                _json_error: 'Invalid JSON detected during database insertion',
-                _column: col,
-                _error: (error as Error).message,
-                _timestamp: new Date().toISOString(),
-              });
-            }
-          }
-        }
-
-        return serialized;
-      });
-
-      return serializedValues;
-    });
-
-    const placeholders = values
-      .map(
-        (_: any, i: number) => `(${columns.map((_: string, j: number) => `$${i * columns.length + j + 1}`).join(', ')})`
-      )
-      .join(', ');
-
-    const updateSet = columns
-      .filter((col: string) => col !== 'id' && col !== 'created_at')
-      .map((col: string) => `${col} = EXCLUDED.${col}`)
-      .join(', ');
-
-    const query = `
-      INSERT INTO event_executions (${columns.join(', ')})
-      VALUES ${placeholders}
-      ON CONFLICT (id) DO UPDATE SET ${updateSet}
-    `;
-
-    try {
-      // Validate all JSON values before sending to database
-      this.validateJsonValues(values, 'event_executions');
-
-      await client.query(query, values.flat());
-    } catch (error) {
-      logError('ObservabilityPlugin', 'Database query failed for event executions', error as Error);
-      console.log('Query values sample:', values.slice(0, 1)); // Log first record for debugging
-
-      // Log the complete query with substituted values for manual testing
-      this.logCompleteQuery(query, values.flat(), 'event_executions');
-
-      throw error;
-    }
-  }
-
-  /**
-   * Bulk insert job executions
-   */
-  async bulkInsertJobExecutions(client: PoolClient, records: BufferedJobExecution[]): Promise<void> {
-    if (records.length === 0) return;
-
-    const columns = [
-      'id',
-      'invocation_id',
-      'event_execution_id',
-      'correlation_id',
-      'job_name',
-      'job_function_name',
-      'job_options',
-      'duration_ms',
-      'status',
-      'result',
-      'error_message',
-      'error_stack',
-      'created_at',
-      'updated_at',
-    ];
-
-    const values = records.map((record: any) => {
-      const serializedValues = columns.map((col: string) => {
-        const value = record[col];
-        let serialized = this.serializeValue(value, col);
-
-        // Debug problematic JSON values
-        if (col.includes('options') || col.includes('result') || col.includes('error')) {
-          if (typeof serialized === 'string' && serialized.startsWith('{')) {
-            try {
-              JSON.parse(serialized);
-            } catch (error) {
-              logError('ObservabilityPlugin', `Invalid JSON in column ${col}`, error as Error);
-              console.log('Problematic value:', { column: col, value, serialized });
-
-              // Replace with safe fallback
-              serialized = JSON.stringify({
-                _json_error: 'Invalid JSON detected during database insertion',
-                _column: col,
-                _error: (error as Error).message,
-                _timestamp: new Date().toISOString(),
-              });
-            }
-          }
-        }
-
-        return serialized;
-      });
-
-      return serializedValues;
-    });
-
-    const placeholders = values
-      .map(
-        (_: any, i: number) => `(${columns.map((_: string, j: number) => `$${i * columns.length + j + 1}`).join(', ')})`
-      )
-      .join(', ');
-
-    const updateSet = columns
-      .filter((col: string) => col !== 'id' && col !== 'created_at')
-      .map((col: string) => `${col} = EXCLUDED.${col}`)
-      .join(', ');
-
-    const query = `
-      INSERT INTO job_executions (${columns.join(', ')})
-      VALUES ${placeholders}
-      ON CONFLICT (id) DO UPDATE SET ${updateSet}
-    `;
-
-    try {
-      // Validate all JSON values before sending to database
-      this.validateJsonValues(values, 'job_executions');
-
-      await client.query(query, values.flat());
-    } catch (error) {
-      logError('ObservabilityPlugin', 'Database query failed for job executions', error as Error);
-      console.log('Query values sample:', values.slice(0, 1)); // Log first record for debugging
-
-      // Log the complete query with substituted values for manual testing
-      this.logCompleteQuery(query, values.flat(), 'job_executions');
-
-      throw error;
-    }
-  }
-
-  /**
-   * Replace circular references in objects to prevent JSON serialization errors
-   */
-  replaceCircularReferences(obj: any, path = new Set(), currentPath = ''): any {
-    if (obj === null || typeof obj !== 'object') {
-      return obj;
-    }
-
-    if (path.has(obj)) {
-      return {
-        json_error: '[Circular Reference Removed]',
-        path: currentPath,
-      };
-    }
-
-    path.add(obj);
-
-    if (Array.isArray(obj)) {
-      const newArray = obj.map((item, index) =>
-        this.replaceCircularReferences(item, new Set(path), currentPath ? `${currentPath}[${index}]` : `[${index}]`)
-      );
-      path.delete(obj);
-      return newArray;
-    }
-
-    const newObj: any = {};
-    for (const [key, value] of Object.entries(obj)) {
-      newObj[key] = this.replaceCircularReferences(value, new Set(path), currentPath ? `${currentPath}.${key}` : key);
-    }
-    path.delete(obj);
-    return newObj;
-  }
-
-  /**
-   * Serialize values for database insertion
-   */
-  serializeValue(value: any, columnName?: string): any {
-    if (value === undefined || value === null) return null;
-
-    // Special handling for JSON columns that expect JSON but might receive strings
-    const jsonColumns = [
-      'result',
-      'job_options',
-      'source_event_payload',
-      'context_data',
-      'error_stack',
-      'detection_error_stack',
-      'handler_error_stack',
-    ];
-    if (columnName && jsonColumns.includes(columnName)) {
-      return this.serializeJsonColumn(value, columnName);
-    }
-
-    // Handle primitive types
-    if (typeof value !== 'object') {
-      return value;
-    }
-
-    // Handle Date objects
-    if (value instanceof Date) {
-      return value;
-    }
-
-    // Handle Buffer objects
-    if (Buffer.isBuffer(value)) {
-      return value.toString('base64');
-    }
-
-    // Handle Error objects specially
-    if (value instanceof Error) {
-      const errorObj: any = {
-        name: value.name,
-        message: value.message,
-        stack: value.stack,
-      };
-
-      // Check if cause property exists (ES2022+ feature)
-      if ('cause' in value && value.cause) {
-        errorObj.cause = this.serializeValue((value as any).cause);
-      }
-
-      return errorObj;
-    }
-
-    // Handle other objects
-    try {
-      // Special handling for Apollo Client cache objects (they're often huge)
-      if (this.isApolloClientCache(value)) {
-        return this.serializeApolloClientCache(value);
-      }
-
-      // Clean circular references before JSON stringification
-      const cleanedValue = this.replaceCircularReferences(value);
-
-      // Validate that the cleaned value can be stringified
-      const jsonString = JSON.stringify(cleanedValue);
-
-      // Check if JSON string is too large (PostgreSQL has limits)
-      if (jsonString.length > this.config.maxJsonSize) {
-        logError(
-          'ObservabilityPlugin',
-          `JSON object too large (${jsonString.length} chars), truncating`,
-          new Error('JSON size limit exceeded')
-        );
-
-        // Try to create a truncated version with key information
-        const truncatedValue = this.createTruncatedObject(value, this.config.maxJsonSize);
-        const truncatedJson = this.sanitizeJsonString(JSON.stringify(truncatedValue));
-
-        // Validate truncated JSON
-        JSON.parse(truncatedJson);
-        return truncatedJson;
-      }
-
-      // Sanitize and validate the JSON string
-      const sanitizedJson = this.sanitizeJsonString(jsonString);
-
-      // Validate that the JSON string is valid by parsing it back
-      JSON.parse(sanitizedJson);
-
-      return sanitizedJson;
-    } catch (error) {
-      // If JSON serialization fails, return a safe fallback
-      logError('ObservabilityPlugin', 'JSON serialization failed', error as Error);
-      return JSON.stringify({
-        serialization_error: 'Failed to serialize object',
-        error_message: (error as Error).message,
-        object_type: value.constructor?.name || 'Unknown',
-        object_keys: Object.keys(value).slice(0, 10), // First 10 keys for debugging
-      });
-    }
-  }
-
-  /**
-   * Create a truncated version of an object for large JSON objects
-   */
-  createTruncatedObject(obj: any, maxSize: number): any {
-    if (typeof obj !== 'object' || obj === null) {
-      return obj;
-    }
-
-    const truncated: any = {
-      _truncated: true,
-      _original_type: obj.constructor?.name || 'Object',
-      _original_keys: Object.keys(obj).length,
-      _truncated_at: new Date().toISOString(),
-    };
-
-    let currentSize = JSON.stringify(truncated).length;
-    const maxPropertySize = Math.floor((maxSize - currentSize) / 10); // Reserve space for 10 properties
-
-    for (const [key, value] of Object.entries(obj)) {
-      if (currentSize >= maxSize * 0.8) break; // Stop at 80% of max size
-
-      let serializedValue: any;
-      try {
-        if (typeof value === 'object' && value !== null) {
-          // For nested objects, create a summary
-          if (Array.isArray(value)) {
-            serializedValue = {
-              _type: 'array',
-              _length: value.length,
-              _sample: value.slice(0, 3), // First 3 items
-            };
-          } else {
-            serializedValue = {
-              _type: 'object',
-              _keys: Object.keys(value).slice(0, 5), // First 5 keys
-              _sample: this.sampleObject(value, 2), // Sample 2 key-value pairs
-            };
-          }
-        } else {
-          serializedValue = value;
-        }
-
-        const propertyJson = `"${key}":${JSON.stringify(serializedValue)}`;
-        if (currentSize + propertyJson.length < maxSize) {
-          truncated[key] = serializedValue;
-          currentSize += propertyJson.length;
-        }
-      } catch (error) {
-        truncated[key] = {
-          _error: 'Failed to serialize property',
-          _type: typeof value,
-        };
-      }
-    }
-
-    return truncated;
-  }
-
-  /**
-   * Sample an object to get a few key-value pairs
-   */
-  sampleObject(obj: any, count: number): Record<string, any> {
-    const sample: Record<string, any> = {};
-    const keys = Object.keys(obj);
-    const sampleKeys = keys.slice(0, count);
-
-    for (const key of sampleKeys) {
-      try {
-        const value = obj[key];
-        if (typeof value === 'object' && value !== null) {
-          sample[key] = {
-            _type: Array.isArray(value) ? 'array' : 'object',
-            _size: Array.isArray(value) ? value.length : Object.keys(value).length,
-          };
-        } else {
-          sample[key] = value;
-        }
-      } catch (error) {
-        sample[key] = { _error: 'Failed to sample property' };
-      }
-    }
-
-    return sample;
-  }
-
-  /**
-   * Check if an object is an Apollo Client cache
-   */
-  isApolloClientCache(obj: any): boolean {
-    if (typeof obj !== 'object' || obj === null) return false;
-
-    // Check for Apollo Client cache characteristics
-    return (
-      obj.data &&
-      typeof obj.data === 'object' &&
-      obj.cache &&
-      typeof obj.cache === 'object' &&
-      (obj.sdk || obj.version || obj.config)
-    );
-  }
-
-  /**
-   * Serialize Apollo Client cache objects with special handling
-   */
-  serializeApolloClientCache(obj: any): string {
-    try {
-      const summary = {
-        _type: 'ApolloClientCache',
-        _truncated: true,
-        _truncated_at: new Date().toISOString(),
-        sdk: obj.sdk
-          ? {
-              version: obj.sdk.version,
-              config: obj.sdk.config
-                ? {
-                    server: obj.sdk.config.server,
-                    secret: obj.sdk.config.secret ? '[REDACTED]' : undefined,
-                    apollo_client: obj.sdk.config.apollo_client ? '[ApolloClient Config]' : undefined,
-                  }
-                : undefined,
-            }
-          : undefined,
-        cache: obj.cache
-          ? {
-              _type: 'ApolloCache',
-              _keys: Object.keys(obj.cache).slice(0, 10),
-              _data_size: obj.cache.data ? Object.keys(obj.cache.data).length : 0,
-              _sample_data: obj.cache.data ? this.sampleApolloData(obj.cache.data, 3) : undefined,
-            }
-          : undefined,
-        data: obj.data
-          ? {
-              _type: 'ApolloData',
-              _keys: Object.keys(obj.data).slice(0, 10),
-              _size: Object.keys(obj.data).length,
-              _sample: this.sampleApolloData(obj.data, 2),
-            }
-          : undefined,
-        _original_size_estimate: JSON.stringify(obj).length,
-      };
-
-      return JSON.stringify(summary);
-    } catch (error) {
-      return JSON.stringify({
-        _type: 'ApolloClientCache',
-        _error: 'Failed to serialize Apollo Client cache',
-        _error_message: (error as Error).message,
-        _truncated_at: new Date().toISOString(),
-      });
-    }
-  }
-
-  /**
-   * Sample Apollo Client data object
-   */
-  sampleApolloData(data: any, count: number): Record<string, any> {
-    const sample: Record<string, any> = {};
-    const keys = Object.keys(data);
-    const sampleKeys = keys.slice(0, count);
-
-    for (const key of sampleKeys) {
-      try {
-        const value = data[key];
-        if (typeof value === 'object' && value !== null) {
-          if (Array.isArray(value)) {
-            sample[key] = {
-              _type: 'array',
-              _length: value.length,
-              _sample: value.slice(0, 2),
-            };
-          } else {
-            sample[key] = {
-              _type: 'object',
-              _keys: Object.keys(value).slice(0, 3),
-              _sample: this.sampleObject(value, 1),
-            };
-          }
-        } else {
-          sample[key] = value;
-        }
-      } catch (error) {
-        sample[key] = { _error: 'Failed to sample Apollo data' };
-      }
-    }
-
-    return sample;
-  }
-
-  /**
-   * Sanitize JSON string to ensure it's valid for PostgreSQL
-   */
-  sanitizeJsonString(jsonString: string): string {
-    try {
-      // First, try to parse and re-stringify to ensure it's valid JSON
-      const parsed = JSON.parse(jsonString);
-      const reStringified = JSON.stringify(parsed);
-
-      // Check for common PostgreSQL JSON issues
-      if (reStringified.includes('\u0000')) {
-        // Remove null bytes which PostgreSQL doesn't like
-        return reStringified.replace(/\u0000/g, '');
-      }
-
-      return reStringified;
-    } catch (error) {
-      // If JSON is invalid, create a safe fallback
-      logError('ObservabilityPlugin', 'Invalid JSON detected, creating safe fallback', error as Error);
-
-      // Try to create a minimal valid JSON object
-      try {
-        const safeObject = {
-          _json_error: 'Invalid JSON structure detected',
-          _error_message: (error as Error).message,
-          _original_length: jsonString.length,
-          _sanitized_at: new Date().toISOString(),
-          _sample: jsonString.substring(0, 100) + (jsonString.length > 100 ? '...' : ''),
-        };
-
-        return JSON.stringify(safeObject);
-      } catch (fallbackError) {
-        // Ultimate fallback - return a simple string
-        return JSON.stringify({
-          _error: 'Failed to create valid JSON',
-          _timestamp: new Date().toISOString(),
-        });
-      }
-    }
-  }
-
-  /**
-   * Validate JSON values before database insertion
-   */
-  validateJsonValues(values: any[][], tableName: string): void {
-    const jsonColumns = [
-      'source_event_payload',
-      'context_data',
-      'job_options',
-      'result',
-      'error_stack',
-      'detection_error_stack',
-      'handler_error_stack',
-    ];
-
-    for (let i = 0; i < values.length; i++) {
-      const record = values[i];
-      if (!record) continue;
-
-      for (let j = 0; j < record.length; j++) {
-        const value = record[j];
-
-        if (typeof value === 'string' && value.startsWith('{')) {
-          try {
-            // Test if it's valid JSON
-            JSON.parse(value);
-
-            // Additional PostgreSQL-specific checks
-            if (this.hasPostgreSQLJsonIssues(value)) {
-              logError(
-                'ObservabilityPlugin',
-                `PostgreSQL JSON issues detected in ${tableName} record ${i}`,
-                new Error('PostgreSQL JSON issues')
-              );
-              record[j] = this.createSafeJsonFallback(value, tableName, i, j);
-            }
-          } catch (error) {
-            logError('ObservabilityPlugin', `Invalid JSON in ${tableName} record ${i}, column ${j}`, error as Error);
-            console.log('Invalid JSON value:', value);
-
-            // Replace with safe fallback
-            record[j] = this.createSafeJsonFallback(value, tableName, i, j, error as Error);
-          }
-        }
-      }
-    }
-  }
-
-  /**
-   * Check for PostgreSQL-specific JSON issues
-   */
-  hasPostgreSQLJsonIssues(jsonString: string): boolean {
-    // Check for null bytes
-    if (jsonString.includes('\u0000')) return true;
-
-    // Check for other problematic characters
-    if (jsonString.includes('\uFFFF')) return true;
-
-    // Check for extremely long strings that might cause issues
-    if (jsonString.length > 100000) return true;
-
-    // Check for deeply nested structures
-    let depth = 0;
-    let maxDepth = 0;
-    for (const char of jsonString) {
-      if (char === '{' || char === '[') {
-        depth++;
-        maxDepth = Math.max(maxDepth, depth);
-      } else if (char === '}' || char === ']') {
-        depth--;
-      }
-    }
-
-    if (maxDepth > 100) return true;
-
-    return false;
-  }
-
-  /**
-   * Serialize values for JSON columns, ensuring they're always valid JSON
-   */
-  serializeJsonColumn(value: any, columnName: string): string {
-    try {
-      // If it's already a string, check if it's valid JSON
-      if (typeof value === 'string') {
-        try {
-          // Try to parse it as JSON first
-          const parsed = JSON.parse(value);
-          // If successful, re-stringify to ensure it's clean
-          return JSON.stringify(parsed);
-        } catch (parseError) {
-          // If it's not valid JSON, wrap it in a JSON object
-          return JSON.stringify({
-            _type: 'string_result',
-            _value: value,
-            _column: columnName,
-            _wrapped_at: new Date().toISOString(),
-          });
-        }
-      }
-
-      // If it's an object, array, etc., serialize normally
-      if (typeof value === 'object' && value !== null) {
-        // Clean circular references before JSON stringification
-        const cleanedValue = this.replaceCircularReferences(value);
-        const jsonString = JSON.stringify(cleanedValue);
-
-        // Check size limits
-        if (jsonString.length > this.config.maxJsonSize) {
-          logError(
-            'ObservabilityPlugin',
-            `JSON column ${columnName} too large (${jsonString.length} chars), truncating`,
-            new Error('JSON size limit exceeded')
-          );
-          const truncatedValue = this.createTruncatedObject(value, this.config.maxJsonSize);
-          return JSON.stringify(truncatedValue);
-        }
-
-        return jsonString;
-      }
-
-      // For primitive types (number, boolean), wrap in JSON
-      return JSON.stringify({
-        _type: 'primitive_result',
-        _value: value,
-        _column: columnName,
-        _wrapped_at: new Date().toISOString(),
-      });
-    } catch (error) {
-      logError('ObservabilityPlugin', `Failed to serialize JSON column ${columnName}`, error as Error);
-      return JSON.stringify({
-        _json_error: 'Failed to serialize JSON column',
-        _column: columnName,
-        _error_message: (error as Error).message,
-        _original_type: typeof value,
-        _sanitized_at: new Date().toISOString(),
-      });
-    }
-  }
-
-  /**
-   * Create a safe JSON fallback
-   */
-  createSafeJsonFallback(
-    originalValue: string,
-    tableName: string,
-    recordIndex: number,
-    columnIndex: number,
-    error?: Error
-  ): string {
-    return JSON.stringify({
-      _json_error: 'JSON sanitized for PostgreSQL compatibility',
-      _error_message: error?.message || 'PostgreSQL JSON issues detected',
-      _table: tableName,
-      _record_index: recordIndex,
-      _column_index: columnIndex,
-      _original_length: originalValue.length,
-      _sanitized_at: new Date().toISOString(),
-      _sample: originalValue.substring(0, 200) + (originalValue.length > 200 ? '...' : ''),
-    });
-  }
-
-  /**
-   * Log complete query with substituted values for manual testing
-   */
-  logCompleteQuery(query: string, values: any[], tableName: string): void {
-    console.log('\n=== COMPLETE QUERY FOR MANUAL TESTING ===');
-    console.log(`Table: ${tableName}`);
-    console.log(`Total values: ${values.length}`);
-    console.log('\n--- Query with substituted values ---');
-
-    try {
-      // Replace $1, $2, etc. with actual values
-      let substitutedQuery = query;
-      let paramIndex = 1;
-
-      for (const value of values) {
-        const placeholder = `$${paramIndex}`;
-        let substitutedValue: string;
-
-        if (value === null) {
-          substitutedValue = 'NULL';
-        } else if (typeof value === 'string') {
-          // Escape single quotes and wrap in quotes
-          const escapedValue = value.replace(/'/g, "''");
-          substitutedValue = `'${escapedValue}'`;
-        } else if (typeof value === 'number' || typeof value === 'boolean') {
-          substitutedValue = String(value);
-        } else if (value instanceof Date) {
-          substitutedValue = `'${value.toISOString()}'`;
-        } else {
-          // For objects, arrays, etc., stringify and escape
-          const stringified = JSON.stringify(value);
-          const escapedValue = stringified.replace(/'/g, "''");
-          substitutedValue = `'${escapedValue}'`;
-        }
-
-        substitutedQuery = substitutedQuery.replace(placeholder, substitutedValue);
-        paramIndex++;
-      }
-
-      console.log(substitutedQuery);
-
-      // Also log just the first record for easier testing
-      console.log('\n--- First record only (for easier testing) ---');
-      const firstRecordQuery = this.createSingleRecordQuery(query, values, tableName);
-      console.log(firstRecordQuery);
-    } catch (error) {
-      console.log('Error creating substituted query:', error);
-      console.log('Original query:', query);
-      console.log('Values:', values);
-    }
-
-    console.log('\n=== END COMPLETE QUERY ===\n');
-  }
-
-  /**
-   * Create a query for just the first record for easier testing
-   */
-  createSingleRecordQuery(query: string, values: any[], tableName: string): string {
-    try {
-      // Extract the column names from the INSERT statement
-      const insertMatch = query.match(/INSERT INTO \w+ \(([^)]+)\)/);
-      if (!insertMatch || !insertMatch[1]) return query;
-
-      const columns = insertMatch[1].split(',').map(col => col.trim());
-      const columnCount = columns.length;
-
-      // Get the first record's values
-      const firstRecordValues = values.slice(0, columnCount);
-
-      // Create a single-record query
-      let singleRecordQuery = query.replace(/VALUES\s*\([^)]+\).*/, 'VALUES (');
-
-      // Add the first record's placeholders
-      const placeholders = firstRecordValues.map((_, index) => `$${index + 1}`).join(', ');
-      singleRecordQuery += placeholders + ')';
-
-      // Remove any ON CONFLICT clauses for simplicity
-      singleRecordQuery = singleRecordQuery.replace(/\s+ON CONFLICT.*$/, '');
-
-      // Now substitute the values
-      for (let i = 0; i < firstRecordValues.length; i++) {
-        const value = firstRecordValues[i];
-        const placeholder = `$${i + 1}`;
-        let substitutedValue: string;
-
-        if (value === null) {
-          substitutedValue = 'NULL';
-        } else if (typeof value === 'string') {
-          const escapedValue = value.replace(/'/g, "''");
-          substitutedValue = `'${escapedValue}'`;
-        } else if (typeof value === 'number' || typeof value === 'boolean') {
-          substitutedValue = String(value);
-        } else if (value instanceof Date) {
-          substitutedValue = `'${value.toISOString()}'`;
-        } else {
-          const stringified = JSON.stringify(value);
-          const escapedValue = stringified.replace(/'/g, "''");
-          substitutedValue = `'${escapedValue}'`;
-        }
-
-        singleRecordQuery = singleRecordQuery.replace(placeholder, substitutedValue);
-      }
-
-      return singleRecordQuery;
-    } catch (error) {
-      console.log('Error creating single record query:', error);
-      return query;
     }
   }
 

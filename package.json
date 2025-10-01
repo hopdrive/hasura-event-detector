@@ -1,6 +1,6 @@
 {
   "name": "@hopdrive/hasura-event-detector",
-  "version": "2.2.1",
+  "version": "2.3.0",
   "description": "Detect events by name by interogating Hasura Event Trigger Payloads using a modular approach.",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
@@ -79,6 +79,8 @@
   "dependencies": {
     "commander": "^14.0.0",
     "dotenv": "^17.2.2",
+    "graphql": "^16.11.0",
+    "graphql-request": "^7.2.0",
     "pg": "^8.11.0",
     "uuid": "^9.0.0"
   },
