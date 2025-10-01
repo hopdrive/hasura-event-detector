@@ -255,10 +255,6 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
         });
       }, this.config.flushInterval);
 
-      // Setup graceful shutdown
-      process.on('SIGINT', () => this.shutdown());
-      process.on('SIGTERM', () => this.shutdown());
-
       this.isInitialized = true;
       log('ObservabilityPlugin', 'Initialized successfully');
     } catch (error) {
