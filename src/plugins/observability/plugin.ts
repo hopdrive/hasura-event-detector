@@ -193,7 +193,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
 
   constructor(config: Partial<ObservabilityConfig> = {}) {
     const defaultConfig: ObservabilityConfig = {
-      enabled: false,
+      enabled: true,
       database: {
         connectionString: process.env.OBSERVABILITY_DB_URL,
         host: process.env.OBSERVABILITY_DB_HOST || 'localhost',
