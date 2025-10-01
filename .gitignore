@@ -41,6 +41,9 @@ build/Release
 node_modules/
 jspm_packages/
 
+# Exception: Include console node_modules for npm package
+!src/plugins/observability/console/node_modules/
+
 # TypeScript v1 declaration files
 typings/
 
