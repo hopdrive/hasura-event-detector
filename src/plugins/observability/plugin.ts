@@ -18,7 +18,7 @@ import { parseHasuraEvent } from '../../helpers/hasura';
 import { ConsoleServer, type ConsoleServerConfig } from './console-server';
 import type { ObservabilityTransport, BufferedInvocation, BufferedEventExecution, BufferedJobExecution } from './transports/types';
 import { SQLTransport } from './transports/sql-transport';
-import { GraphQLTransport, type GraphQLConfig } from './transports/graphql-transport';
+import type { GraphQLConfig } from './transports/graphql-transport';
 
 // Observability-specific types moved from core types
 export interface ObservabilityMetrics {
@@ -214,7 +214,17 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
           throw new Error('GraphQL endpoint is required when using GraphQL transport');
         }
 
-        this.transport = new GraphQLTransport(this.config);
+        // Dynamically import GraphQLTransport to avoid ESM issues in CJS environments
+        try {
+          const { GraphQLTransport } = await import('./transports/graphql-transport');
+          this.transport = new GraphQLTransport(this.config);
+        } catch (importError) {
+          logError('ObservabilityPlugin', 'Failed to load GraphQL transport', importError as Error);
+          throw new Error(
+            'Failed to load GraphQL transport. This may be due to ESM/CJS compatibility issues. ' +
+            'Please ensure graphql-request is properly installed and your environment supports dynamic imports.'
+          );
+        }
       } else {
         // Default to SQL transport
         // Validate SQL configuration
