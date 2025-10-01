@@ -70,28 +70,81 @@ export async function startConsoleCommand(options: ConsoleOptions) {
       }, {} as Record<string, string>),
     };
 
-    // Change to console directory
-    process.chdir(consolePath);
-
-    // Install dependencies if needed
-    // if (!fs.existsSync(path.join(consolePath, 'node_modules'))) {
-    //   console.log('📦 Installing console dependencies...');
-    //   execSync('npm install', { stdio: 'inherit', env });
-    // }
-
-    // Start the development server
-    console.log(`🌐 Starting console on http://${env.CONSOLE_HOST}:${env.CONSOLE_PORT}`);
-
-    if (env.CONSOLE_AUTO_OPEN === 'true') {
-      // Open browser after a short delay
-      setTimeout(() => {
-        const open = require('open');
-        open(`http://${env.CONSOLE_HOST}:${env.CONSOLE_PORT}`);
-      }, 2000);
+    // Check if built dist exists
+    const distPath = path.join(consolePath, 'dist');
+    if (!fs.existsSync(distPath)) {
+      throw new Error('Console build not found. The console needs to be pre-built.');
     }
 
-    // Start the React development server
-    execSync('npm start', { stdio: 'inherit', env });
+    // Start a simple HTTP server to serve the built console
+    console.log(`🌐 Starting console on http://${env.CONSOLE_HOST}:${env.CONSOLE_PORT}`);
+
+    // Use Node's built-in http server
+    const http = require('http');
+    const pathModule = require('path');
+    const fsModule = require('fs');
+
+    const server = http.createServer((req: any, res: any) => {
+      let filePath = pathModule.join(distPath, req.url === '/' ? 'index.html' : req.url);
+
+      // Security: prevent directory traversal
+      if (!filePath.startsWith(distPath)) {
+        res.writeHead(403);
+        res.end('Forbidden');
+        return;
+      }
+
+      fsModule.readFile(filePath, (err: any, data: any) => {
+        if (err) {
+          // If file not found, serve index.html (for client-side routing)
+          if (err.code === 'ENOENT' || err.code === 'EISDIR') {
+            fsModule.readFile(pathModule.join(distPath, 'index.html'), (err2: any, data2: any) => {
+              if (err2) {
+                res.writeHead(500);
+                res.end('Error loading index.html');
+              } else {
+                res.writeHead(200, { 'Content-Type': 'text/html' });
+                res.end(data2);
+              }
+            });
+          } else {
+            res.writeHead(500);
+            res.end('Server Error');
+          }
+          return;
+        }
+
+        // Set content type based on file extension
+        const ext = pathModule.extname(filePath);
+        const contentTypes: Record<string, string> = {
+          '.html': 'text/html',
+          '.js': 'text/javascript',
+          '.css': 'text/css',
+          '.json': 'application/json',
+          '.png': 'image/png',
+          '.jpg': 'image/jpg',
+          '.svg': 'image/svg+xml',
+        };
+        res.writeHead(200, { 'Content-Type': contentTypes[ext] || 'application/octet-stream' });
+        res.end(data);
+      });
+    });
+
+    server.listen(parseInt(env.CONSOLE_PORT), env.CONSOLE_HOST, () => {
+      if (env.CONSOLE_AUTO_OPEN === 'true') {
+        const open = require('open');
+        open(`http://${env.CONSOLE_HOST}:${env.CONSOLE_PORT}`);
+      }
+    });
+
+    console.log('✅ Console is running. Press Ctrl+C to stop.');
+
+    // Keep the process alive
+    process.on('SIGINT', () => {
+      console.log('\n👋 Shutting down console...');
+      server.close();
+      process.exit(0);
+    });
   } catch (error) {
     console.error('❌ Failed to start console:', error instanceof Error ? error.message : String(error));
     process.exit(1);
