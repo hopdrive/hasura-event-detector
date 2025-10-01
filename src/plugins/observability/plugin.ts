@@ -15,7 +15,7 @@ import {
 } from '../../types';
 import { log, logError } from '../../helpers/log';
 import { parseHasuraEvent } from '../../helpers/hasura';
-import { ConsoleServer, type ConsoleServerConfig } from './console-server';
+import type { ConsoleServerConfig } from './console-server';
 import type { ObservabilityTransport, BufferedInvocation, BufferedEventExecution, BufferedJobExecution } from './transports/types';
 import { SQLTransport } from './transports/sql-transport';
 import type { GraphQLConfig } from './transports/graphql-transport';
@@ -139,7 +139,6 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   private activeInvocations: Map<CorrelationId, string> = new Map(); // Track correlation ID -> invocation ID mapping
   private activeEventExecutions: Map<string, string> = new Map(); // Track "${correlationId}:${eventName}" -> event execution ID
   private activeJobExecutions: Map<string, string> = new Map(); // Track "${correlationId}:${eventName}:${jobName}" -> job execution ID
-  private consoleServer: ConsoleServer | null = null;
 
   constructor(config: Partial<ObservabilityConfig> = {}) {
     const defaultConfig: Partial<ObservabilityConfig> = {
@@ -164,7 +163,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       retryDelay: 1000, // ms
       maxJsonSize: 1000000, // 1MB default limit
       console: {
-        enabled: true,
+        enabled: false,  // Console should only be started via CLI, not during normal operation
         port: 3001,
         host: 'localhost',
         serveInProduction: false,
@@ -245,19 +244,8 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
         });
       }, this.config.flushInterval);
 
-      // Start console server if configured (only for SQL transport)
-      if (this.config.console?.enabled && this.transport instanceof SQLTransport) {
-        try {
-          const pool = this.transport.getPool();
-          if (pool) {
-            this.consoleServer = new ConsoleServer(this.config.console, pool);
-            await this.consoleServer.start();
-          }
-        } catch (error) {
-          logError('ObservabilityPlugin', 'Failed to start console server', error as Error);
-          // Don't throw, console is optional
-        }
-      }
+      // Console server is not started here - it should only be started via CLI
+      // The console is a developer tool, not part of normal event handling
 
       this.isInitialized = true;
       log('ObservabilityPlugin', `Initialized successfully with ${this.config.transport || 'sql'} transport`);
@@ -272,12 +260,6 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     if (this.flushTimer) {
       clearInterval(this.flushTimer);
       this.flushTimer = null;
-    }
-
-    // Stop console server
-    if (this.consoleServer) {
-      await this.consoleServer.stop();
-      this.consoleServer = null;
     }
 
     // Final flush
@@ -828,8 +810,8 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       },
       console: {
         enabled: this.config.console?.enabled || false,
-        running: this.consoleServer !== null,
-        url: this.consoleServer ? `http://${this.config.console?.host || 'localhost'}:${this.config.console?.port || 3001}/console` : null,
+        running: false,  // Console is started separately via CLI, not by the plugin
+        url: null,  // Console URL is only available when started via CLI
       },
     };
   }
