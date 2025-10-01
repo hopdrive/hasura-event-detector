@@ -2,6 +2,34 @@
 
 A comprehensive observability system for tracking database events through their entire lifecycle, from initial triggers to downstream job execution. The system provides end-to-end traceability using correlation IDs and captures detailed execution metadata for monitoring and debugging.
 
+## Quick Start
+
+### Basic Usage
+
+```typescript
+import { pluginManager } from '@hopdrive/hasura-event-detector';
+import { ObservabilityPlugin } from 'hasura-event-detector/plugins';
+
+// Initialize and register the plugin
+pluginManager.register(
+  new ObservabilityPlugin({
+    database: {
+      connectionString: process.env.OBSERVABILITY_DB_URL,
+    },
+  })
+);
+await pluginManager.initialize();
+```
+
+### Environment Variables
+
+```env
+OBSERVABILITY_ENABLED=true
+OBSERVABILITY_DB_URL=postgresql://user:password@localhost:5432/observability_db
+```
+
+That's it! The plugin will automatically track all invocations, event detections, and job executions.
+
 ## System Overview
 
 The observability system provides four main capabilities:
@@ -25,19 +53,24 @@ The observability system provides four main capabilities:
 ## Architecture
 
 ### Database Design
+
 The observability system uses a **separate database** within your existing PostgreSQL instance for:
+
 - Complete logical isolation from application data
 - Easy future migration capabilities
 - Cost-effective resource sharing
 - Independent backup and maintenance cycles
 
 ### Correlation ID System
+
 Events are traced through the system using correlation IDs that follow this pattern:
+
 - **User actions**: Email address format (preserves existing audit trails)
 - **System actions**: `{system_name}.{uuid}` format for traceability
 - **Event chains**: All downstream updates maintain the same correlation ID
 
 ### Performance Strategy
+
 - **Buffered writes** prevent blocking main application flow
 - **Connection pooling** manages database resources efficiently
 - **Configurable capture levels** allow tuning for performance vs. detail
@@ -70,9 +103,73 @@ src/plugins/observability/
 - **`dashboard/`**: Complete React application for visualization
 - **`model/DATA_MODEL.md`**: Detailed data model documentation
 
-## Quick Start
+## Usage in Your Application
 
-### 1. Database Setup
+### With Netlify Functions
+
+```javascript
+// netlify/functions/event-detector-moves.js
+const { listenTo } = require('@hopdrive/hasura-event-detector');
+
+exports.handler = async (event, context) => {
+  try {
+    const hasuraEvent = JSON.parse(event.body);
+
+    // The plugin will automatically record this invocation
+    const result = await listenTo(hasuraEvent, {
+      context: {
+        functionName: 'event-detector-moves',
+        userId: hasuraEvent.event?.session_variables?.['x-hasura-user-id'],
+        environment: process.env.NODE_ENV,
+      },
+    });
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify(result),
+    };
+  } catch (error) {
+    console.error('Event detector error:', error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: error.message }),
+    };
+  }
+};
+```
+
+### What Gets Recorded
+
+The plugin automatically captures:
+
+**Invocation Level:**
+
+- Source function name
+- Hasura event payload (if enabled)
+- User information from session variables
+- Execution duration and status
+- Number of events detected and jobs run
+- Success/failure counts
+
+**Event Level:**
+
+- Each event module checked
+- Whether event was detected
+- Detection duration
+- Handler execution results
+
+**Job Level:**
+
+- Individual job executions
+- Job options and results
+- Execution duration and status
+- Error messages and stack traces
+
+## Database Setup (First Time Only)
+
+If you're setting up the observability database for the first time:
+
+### 1. Create PostgreSQL Database
 
 Create a separate PostgreSQL database for observability data:
 
@@ -84,7 +181,7 @@ CREATE DATABASE hasura_event_detector_observability;
 Run the schema migration:
 
 ```bash
-psql -d hasura_event_detector_observability -f src/src/plugins/observability/model/schema.sql
+psql -d hasura_event_detector_observability -f src/plugins/observability/model/schema.sql
 ```
 
 ### 2. Hasura Configuration
@@ -96,32 +193,10 @@ Add the observability database to your Hasura instance and apply the metadata:
 hasura metadata apply --database-name observability
 
 # Apply table and relationship metadata
-hasura metadata apply --from-file src/src/plugins/observability/model/hasura-metadata/
+hasura metadata apply --from-file src/plugins/observability/model/hasura-metadata/
 ```
 
-### 3. Plugin Registration
-
-Register the observability plugin with your event detector:
-
-```typescript
-import { pluginManager } from '@hopdrive/hasura-event-detector';
-import { ObservabilityPlugin } from 'hasura-event-detector/plugins';
-
-const observabilityPlugin = new ObservabilityPlugin({
-  enabled: process.env.OBSERVABILITY_ENABLED === 'true',
-  database: {
-    connectionString: process.env.OBSERVABILITY_DB_URL
-  },
-  captureJobOptions: true,
-  captureHasuraPayload: true,
-  captureErrorStacks: true
-});
-
-pluginManager.register(observabilityPlugin);
-await pluginManager.initialize();
-```
-
-### 4. Environment Variables
+### 3. Environment Variables
 
 Add to your `.env` file:
 
@@ -129,7 +204,44 @@ Add to your `.env` file:
 # Observability Settings
 OBSERVABILITY_ENABLED=true
 OBSERVABILITY_DB_URL=postgresql://user:password@localhost:5432/observability_db
+
+# Or use individual connection parameters:
+OBSERVABILITY_DB_HOST=your-rds-endpoint.region.rds.amazonaws.com
+OBSERVABILITY_DB_PORT=5432
+OBSERVABILITY_DB_NAME=event_detector_observability
+OBSERVABILITY_DB_USER=observability_app
+OBSERVABILITY_DB_PASSWORD=your-secure-password
 ```
+
+## Verify It's Working
+
+### 1. Check Plugin Status
+
+```typescript
+console.log(pluginManager.getPlugin('ObservabilityPlugin').getStatus());
+```
+
+### 2. Query the Database
+
+```sql
+-- Check recent invocations
+SELECT * FROM invocations ORDER BY created_at DESC LIMIT 10;
+
+-- Check plugin is recording data
+SELECT
+  source_function,
+  COUNT(*) as invocations,
+  AVG(total_duration_ms) as avg_duration
+FROM invocations
+WHERE created_at >= NOW() - INTERVAL '1 hour'
+GROUP BY source_function;
+```
+
+### 3. Monitor Plugin Logs
+
+The plugin logs when it records data:
+- "Recorded invocation start: [id] for correlation: [correlation-id]"
+- "Recorded invocation end: [id] (status)"
 
 ## Configuration Options
 
@@ -137,7 +249,7 @@ OBSERVABILITY_DB_URL=postgresql://user:password@localhost:5432/observability_db
 
 ```typescript
 {
-  enabled: boolean,                    // Enable/disable plugin
+  enabled: boolean,                    // Enable/disable plugin (default: true)
   database: {
     connectionString?: string,         // PostgreSQL connection string
     host: string,                      // Alternative: individual params
@@ -147,15 +259,41 @@ OBSERVABILITY_DB_URL=postgresql://user:password@localhost:5432/observability_db
     password: string,
     ssl?: object                       // SSL configuration
   },
-  schema: string,                      // Database schema (default: event_detector_observability)
+  schema: string,                      // Database schema (default: public)
   captureJobOptions: boolean,          // Store job options (default: true)
   captureHasuraPayload: boolean,       // Store Hasura event payload (default: true)
   captureErrorStacks: boolean,         // Capture error stack traces (default: true)
   batchSize: number,                   // Batch size for database writes (default: 100)
   flushInterval: number,               // Flush interval in ms (default: 5000)
   retryAttempts: number,              // Retry failed writes (default: 3)
-  retryDelay: number                  // Delay between retries in ms (default: 1000)
+  retryDelay: number,                 // Delay between retries in ms (default: 1000)
+  maxJsonSize: number                 // Max JSON column size (default: 1000000)
 }
+```
+
+### Multiple Environments
+
+```typescript
+const config = {
+  development: {
+    flushInterval: 1000,
+    captureHasuraPayload: true,
+  },
+  production: {
+    flushInterval: 5000,
+    captureHasuraPayload: false,
+    captureJobOptions: false,
+  }
+};
+
+pluginManager.register(
+  new ObservabilityPlugin({
+    ...config[process.env.NODE_ENV || 'development'],
+    database: {
+      connectionString: process.env.OBSERVABILITY_DB_URL
+    }
+  })
+);
 ```
 
 ## Database Schema
@@ -174,6 +312,7 @@ event_executions (1) -> (many) job_executions
 ```
 
 **Correlation ID Flow**:
+
 1. Initial database event generates or extracts correlation ID
 2. All event detections maintain the same correlation ID
 3. All job executions inherit and propagate correlation ID
@@ -211,10 +350,7 @@ query TraceCorrelationId($correlationId: String!) {
 
 ```graphql
 query RecentInvocations {
-  invocations(
-    limit: 10
-    order_by: { created_at: desc }
-  ) {
+  invocations(limit: 10, order_by: { created_at: desc }) {
     id
     source_function
     correlation_id
@@ -241,10 +377,7 @@ query RecentInvocations {
 
 ```graphql
 query PerformanceAnalytics($timeRange: timestamptz!) {
-  dashboard_stats(
-    where: { hour_bucket: { _gte: $timeRange } }
-    order_by: { hour_bucket: asc }
-  ) {
+  dashboard_stats(where: { hour_bucket: { _gte: $timeRange } }, order_by: { hour_bucket: asc }) {
     hour_bucket
     source_function
     total_invocations
@@ -260,6 +393,7 @@ query PerformanceAnalytics($timeRange: timestamptz!) {
 The React dashboard provides comprehensive monitoring and visualization capabilities:
 
 ### Dashboard Features
+
 - **Real-time Monitoring**: Live updates of event processing with configurable polling
 - **Interactive Flow Diagrams**: Node-based visualization showing event cascades and job sequences
 - **Correlation Chain Tracing**: Complete end-to-end tracking of related events
@@ -267,6 +401,7 @@ The React dashboard provides comprehensive monitoring and visualization capabili
 - **Error Analysis**: Detailed failure tracking and debugging information
 
 ### Key Visualizations
+
 - **Overview Dashboard**: System health, recent invocations, and performance trends
 - **Event Flow Diagrams**: Interactive nodes showing execution paths and timing
 - **Correlation Mapping**: Visual representation of event relationships across functions
@@ -317,6 +452,7 @@ For detailed dashboard setup and configuration, see [dashboard/README.md](dashbo
 ## Correlation ID Implementation
 
 ### Extraction Strategies
+
 The observability plugin works with correlation ID extraction plugins to identify and track event relationships:
 
 1. **Updated By Field**: Extract from `updated_by` audit columns (e.g., `user.correlation-id`)
@@ -325,6 +461,7 @@ The observability plugin works with correlation ID extraction plugins to identif
 4. **Custom Fields**: Configure extraction from any custom database field
 
 ### Tracing Flow
+
 ```
 Database Event → Correlation ID Extraction → Event Detection → Job Execution
                                      ↓
@@ -360,6 +497,7 @@ The observability plugin is designed for minimal performance impact:
 ### Database Sizing
 
 For high-volume applications:
+
 - **Storage**: ~100MB per million job executions
 - **IOPS**: ~1000 writes/minute for typical workloads
 - **Connections**: 5-10 concurrent connections recommended
@@ -367,39 +505,76 @@ For high-volume applications:
 ### Monitoring
 
 Monitor these key metrics:
+
 - Plugin initialization success rate
 - Database write failure rate
 - Buffer flush frequency
 - Query response times
 - Correlation ID extraction success rate
 
-### Performance Optimization
-
-```typescript
-// Production-optimized configuration
-const observabilityPlugin = new ObservabilityPlugin({
-  enabled: process.env.NODE_ENV === 'production',
-  database: {
-    connectionString: process.env.OBSERVABILITY_DB_URL,
-    ssl: { rejectUnauthorized: false }
-  },
-  captureJobOptions: false,        // Reduce data volume
-  captureHasuraPayload: false,     // Don't store sensitive data
-  captureErrorStacks: true,        // Keep for debugging
-  batchSize: 200,                  // Larger batches
-  flushInterval: 10000,            // Less frequent flushes
-  retryAttempts: 5
-});
-```
-
 ## Troubleshooting
 
 ### Plugin Not Initializing
 
-1. Check database connection string format
-2. Verify database exists and schema is applied
-3. Ensure network connectivity to database
-4. Review initialization logs for specific errors
+1. **Check Plugin Registration**:
+```typescript
+console.log('Registered plugins:', pluginManager.getEnabledPlugins().map(p => p.name));
+```
+
+2. **Check Database Connection**:
+- Verify environment variables are set
+- Test connection manually with psql:
+```bash
+psql -h your-rds-endpoint -U observability_app -d event_detector_observability -c "SELECT 1;"
+```
+- Check network security groups allow connections
+
+3. **Check Plugin is Enabled**:
+```typescript
+const plugin = pluginManager.getPlugin('ObservabilityPlugin');
+console.log('Enabled:', plugin.enabled);
+console.log('Config:', plugin.config);
+```
+
+### Plugin Not Recording Data
+
+1. **Monitor Plugin Logs**: The plugin logs when it records data:
+   - "Recorded invocation start: [id] for correlation: [correlation-id]"
+   - "Recorded invocation end: [id] (status)"
+
+2. **Verify Database Schema**: Ensure tables exist:
+```sql
+\dt invocations
+\dt event_executions
+\dt job_executions
+```
+
+### Database Connection Issues
+
+1. **Check SSL Settings**:
+```typescript
+// For RDS, usually need SSL
+ssl: { rejectUnauthorized: false }
+```
+
+2. **Test with Connection String**:
+```typescript
+// Use connection string format if individual params fail
+database: {
+  connectionString: process.env.OBSERVABILITY_DB_URL
+}
+```
+
+3. **Use Read-only User First**: Test with read-only user to verify connection:
+```typescript
+const testConfig = {
+  host: process.env.OBSERVABILITY_DB_HOST,
+  port: parseInt(process.env.OBSERVABILITY_DB_PORT || '5432'),
+  database: 'event_detector_observability',
+  user: 'observability_readonly',
+  password: process.env.OBSERVABILITY_DB_PASSWORD,
+};
+```
 
 ### Missing Correlation Data
 
@@ -447,16 +622,19 @@ WHERE created_at > NOW() - INTERVAL '24 hours';
 ## Success Metrics
 
 ### Observability Coverage
+
 - 100% of database events trackable via correlation IDs
 - End-to-end visibility for all event chains
 - Sub-second response times for UI queries
 
 ### System Performance
+
 - No degradation in main application performance
 - Observability system response times < 2 seconds
 - 99.9% uptime for critical observability functions
 
 ### User Adoption
+
 - Development team actively using observability UI
 - Reduced time to debug event-related issues
 - Improved incident response times
