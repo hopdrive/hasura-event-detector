@@ -479,13 +479,41 @@ const config = {
 
 ### Advanced Configuration with Observability
 
-The Observability Plugin now supports two transport modes for storing telemetry data:
-- **SQL Transport** (default) - Direct PostgreSQL connection for traditional deployments
-- **GraphQL Transport** - Hasura GraphQL API for serverless environments
+The Observability Plugin supports two transport modes for storing telemetry data:
+- **GraphQL Transport** (Recommended) - Uses Hasura's GraphQL API, ideal for serverless environments
+- **SQL Transport** - Direct PostgreSQL connection for traditional deployments (default for backward compatibility)
 
-#### SQL Transport (Default)
+#### GraphQL Transport (Recommended for Serverless)
 
-The SQL transport uses a direct PostgreSQL connection pool. This is the default mode for backward compatibility.
+The GraphQL transport uses Hasura's GraphQL API to write data, avoiding connection pooling issues common in serverless environments.
+
+```typescript
+import { ObservabilityPlugin } from '@hopdrive/hasura-event-detector/plugins';
+
+const plugin = new ObservabilityPlugin({
+  transport: 'graphql',
+  graphql: {
+    endpoint: config?.graphqlUrl,
+    headers: {
+      'x-hasura-admin-secret': config?.graphqlSecret || '',
+      'x-hasura-client-name': `ObservabilityPlugin-${config?.graphqlClientName}`,
+    },
+    timeout: 30000,      // Request timeout in ms (default: 30000)
+    maxRetries: 3,       // Number of retries (default: 3)
+    retryDelay: 1000,    // Initial retry delay in ms (default: 1000)
+  },
+  // Other configuration options...
+  captureJobOptions: true,
+  captureHasuraPayload: true,
+  captureErrorStacks: true,
+  batchSize: 100,
+  flushInterval: 5000,
+});
+```
+
+#### SQL Transport (Traditional Deployments)
+
+The SQL transport uses a direct PostgreSQL connection pool. This remains the default for backward compatibility but is not recommended for serverless environments.
 
 ```typescript
 import { ObservabilityPlugin } from '@hopdrive/hasura-event-detector/plugins';
@@ -501,36 +529,6 @@ const plugin = new ObservabilityPlugin({
     user: 'postgres',
     password: 'password',
     ssl: { rejectUnauthorized: false }
-  },
-  // Other configuration options...
-  captureJobOptions: true,
-  captureHasuraPayload: true,
-  captureErrorStacks: true,
-  batchSize: 100,
-  flushInterval: 5000,
-});
-```
-
-#### GraphQL Transport (For Serverless)
-
-The GraphQL transport uses Hasura's GraphQL API to write data. This is ideal for serverless environments where connection pooling is problematic.
-
-```typescript
-import { ObservabilityPlugin } from '@hopdrive/hasura-event-detector/plugins';
-
-const plugin = new ObservabilityPlugin({
-  transport: 'graphql',
-  graphql: {
-    endpoint: process.env.HASURA_GRAPHQL_ENDPOINT,
-    headers: {
-      // Use admin secret
-      'x-hasura-admin-secret': process.env.HASURA_ADMIN_SECRET,
-      // Or use JWT
-      'authorization': `Bearer ${process.env.HASURA_JWT}`
-    },
-    timeout: 30000,      // Request timeout in ms (default: 30000)
-    maxRetries: 3,       // Number of retries (default: 3)
-    retryDelay: 1000,    // Initial retry delay in ms (default: 1000)
   },
   // Other configuration options...
   captureJobOptions: true,
@@ -574,23 +572,24 @@ Both transports support configuration via environment variables:
 
 #### Migration Example
 
-Switching from SQL to GraphQL transport:
+Switching from SQL to GraphQL transport (recommended for serverless):
 
 ```typescript
-// Before
+// Before (SQL Transport)
 const plugin = new ObservabilityPlugin({
   database: {
     connectionString: process.env.DATABASE_URL
   }
 });
 
-// After
+// After (GraphQL Transport - Recommended)
 const plugin = new ObservabilityPlugin({
   transport: 'graphql',
   graphql: {
-    endpoint: process.env.HASURA_GRAPHQL_ENDPOINT,
+    endpoint: config?.graphqlUrl,
     headers: {
-      'x-hasura-admin-secret': process.env.HASURA_ADMIN_SECRET
+      'x-hasura-admin-secret': config?.graphqlSecret || '',
+      'x-hasura-client-name': `ObservabilityPlugin-${config?.graphqlClientName}`,
     }
   }
 });

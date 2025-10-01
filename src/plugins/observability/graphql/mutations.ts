@@ -1,0 +1,118 @@
+/**
+ * GraphQL mutations for bulk operations
+ */
+
+export const BULK_UPSERT_INVOCATIONS = `
+  mutation BulkUpsertInvocations($objects: [invocations_insert_input!]!) {
+    insert_invocations(
+      objects: $objects
+      on_conflict: {
+        constraint: invocations_pkey
+        update_columns: [
+          correlation_id,
+          source_function,
+          source_table,
+          source_operation,
+          source_system,
+          source_event_id,
+          source_event_payload,
+          source_event_time,
+          source_user_email,
+          source_user_role,
+          total_duration_ms,
+          events_detected_count,
+          total_jobs_run,
+          total_jobs_succeeded,
+          total_jobs_failed,
+          auto_load_modules,
+          event_modules_directory,
+          status,
+          error_message,
+          error_stack,
+          context_data,
+          updated_at
+        ]
+      }
+    ) {
+      affected_rows
+      returning {
+        id
+      }
+    }
+  }
+`;
+
+export const BULK_INSERT_EVENT_EXECUTIONS = `
+  mutation BulkInsertEventExecutions($objects: [event_executions_insert_input!]!) {
+    insert_event_executions(
+      objects: $objects
+      on_conflict: {
+        constraint: event_executions_pkey
+        update_columns: [
+          invocation_id,
+          correlation_id,
+          event_name,
+          event_module_path,
+          detected,
+          detection_duration_ms,
+          detection_error,
+          detection_error_stack,
+          handler_duration_ms,
+          handler_error,
+          handler_error_stack,
+          jobs_count,
+          jobs_succeeded,
+          jobs_failed,
+          status,
+          updated_at
+        ]
+      }
+    ) {
+      affected_rows
+      returning {
+        id
+      }
+    }
+  }
+`;
+
+export const BULK_INSERT_JOB_EXECUTIONS = `
+  mutation BulkInsertJobExecutions($objects: [job_executions_insert_input!]!) {
+    insert_job_executions(
+      objects: $objects
+      on_conflict: {
+        constraint: job_executions_pkey
+        update_columns: [
+          invocation_id,
+          event_execution_id,
+          correlation_id,
+          job_name,
+          job_function_name,
+          job_options,
+          duration_ms,
+          status,
+          result,
+          error_message,
+          error_stack,
+          updated_at
+        ]
+      }
+    ) {
+      affected_rows
+      returning {
+        id
+      }
+    }
+  }
+`;
+
+/**
+ * Health check query
+ */
+export const HEALTH_CHECK_QUERY = `
+  query HealthCheck {
+    invocations(limit: 1) {
+      id
+    }
+  }
+`;
