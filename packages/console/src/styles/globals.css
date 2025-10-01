@@ -1,0 +1,188 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100 dark:bg-gray-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-400 dark:bg-gray-600 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-500 dark:bg-gray-500;
+}
+
+/* React Flow customizations */
+.react-flow__node {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.react-flow__handle {
+  @apply bg-gray-400 border-2 border-white dark:border-gray-800;
+}
+
+.react-flow__handle-connecting {
+  @apply bg-blue-500;
+}
+
+.react-flow__edge-path {
+  @apply stroke-gray-400;
+}
+
+.react-flow__edge.animated path {
+  stroke-dasharray: 5;
+  animation: dashdraw 0.5s linear infinite;
+}
+
+@keyframes dashdraw {
+  to {
+    stroke-dashoffset: -10;
+  }
+}
+
+/* JSON Tree theme overrides */
+.json-tree-container {
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Smooth transitions */
+* {
+  @apply transition-colors duration-200;
+}
+
+/* Focus styles */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  @apply outline-none ring-2 ring-blue-500 ring-offset-2;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  html {
+    @apply bg-gray-900;
+  }
+}
+
+/* Chart tooltips */
+.recharts-tooltip-wrapper {
+  @apply !outline-none;
+}
+
+.recharts-default-tooltip {
+  @apply !bg-gray-900 !border-gray-700 !rounded-lg !shadow-xl;
+}
+
+.recharts-tooltip-label {
+  @apply !text-gray-300 !font-medium;
+}
+
+.recharts-tooltip-item {
+  @apply !text-gray-400;
+}
+
+/* Animation classes */
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Status indicators */
+.status-dot {
+  @apply relative;
+}
+
+.status-dot::before {
+  content: '';
+  @apply absolute inset-0 rounded-full animate-ping;
+}
+
+/* Table hover effects */
+tbody tr {
+  @apply relative;
+}
+
+tbody tr::before {
+  content: '';
+  @apply absolute inset-0 bg-gradient-to-r from-transparent via-blue-50 to-transparent dark:via-blue-900/10 opacity-0 transition-opacity;
+}
+
+tbody tr:hover::before {
+  @apply opacity-100;
+}
+
+/* Card hover effects */
+.card-hover {
+  @apply transform transition-all duration-300;
+}
+
+.card-hover:hover {
+  @apply -translate-y-1 shadow-xl;
+}
+
+/* Loading skeleton */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(156, 163, 175, 0.1) 25%,
+    rgba(156, 163, 175, 0.2) 50%,
+    rgba(156, 163, 175, 0.1) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Custom tooltip */
+.tooltip {
+  @apply invisible absolute z-50 px-2 py-1 text-xs text-white bg-gray-900 rounded shadow-lg whitespace-nowrap;
+}
+
+.has-tooltip:hover .tooltip {
+  @apply visible;
+}
+
+/* Drawer animation */
+.drawer-enter {
+  transform: translateX(100%);
+}
+
+.drawer-enter-active {
+  transform: translateX(0);
+  transition: transform 300ms ease-out;
+}
+
+.drawer-exit {
+  transform: translateX(0);
+}
+
+.drawer-exit-active {
+  transform: translateX(100%);
+  transition: transform 300ms ease-in;
+}
