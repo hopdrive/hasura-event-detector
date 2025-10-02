@@ -79,6 +79,8 @@ export const useFlowPositioning = (invocations: Invocation[], config: Positionin
     minVerticalSpacing = MIN_VERTICAL_SPACING,
   } = config;
 
+  console.log('[Flow] invocations', invocations);
+
   return useMemo(() => {
     const nodes: PositionedNode[] = [];
     const edges: Edge[] = [];

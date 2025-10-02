@@ -97,10 +97,9 @@ function NavItem({ item, isActive }: { item: any; isActive: boolean }) {
   );
 }
 
-function Layout({ children }: { children: React.ReactNode }) {
+function Layout({ children, correlationSearch, setCorrelationSearch }: { children: React.ReactNode; correlationSearch: string; setCorrelationSearch: (value: string) => void }) {
   const location = useLocation();
   const [isPolling, setIsPolling] = useState(false);
-  const [correlationSearch, setCorrelationSearch] = useState('');
   const isFlowPage = location.pathname === '/flow';
 
   // Simulate polling indicator
@@ -217,6 +216,8 @@ function Layout({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  const [correlationSearch, setCorrelationSearch] = useState('');
+
   return (
     <ApolloProvider client={client}>
       <Router
@@ -225,10 +226,10 @@ function App() {
           v7_relativeSplatPath: true,
         }}
       >
-        <Layout>
+        <Layout correlationSearch={correlationSearch} setCorrelationSearch={setCorrelationSearch}>
           <Routes>
-            <Route path="/" element={<OverviewDashboard />} />
-            <Route path="/invocations" element={<InvocationsTable />} />
+            <Route path="/" element={<OverviewDashboard correlationSearch={correlationSearch} />} />
+            <Route path="/invocations" element={<InvocationsTable correlationSearch={correlationSearch} />} />
             <Route path="/flow" element={<FlowDiagram />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/settings" element={<Settings />} />

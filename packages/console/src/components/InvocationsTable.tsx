@@ -44,11 +44,16 @@ interface Invocation {
   totalJobsRun: number;
   status: 'completed' | 'failed' | 'running';
   createdAt: string;
+  recordId?: string;
 }
 
 const columnHelper = createColumnHelper<Invocation>();
 
-const InvocationsTable = () => {
+interface InvocationsTableProps {
+  correlationSearch?: string;
+}
+
+const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch = '' }) => {
   const navigate = useNavigate();
   const [selectedInvocation, setSelectedInvocation] = useState<Node | null>(null);
 
@@ -79,6 +84,8 @@ const InvocationsTable = () => {
       totalJobsRun: inv.total_jobs_run || 0,
       status: inv.status as 'completed' | 'failed' | 'running',
       createdAt: inv.created_at,
+      //{ "id": "7e981c1b-cad5-4970-afc3-41d78adb5805", "event": { "op": "UPDATE", "data": { "new": { "i
+      recordId: `${inv?.source_table?.split('.')[1]}:${inv.source_event_payload?.event?.data?.new?.id}`,
     }));
   }, [queryData]);
 
@@ -88,6 +95,11 @@ const InvocationsTable = () => {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [globalFilter, setGlobalFilter] = useState('');
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 50 });
+
+  // Update global filter when correlationSearch changes
+  React.useEffect(() => {
+    setGlobalFilter(correlationSearch);
+  }, [correlationSearch]);
 
   const handleRowClick = (invocation: Invocation) => {
     navigate(`/flow?invocationId=${invocation.id}&autoFocus=true`);
@@ -243,6 +255,14 @@ const InvocationsTable = () => {
         header: 'Status',
         cell: info => getStatusBadge(info.getValue()),
         filterFn: 'equals',
+      }),
+      columnHelper.accessor('recordId', {
+        id: 'recordId',
+        header: 'Record ID',
+        cell: info => (
+          <div className='text-gray-600 dark:text-gray-400 text-sm font-mono text-xs'>{info.getValue() || '-'}</div>
+        ),
+        filterFn: 'includesString',
       }),
       columnHelper.accessor('userEmail', {
         id: 'userEmail',

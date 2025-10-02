@@ -39,9 +39,27 @@ const CorrelationSearch: React.FC<CorrelationSearchProps> = ({ value, onChange }
   useEffect(() => {
     if (value.length >= 2) {
       const searchTerm = `%${value}%`;
-      searchCorrelations({
-        variables: { searchTerm }
-      });
+
+      // Check if search contains colon (table:id format)
+      const colonIndex = value.indexOf(':');
+      const hasColon = colonIndex > 0;
+
+      let variables: any = { searchTerm };
+
+      if (hasColon) {
+        // Extract table and id parts
+        const tablePart = value.substring(0, colonIndex);
+        const idPart = value.substring(colonIndex + 1);
+
+        variables = {
+          searchTerm,
+          hasColon: true,
+          tablePart: `%${tablePart}%`,
+          idPart: `%${idPart}%`
+        };
+      }
+
+      searchCorrelations({ variables });
     }
   }, [value, searchCorrelations]);
 
@@ -107,7 +125,7 @@ const CorrelationSearch: React.FC<CorrelationSearchProps> = ({ value, onChange }
           value={value}
           onChange={handleInputChange}
           onFocus={handleFocus}
-          placeholder="Search by correlation ID, function, or event..."
+          placeholder="Search by correlation ID, function, record (table:id), or event..."
           className="flex-1 px-3 py-2 text-sm bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-500 border-none outline-none"
         />
 
@@ -184,6 +202,14 @@ const CorrelationSearch: React.FC<CorrelationSearchProps> = ({ value, onChange }
                             </div>
                           )}
 
+                          {suggestion.source_event_payload?.event?.data?.new?.id && suggestion.source_table && (
+                            <div className="flex items-center space-x-1">
+                              <span className="font-mono text-xs">
+                                {suggestion.source_table.split('.')[1]}:{suggestion.source_event_payload.event.data.new.id}
+                              </span>
+                            </div>
+                          )}
+
                           <div className="flex items-center space-x-1">
                             <ClockIcon className="h-3 w-3" />
                             <span>{new Date(suggestion.created_at).toLocaleTimeString()}</span>
@@ -203,7 +229,8 @@ const CorrelationSearch: React.FC<CorrelationSearchProps> = ({ value, onChange }
                   <p className="font-medium">Search Tips:</p>
                   <ul className="space-y-1 ml-2">
                     <li>• Type at least 2 characters to search</li>
-                    <li>• Search by correlation ID, user email, or function name</li>
+                    <li>• Search by correlation ID, user email, function name, or record ID</li>
+                    <li>• Use table:id format (e.g., moves:41885) to search by specific record</li>
                     <li>• Use partial matches to find related invocations</li>
                   </ul>
                 </div>

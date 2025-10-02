@@ -4,12 +4,7 @@ query InvocationsList(
   $where: invocations_bool_exp = {}
   $order_by: [invocations_order_by!] = { created_at: desc }
 ) {
-  invocations(
-    limit: $limit
-    offset: $offset
-    where: $where
-    order_by: $order_by
-  ) {
+  invocations(limit: $limit, offset: $offset, where: $where, order_by: $order_by) {
     id
     created_at
     updated_at
@@ -27,6 +22,7 @@ query InvocationsList(
     total_jobs_failed
     status
     error_message
+    source_event_payload
   }
 
   invocations_aggregate(where: $where) {
@@ -100,13 +96,20 @@ query InvocationDetail($id: uuid!) {
   }
 }
 
-query CorrelationSearch($searchTerm: String!) {
+query CorrelationSearch($searchTerm: String!, $hasColon: Boolean = false, $tablePart: String = "", $idPart: String = "") {
   invocations(
     where: {
       _or: [
         { correlation_id: { _ilike: $searchTerm } }
         { source_function: { _ilike: $searchTerm } }
         { source_user_email: { _ilike: $searchTerm } }
+        { source_event_payload: { _cast: { String: { _ilike: $searchTerm } } } }
+        {
+          _and: [
+            { source_table: { _ilike: $tablePart } }
+            { source_event_payload: { _cast: { String: { _ilike: $idPart } } } }
+          ]
+        }
       ]
     }
     order_by: { created_at: desc }
@@ -115,7 +118,9 @@ query CorrelationSearch($searchTerm: String!) {
     id
     correlation_id
     source_function
+    source_table
     source_user_email
+    source_event_payload
     created_at
     status
     total_duration_ms

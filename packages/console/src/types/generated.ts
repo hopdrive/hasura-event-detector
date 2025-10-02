@@ -21,7 +21,9 @@ export type Scalars = {
   float8: { input: number; output: number; }
   geography: { input: any; output: object; }
   geometry: { input: any; output: object; }
+  inet: { input: any; output: any; }
   jsonb: { input: any; output: object; }
+  name: { input: any; output: any; }
   numeric: { input: number; output: number; }
   smallint: { input: number; output: number; }
   time: { input: any; output: any; }
@@ -852,8 +854,8 @@ export type Accessorialstoalgorithms = {
   accessorial_code: Scalars['String']['output'];
   /** An object relationship */
   algorithm?: Maybe<Algorithms>;
-  /** ID of the algorithm. */
-  algorithm_id: Scalars['bigint']['output'];
+  /** Key of the algorithm. */
+  algorithm_key: Scalars['String']['output'];
   /** An object relationship */
   customer?: Maybe<Customers>;
   /** ID of the customer. If this value is present, customers with this customer_id will use this algorithm for this accessorial. */
@@ -902,8 +904,6 @@ export type Accessorialstoalgorithms_Aggregate_FieldsCountArgs = {
 /** aggregate avg on columns */
 export type Accessorialstoalgorithms_Avg_Fields = {
   __typename?: 'accessorialstoalgorithms_avg_fields';
-  /** ID of the algorithm. */
-  algorithm_id?: Maybe<Scalars['Float']['output']>;
   /** ID of the customer. If this value is present, customers with this customer_id will use this algorithm for this accessorial. */
   customer_id?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
@@ -920,7 +920,7 @@ export type Accessorialstoalgorithms_Bool_Exp = {
   _or?: InputMaybe<Array<Accessorialstoalgorithms_Bool_Exp>>;
   accessorial_code?: InputMaybe<String_Comparison_Exp>;
   algorithm?: InputMaybe<Algorithms_Bool_Exp>;
-  algorithm_id?: InputMaybe<Bigint_Comparison_Exp>;
+  algorithm_key?: InputMaybe<String_Comparison_Exp>;
   customer?: InputMaybe<Customers_Bool_Exp>;
   customer_id?: InputMaybe<Bigint_Comparison_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
@@ -938,8 +938,6 @@ export enum Accessorialstoalgorithms_Constraint {
 
 /** input type for incrementing numeric columns in table "accessorialstoalgorithms" */
 export type Accessorialstoalgorithms_Inc_Input = {
-  /** ID of the algorithm. */
-  algorithm_id?: InputMaybe<Scalars['bigint']['input']>;
   /** ID of the customer. If this value is present, customers with this customer_id will use this algorithm for this accessorial. */
   customer_id?: InputMaybe<Scalars['bigint']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
@@ -954,8 +952,8 @@ export type Accessorialstoalgorithms_Insert_Input = {
   /** Code of the accessorial. */
   accessorial_code?: InputMaybe<Scalars['String']['input']>;
   algorithm?: InputMaybe<Algorithms_Obj_Rel_Insert_Input>;
-  /** ID of the algorithm. */
-  algorithm_id?: InputMaybe<Scalars['bigint']['input']>;
+  /** Key of the algorithm. */
+  algorithm_key?: InputMaybe<Scalars['String']['input']>;
   customer?: InputMaybe<Customers_Obj_Rel_Insert_Input>;
   /** ID of the customer. If this value is present, customers with this customer_id will use this algorithm for this accessorial. */
   customer_id?: InputMaybe<Scalars['bigint']['input']>;
@@ -973,8 +971,8 @@ export type Accessorialstoalgorithms_Max_Fields = {
   __typename?: 'accessorialstoalgorithms_max_fields';
   /** Code of the accessorial. */
   accessorial_code?: Maybe<Scalars['String']['output']>;
-  /** ID of the algorithm. */
-  algorithm_id?: Maybe<Scalars['bigint']['output']>;
+  /** Key of the algorithm. */
+  algorithm_key?: Maybe<Scalars['String']['output']>;
   /** ID of the customer. If this value is present, customers with this customer_id will use this algorithm for this accessorial. */
   customer_id?: Maybe<Scalars['bigint']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
@@ -989,8 +987,8 @@ export type Accessorialstoalgorithms_Min_Fields = {
   __typename?: 'accessorialstoalgorithms_min_fields';
   /** Code of the accessorial. */
   accessorial_code?: Maybe<Scalars['String']['output']>;
-  /** ID of the algorithm. */
-  algorithm_id?: Maybe<Scalars['bigint']['output']>;
+  /** Key of the algorithm. */
+  algorithm_key?: Maybe<Scalars['String']['output']>;
   /** ID of the customer. If this value is present, customers with this customer_id will use this algorithm for this accessorial. */
   customer_id?: Maybe<Scalars['bigint']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
@@ -1020,7 +1018,7 @@ export type Accessorialstoalgorithms_On_Conflict = {
 export type Accessorialstoalgorithms_Order_By = {
   accessorial_code?: InputMaybe<Order_By>;
   algorithm?: InputMaybe<Algorithms_Order_By>;
-  algorithm_id?: InputMaybe<Order_By>;
+  algorithm_key?: InputMaybe<Order_By>;
   customer?: InputMaybe<Customers_Order_By>;
   customer_id?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
@@ -1040,7 +1038,7 @@ export enum Accessorialstoalgorithms_Select_Column {
   /** column name */
   AccessorialCode = 'accessorial_code',
   /** column name */
-  AlgorithmId = 'algorithm_id',
+  AlgorithmKey = 'algorithm_key',
   /** column name */
   CustomerId = 'customer_id',
   /** column name */
@@ -1055,8 +1053,8 @@ export enum Accessorialstoalgorithms_Select_Column {
 export type Accessorialstoalgorithms_Set_Input = {
   /** Code of the accessorial. */
   accessorial_code?: InputMaybe<Scalars['String']['input']>;
-  /** ID of the algorithm. */
-  algorithm_id?: InputMaybe<Scalars['bigint']['input']>;
+  /** Key of the algorithm. */
+  algorithm_key?: InputMaybe<Scalars['String']['input']>;
   /** ID of the customer. If this value is present, customers with this customer_id will use this algorithm for this accessorial. */
   customer_id?: InputMaybe<Scalars['bigint']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
@@ -1069,8 +1067,6 @@ export type Accessorialstoalgorithms_Set_Input = {
 /** aggregate stddev on columns */
 export type Accessorialstoalgorithms_Stddev_Fields = {
   __typename?: 'accessorialstoalgorithms_stddev_fields';
-  /** ID of the algorithm. */
-  algorithm_id?: Maybe<Scalars['Float']['output']>;
   /** ID of the customer. If this value is present, customers with this customer_id will use this algorithm for this accessorial. */
   customer_id?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
@@ -1083,8 +1079,6 @@ export type Accessorialstoalgorithms_Stddev_Fields = {
 /** aggregate stddev_pop on columns */
 export type Accessorialstoalgorithms_Stddev_Pop_Fields = {
   __typename?: 'accessorialstoalgorithms_stddev_pop_fields';
-  /** ID of the algorithm. */
-  algorithm_id?: Maybe<Scalars['Float']['output']>;
   /** ID of the customer. If this value is present, customers with this customer_id will use this algorithm for this accessorial. */
   customer_id?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
@@ -1097,8 +1091,6 @@ export type Accessorialstoalgorithms_Stddev_Pop_Fields = {
 /** aggregate stddev_samp on columns */
 export type Accessorialstoalgorithms_Stddev_Samp_Fields = {
   __typename?: 'accessorialstoalgorithms_stddev_samp_fields';
-  /** ID of the algorithm. */
-  algorithm_id?: Maybe<Scalars['Float']['output']>;
   /** ID of the customer. If this value is present, customers with this customer_id will use this algorithm for this accessorial. */
   customer_id?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
@@ -1120,8 +1112,8 @@ export type Accessorialstoalgorithms_Stream_Cursor_Input = {
 export type Accessorialstoalgorithms_Stream_Cursor_Value_Input = {
   /** Code of the accessorial. */
   accessorial_code?: InputMaybe<Scalars['String']['input']>;
-  /** ID of the algorithm. */
-  algorithm_id?: InputMaybe<Scalars['bigint']['input']>;
+  /** Key of the algorithm. */
+  algorithm_key?: InputMaybe<Scalars['String']['input']>;
   /** ID of the customer. If this value is present, customers with this customer_id will use this algorithm for this accessorial. */
   customer_id?: InputMaybe<Scalars['bigint']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
@@ -1134,8 +1126,6 @@ export type Accessorialstoalgorithms_Stream_Cursor_Value_Input = {
 /** aggregate sum on columns */
 export type Accessorialstoalgorithms_Sum_Fields = {
   __typename?: 'accessorialstoalgorithms_sum_fields';
-  /** ID of the algorithm. */
-  algorithm_id?: Maybe<Scalars['bigint']['output']>;
   /** ID of the customer. If this value is present, customers with this customer_id will use this algorithm for this accessorial. */
   customer_id?: Maybe<Scalars['bigint']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
@@ -1150,7 +1140,7 @@ export enum Accessorialstoalgorithms_Update_Column {
   /** column name */
   AccessorialCode = 'accessorial_code',
   /** column name */
-  AlgorithmId = 'algorithm_id',
+  AlgorithmKey = 'algorithm_key',
   /** column name */
   CustomerId = 'customer_id',
   /** column name */
@@ -1173,8 +1163,6 @@ export type Accessorialstoalgorithms_Updates = {
 /** aggregate var_pop on columns */
 export type Accessorialstoalgorithms_Var_Pop_Fields = {
   __typename?: 'accessorialstoalgorithms_var_pop_fields';
-  /** ID of the algorithm. */
-  algorithm_id?: Maybe<Scalars['Float']['output']>;
   /** ID of the customer. If this value is present, customers with this customer_id will use this algorithm for this accessorial. */
   customer_id?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
@@ -1187,8 +1175,6 @@ export type Accessorialstoalgorithms_Var_Pop_Fields = {
 /** aggregate var_samp on columns */
 export type Accessorialstoalgorithms_Var_Samp_Fields = {
   __typename?: 'accessorialstoalgorithms_var_samp_fields';
-  /** ID of the algorithm. */
-  algorithm_id?: Maybe<Scalars['Float']['output']>;
   /** ID of the customer. If this value is present, customers with this customer_id will use this algorithm for this accessorial. */
   customer_id?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
@@ -1201,8 +1187,6 @@ export type Accessorialstoalgorithms_Var_Samp_Fields = {
 /** aggregate variance on columns */
 export type Accessorialstoalgorithms_Variance_Fields = {
   __typename?: 'accessorialstoalgorithms_variance_fields';
-  /** ID of the algorithm. */
-  algorithm_id?: Maybe<Scalars['Float']['output']>;
   /** ID of the customer. If this value is present, customers with this customer_id will use this algorithm for this accessorial. */
   customer_id?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
@@ -2023,13 +2007,14 @@ export type Algorithms = {
   created_by?: Maybe<Scalars['String']['output']>;
   /** A thorough explanation of the algorithm and each of its parameters. */
   description?: Maybe<Scalars['String']['output']>;
-  id: Scalars['bigint']['output'];
+  /** Code-friendly, camel-cased name that matches the module to run in the code. */
+  key: Scalars['String']['output'];
   /** Human-readable name of the algorithm. An extremely brief explanation of the algorithm that can fit on one line. */
   label?: Maybe<Scalars['String']['output']>;
-  /** Code-friendly, camel-cased name that matches the module to run in the code. */
-  name: Scalars['String']['output'];
-  /** Parameters that serve as arguments to the algorithm. We can make our functions reusable while passing in these parameters to yield different results. */
+  /** Immutable representation of parameter values for this algorithm version */
   params?: Maybe<Scalars['jsonb']['output']>;
+  /** Enables a system to fetch algorithms by type */
+  type: Scalars['String']['output'];
   updated_at?: Maybe<Scalars['timestamptz']['output']>;
   updated_by?: Maybe<Scalars['String']['output']>;
 };
@@ -2050,17 +2035,9 @@ export type Algorithms_Aggregate = {
 /** aggregate fields of "algorithms" */
 export type Algorithms_Aggregate_Fields = {
   __typename?: 'algorithms_aggregate_fields';
-  avg?: Maybe<Algorithms_Avg_Fields>;
   count: Scalars['Int']['output'];
   max?: Maybe<Algorithms_Max_Fields>;
   min?: Maybe<Algorithms_Min_Fields>;
-  stddev?: Maybe<Algorithms_Stddev_Fields>;
-  stddev_pop?: Maybe<Algorithms_Stddev_Pop_Fields>;
-  stddev_samp?: Maybe<Algorithms_Stddev_Samp_Fields>;
-  sum?: Maybe<Algorithms_Sum_Fields>;
-  var_pop?: Maybe<Algorithms_Var_Pop_Fields>;
-  var_samp?: Maybe<Algorithms_Var_Samp_Fields>;
-  variance?: Maybe<Algorithms_Variance_Fields>;
 };
 
 
@@ -2072,14 +2049,8 @@ export type Algorithms_Aggregate_FieldsCountArgs = {
 
 /** append existing jsonb value of filtered columns with new jsonb value */
 export type Algorithms_Append_Input = {
-  /** Parameters that serve as arguments to the algorithm. We can make our functions reusable while passing in these parameters to yield different results. */
+  /** Immutable representation of parameter values for this algorithm version */
   params?: InputMaybe<Scalars['jsonb']['input']>;
-};
-
-/** aggregate avg on columns */
-export type Algorithms_Avg_Fields = {
-  __typename?: 'algorithms_avg_fields';
-  id?: Maybe<Scalars['Float']['output']>;
 };
 
 /** Boolean expression to filter rows from the table "algorithms". All fields are combined with a logical 'AND'. */
@@ -2090,43 +2061,38 @@ export type Algorithms_Bool_Exp = {
   created_at?: InputMaybe<Timestamptz_Comparison_Exp>;
   created_by?: InputMaybe<String_Comparison_Exp>;
   description?: InputMaybe<String_Comparison_Exp>;
-  id?: InputMaybe<Bigint_Comparison_Exp>;
+  key?: InputMaybe<String_Comparison_Exp>;
   label?: InputMaybe<String_Comparison_Exp>;
-  name?: InputMaybe<String_Comparison_Exp>;
   params?: InputMaybe<Jsonb_Comparison_Exp>;
+  type?: InputMaybe<String_Comparison_Exp>;
   updated_at?: InputMaybe<Timestamptz_Comparison_Exp>;
   updated_by?: InputMaybe<String_Comparison_Exp>;
 };
 
 /** unique or primary key constraints on table "algorithms" */
 export enum Algorithms_Constraint {
-  /** unique or primary key constraint on columns "name" */
+  /** unique or primary key constraint on columns "key" */
   AlgorithmsNameKey = 'algorithms_name_key',
-  /** unique or primary key constraint on columns "id" */
+  /** unique or primary key constraint on columns "key" */
   AlgorithmsPkey = 'algorithms_pkey'
 }
 
 /** delete the field or element with specified path (for JSON arrays, negative integers count from the end) */
 export type Algorithms_Delete_At_Path_Input = {
-  /** Parameters that serve as arguments to the algorithm. We can make our functions reusable while passing in these parameters to yield different results. */
+  /** Immutable representation of parameter values for this algorithm version */
   params?: InputMaybe<Array<Scalars['String']['input']>>;
 };
 
 /** delete the array element with specified index (negative integers count from the end). throws an error if top level container is not an array */
 export type Algorithms_Delete_Elem_Input = {
-  /** Parameters that serve as arguments to the algorithm. We can make our functions reusable while passing in these parameters to yield different results. */
+  /** Immutable representation of parameter values for this algorithm version */
   params?: InputMaybe<Scalars['Int']['input']>;
 };
 
 /** delete key/value pair or string element. key/value pairs are matched based on their key value */
 export type Algorithms_Delete_Key_Input = {
-  /** Parameters that serve as arguments to the algorithm. We can make our functions reusable while passing in these parameters to yield different results. */
+  /** Immutable representation of parameter values for this algorithm version */
   params?: InputMaybe<Scalars['String']['input']>;
-};
-
-/** input type for incrementing numeric columns in table "algorithms" */
-export type Algorithms_Inc_Input = {
-  id?: InputMaybe<Scalars['bigint']['input']>;
 };
 
 /** input type for inserting data into table "algorithms" */
@@ -2135,13 +2101,14 @@ export type Algorithms_Insert_Input = {
   created_by?: InputMaybe<Scalars['String']['input']>;
   /** A thorough explanation of the algorithm and each of its parameters. */
   description?: InputMaybe<Scalars['String']['input']>;
-  id?: InputMaybe<Scalars['bigint']['input']>;
+  /** Code-friendly, camel-cased name that matches the module to run in the code. */
+  key?: InputMaybe<Scalars['String']['input']>;
   /** Human-readable name of the algorithm. An extremely brief explanation of the algorithm that can fit on one line. */
   label?: InputMaybe<Scalars['String']['input']>;
-  /** Code-friendly, camel-cased name that matches the module to run in the code. */
-  name?: InputMaybe<Scalars['String']['input']>;
-  /** Parameters that serve as arguments to the algorithm. We can make our functions reusable while passing in these parameters to yield different results. */
+  /** Immutable representation of parameter values for this algorithm version */
   params?: InputMaybe<Scalars['jsonb']['input']>;
+  /** Enables a system to fetch algorithms by type */
+  type?: InputMaybe<Scalars['String']['input']>;
   updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
   updated_by?: InputMaybe<Scalars['String']['input']>;
 };
@@ -2153,11 +2120,12 @@ export type Algorithms_Max_Fields = {
   created_by?: Maybe<Scalars['String']['output']>;
   /** A thorough explanation of the algorithm and each of its parameters. */
   description?: Maybe<Scalars['String']['output']>;
-  id?: Maybe<Scalars['bigint']['output']>;
+  /** Code-friendly, camel-cased name that matches the module to run in the code. */
+  key?: Maybe<Scalars['String']['output']>;
   /** Human-readable name of the algorithm. An extremely brief explanation of the algorithm that can fit on one line. */
   label?: Maybe<Scalars['String']['output']>;
-  /** Code-friendly, camel-cased name that matches the module to run in the code. */
-  name?: Maybe<Scalars['String']['output']>;
+  /** Enables a system to fetch algorithms by type */
+  type?: Maybe<Scalars['String']['output']>;
   updated_at?: Maybe<Scalars['timestamptz']['output']>;
   updated_by?: Maybe<Scalars['String']['output']>;
 };
@@ -2169,11 +2137,12 @@ export type Algorithms_Min_Fields = {
   created_by?: Maybe<Scalars['String']['output']>;
   /** A thorough explanation of the algorithm and each of its parameters. */
   description?: Maybe<Scalars['String']['output']>;
-  id?: Maybe<Scalars['bigint']['output']>;
+  /** Code-friendly, camel-cased name that matches the module to run in the code. */
+  key?: Maybe<Scalars['String']['output']>;
   /** Human-readable name of the algorithm. An extremely brief explanation of the algorithm that can fit on one line. */
   label?: Maybe<Scalars['String']['output']>;
-  /** Code-friendly, camel-cased name that matches the module to run in the code. */
-  name?: Maybe<Scalars['String']['output']>;
+  /** Enables a system to fetch algorithms by type */
+  type?: Maybe<Scalars['String']['output']>;
   updated_at?: Maybe<Scalars['timestamptz']['output']>;
   updated_by?: Maybe<Scalars['String']['output']>;
 };
@@ -2206,22 +2175,23 @@ export type Algorithms_Order_By = {
   created_at?: InputMaybe<Order_By>;
   created_by?: InputMaybe<Order_By>;
   description?: InputMaybe<Order_By>;
-  id?: InputMaybe<Order_By>;
+  key?: InputMaybe<Order_By>;
   label?: InputMaybe<Order_By>;
-  name?: InputMaybe<Order_By>;
   params?: InputMaybe<Order_By>;
+  type?: InputMaybe<Order_By>;
   updated_at?: InputMaybe<Order_By>;
   updated_by?: InputMaybe<Order_By>;
 };
 
 /** primary key columns input for table: algorithms */
 export type Algorithms_Pk_Columns_Input = {
-  id: Scalars['bigint']['input'];
+  /** Code-friendly, camel-cased name that matches the module to run in the code. */
+  key: Scalars['String']['input'];
 };
 
 /** prepend existing jsonb value of filtered columns with new jsonb value */
 export type Algorithms_Prepend_Input = {
-  /** Parameters that serve as arguments to the algorithm. We can make our functions reusable while passing in these parameters to yield different results. */
+  /** Immutable representation of parameter values for this algorithm version */
   params?: InputMaybe<Scalars['jsonb']['input']>;
 };
 
@@ -2234,13 +2204,13 @@ export enum Algorithms_Select_Column {
   /** column name */
   Description = 'description',
   /** column name */
-  Id = 'id',
+  Key = 'key',
   /** column name */
   Label = 'label',
   /** column name */
-  Name = 'name',
-  /** column name */
   Params = 'params',
+  /** column name */
+  Type = 'type',
   /** column name */
   UpdatedAt = 'updated_at',
   /** column name */
@@ -2253,33 +2223,16 @@ export type Algorithms_Set_Input = {
   created_by?: InputMaybe<Scalars['String']['input']>;
   /** A thorough explanation of the algorithm and each of its parameters. */
   description?: InputMaybe<Scalars['String']['input']>;
-  id?: InputMaybe<Scalars['bigint']['input']>;
+  /** Code-friendly, camel-cased name that matches the module to run in the code. */
+  key?: InputMaybe<Scalars['String']['input']>;
   /** Human-readable name of the algorithm. An extremely brief explanation of the algorithm that can fit on one line. */
   label?: InputMaybe<Scalars['String']['input']>;
-  /** Code-friendly, camel-cased name that matches the module to run in the code. */
-  name?: InputMaybe<Scalars['String']['input']>;
-  /** Parameters that serve as arguments to the algorithm. We can make our functions reusable while passing in these parameters to yield different results. */
+  /** Immutable representation of parameter values for this algorithm version */
   params?: InputMaybe<Scalars['jsonb']['input']>;
+  /** Enables a system to fetch algorithms by type */
+  type?: InputMaybe<Scalars['String']['input']>;
   updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
   updated_by?: InputMaybe<Scalars['String']['input']>;
-};
-
-/** aggregate stddev on columns */
-export type Algorithms_Stddev_Fields = {
-  __typename?: 'algorithms_stddev_fields';
-  id?: Maybe<Scalars['Float']['output']>;
-};
-
-/** aggregate stddev_pop on columns */
-export type Algorithms_Stddev_Pop_Fields = {
-  __typename?: 'algorithms_stddev_pop_fields';
-  id?: Maybe<Scalars['Float']['output']>;
-};
-
-/** aggregate stddev_samp on columns */
-export type Algorithms_Stddev_Samp_Fields = {
-  __typename?: 'algorithms_stddev_samp_fields';
-  id?: Maybe<Scalars['Float']['output']>;
 };
 
 /** Streaming cursor of the table "algorithms" */
@@ -2296,21 +2249,16 @@ export type Algorithms_Stream_Cursor_Value_Input = {
   created_by?: InputMaybe<Scalars['String']['input']>;
   /** A thorough explanation of the algorithm and each of its parameters. */
   description?: InputMaybe<Scalars['String']['input']>;
-  id?: InputMaybe<Scalars['bigint']['input']>;
+  /** Code-friendly, camel-cased name that matches the module to run in the code. */
+  key?: InputMaybe<Scalars['String']['input']>;
   /** Human-readable name of the algorithm. An extremely brief explanation of the algorithm that can fit on one line. */
   label?: InputMaybe<Scalars['String']['input']>;
-  /** Code-friendly, camel-cased name that matches the module to run in the code. */
-  name?: InputMaybe<Scalars['String']['input']>;
-  /** Parameters that serve as arguments to the algorithm. We can make our functions reusable while passing in these parameters to yield different results. */
+  /** Immutable representation of parameter values for this algorithm version */
   params?: InputMaybe<Scalars['jsonb']['input']>;
+  /** Enables a system to fetch algorithms by type */
+  type?: InputMaybe<Scalars['String']['input']>;
   updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
   updated_by?: InputMaybe<Scalars['String']['input']>;
-};
-
-/** aggregate sum on columns */
-export type Algorithms_Sum_Fields = {
-  __typename?: 'algorithms_sum_fields';
-  id?: Maybe<Scalars['bigint']['output']>;
 };
 
 /** update columns of table "algorithms" */
@@ -2322,13 +2270,13 @@ export enum Algorithms_Update_Column {
   /** column name */
   Description = 'description',
   /** column name */
-  Id = 'id',
+  Key = 'key',
   /** column name */
   Label = 'label',
   /** column name */
-  Name = 'name',
-  /** column name */
   Params = 'params',
+  /** column name */
+  Type = 'type',
   /** column name */
   UpdatedAt = 'updated_at',
   /** column name */
@@ -2344,32 +2292,12 @@ export type Algorithms_Updates = {
   _delete_elem?: InputMaybe<Algorithms_Delete_Elem_Input>;
   /** delete key/value pair or string element. key/value pairs are matched based on their key value */
   _delete_key?: InputMaybe<Algorithms_Delete_Key_Input>;
-  /** increments the numeric columns with given value of the filtered values */
-  _inc?: InputMaybe<Algorithms_Inc_Input>;
   /** prepend existing jsonb value of filtered columns with new jsonb value */
   _prepend?: InputMaybe<Algorithms_Prepend_Input>;
   /** sets the columns of the filtered rows to the given values */
   _set?: InputMaybe<Algorithms_Set_Input>;
   /** filter the rows which have to be updated */
   where: Algorithms_Bool_Exp;
-};
-
-/** aggregate var_pop on columns */
-export type Algorithms_Var_Pop_Fields = {
-  __typename?: 'algorithms_var_pop_fields';
-  id?: Maybe<Scalars['Float']['output']>;
-};
-
-/** aggregate var_samp on columns */
-export type Algorithms_Var_Samp_Fields = {
-  __typename?: 'algorithms_var_samp_fields';
-  id?: Maybe<Scalars['Float']['output']>;
-};
-
-/** aggregate variance on columns */
-export type Algorithms_Variance_Fields = {
-  __typename?: 'algorithms_variance_fields';
-  id?: Maybe<Scalars['Float']['output']>;
 };
 
 /** Charges related directly to a driver. */
@@ -6549,7 +6477,7 @@ export type Arinvoices_Bool_Exp = {
 
 /** unique or primary key constraints on table "arinvoices" */
 export enum Arinvoices_Constraint {
-  /** unique or primary key constraint on columns "customer_id", "start_datetime" */
+  /** unique or primary key constraint on columns "start_datetime", "customer_id" */
   ArinvoicesCustomerIdStartDatetimeKey = 'arinvoices_customer_id_start_datetime_key',
   /** unique or primary key constraint on columns "id" */
   ArinvoicesPkey = 'arinvoices_pkey'
@@ -9281,7 +9209,7 @@ export type Armoveshistory_Bool_Exp = {
 
 /** unique or primary key constraints on table "armoveshistory" */
 export enum Armoveshistory_Constraint {
-  /** unique or primary key constraint on columns "revision", "armove_id" */
+  /** unique or primary key constraint on columns "armove_id", "revision" */
   ArmoveshistoryArmoveIdRevisionKey = 'armoveshistory_armove_id_revision_key',
   /** unique or primary key constraint on columns "id" */
   ArmoveshistoryPkey = 'armoveshistory_pkey'
@@ -17204,6 +17132,174 @@ export type Chasevehiclesassigned_Variance_Fields = {
   region_id?: Maybe<Scalars['Float']['output']>;
 };
 
+/** Database connection and version information for troubleshooting */
+export type Connection_Info = {
+  __typename?: 'connection_info';
+  current_timestamp?: Maybe<Scalars['timestamptz']['output']>;
+  current_user?: Maybe<Scalars['name']['output']>;
+  database_name?: Maybe<Scalars['name']['output']>;
+  postgres_version?: Maybe<Scalars['String']['output']>;
+  server_address?: Maybe<Scalars['inet']['output']>;
+  server_port?: Maybe<Scalars['Int']['output']>;
+  session_user?: Maybe<Scalars['name']['output']>;
+};
+
+/** aggregated selection of "connection_info" */
+export type Connection_Info_Aggregate = {
+  __typename?: 'connection_info_aggregate';
+  aggregate?: Maybe<Connection_Info_Aggregate_Fields>;
+  nodes: Array<Connection_Info>;
+};
+
+/** aggregate fields of "connection_info" */
+export type Connection_Info_Aggregate_Fields = {
+  __typename?: 'connection_info_aggregate_fields';
+  avg?: Maybe<Connection_Info_Avg_Fields>;
+  count: Scalars['Int']['output'];
+  max?: Maybe<Connection_Info_Max_Fields>;
+  min?: Maybe<Connection_Info_Min_Fields>;
+  stddev?: Maybe<Connection_Info_Stddev_Fields>;
+  stddev_pop?: Maybe<Connection_Info_Stddev_Pop_Fields>;
+  stddev_samp?: Maybe<Connection_Info_Stddev_Samp_Fields>;
+  sum?: Maybe<Connection_Info_Sum_Fields>;
+  var_pop?: Maybe<Connection_Info_Var_Pop_Fields>;
+  var_samp?: Maybe<Connection_Info_Var_Samp_Fields>;
+  variance?: Maybe<Connection_Info_Variance_Fields>;
+};
+
+
+/** aggregate fields of "connection_info" */
+export type Connection_Info_Aggregate_FieldsCountArgs = {
+  columns?: InputMaybe<Array<Connection_Info_Select_Column>>;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** aggregate avg on columns */
+export type Connection_Info_Avg_Fields = {
+  __typename?: 'connection_info_avg_fields';
+  server_port?: Maybe<Scalars['Float']['output']>;
+};
+
+/** Boolean expression to filter rows from the table "connection_info". All fields are combined with a logical 'AND'. */
+export type Connection_Info_Bool_Exp = {
+  _and?: InputMaybe<Array<Connection_Info_Bool_Exp>>;
+  _not?: InputMaybe<Connection_Info_Bool_Exp>;
+  _or?: InputMaybe<Array<Connection_Info_Bool_Exp>>;
+  current_timestamp?: InputMaybe<Timestamptz_Comparison_Exp>;
+  current_user?: InputMaybe<Name_Comparison_Exp>;
+  database_name?: InputMaybe<Name_Comparison_Exp>;
+  postgres_version?: InputMaybe<String_Comparison_Exp>;
+  server_address?: InputMaybe<Inet_Comparison_Exp>;
+  server_port?: InputMaybe<Int_Comparison_Exp>;
+  session_user?: InputMaybe<Name_Comparison_Exp>;
+};
+
+/** aggregate max on columns */
+export type Connection_Info_Max_Fields = {
+  __typename?: 'connection_info_max_fields';
+  current_timestamp?: Maybe<Scalars['timestamptz']['output']>;
+  postgres_version?: Maybe<Scalars['String']['output']>;
+  server_port?: Maybe<Scalars['Int']['output']>;
+};
+
+/** aggregate min on columns */
+export type Connection_Info_Min_Fields = {
+  __typename?: 'connection_info_min_fields';
+  current_timestamp?: Maybe<Scalars['timestamptz']['output']>;
+  postgres_version?: Maybe<Scalars['String']['output']>;
+  server_port?: Maybe<Scalars['Int']['output']>;
+};
+
+/** Ordering options when selecting data from "connection_info". */
+export type Connection_Info_Order_By = {
+  current_timestamp?: InputMaybe<Order_By>;
+  current_user?: InputMaybe<Order_By>;
+  database_name?: InputMaybe<Order_By>;
+  postgres_version?: InputMaybe<Order_By>;
+  server_address?: InputMaybe<Order_By>;
+  server_port?: InputMaybe<Order_By>;
+  session_user?: InputMaybe<Order_By>;
+};
+
+/** select columns of table "connection_info" */
+export enum Connection_Info_Select_Column {
+  /** column name */
+  CurrentTimestamp = 'current_timestamp',
+  /** column name */
+  CurrentUser = 'current_user',
+  /** column name */
+  DatabaseName = 'database_name',
+  /** column name */
+  PostgresVersion = 'postgres_version',
+  /** column name */
+  ServerAddress = 'server_address',
+  /** column name */
+  ServerPort = 'server_port',
+  /** column name */
+  SessionUser = 'session_user'
+}
+
+/** aggregate stddev on columns */
+export type Connection_Info_Stddev_Fields = {
+  __typename?: 'connection_info_stddev_fields';
+  server_port?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate stddev_pop on columns */
+export type Connection_Info_Stddev_Pop_Fields = {
+  __typename?: 'connection_info_stddev_pop_fields';
+  server_port?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate stddev_samp on columns */
+export type Connection_Info_Stddev_Samp_Fields = {
+  __typename?: 'connection_info_stddev_samp_fields';
+  server_port?: Maybe<Scalars['Float']['output']>;
+};
+
+/** Streaming cursor of the table "connection_info" */
+export type Connection_Info_Stream_Cursor_Input = {
+  /** Stream column input with initial value */
+  initial_value: Connection_Info_Stream_Cursor_Value_Input;
+  /** cursor ordering */
+  ordering?: InputMaybe<Cursor_Ordering>;
+};
+
+/** Initial value of the column from where the streaming should start */
+export type Connection_Info_Stream_Cursor_Value_Input = {
+  current_timestamp?: InputMaybe<Scalars['timestamptz']['input']>;
+  current_user?: InputMaybe<Scalars['name']['input']>;
+  database_name?: InputMaybe<Scalars['name']['input']>;
+  postgres_version?: InputMaybe<Scalars['String']['input']>;
+  server_address?: InputMaybe<Scalars['inet']['input']>;
+  server_port?: InputMaybe<Scalars['Int']['input']>;
+  session_user?: InputMaybe<Scalars['name']['input']>;
+};
+
+/** aggregate sum on columns */
+export type Connection_Info_Sum_Fields = {
+  __typename?: 'connection_info_sum_fields';
+  server_port?: Maybe<Scalars['Int']['output']>;
+};
+
+/** aggregate var_pop on columns */
+export type Connection_Info_Var_Pop_Fields = {
+  __typename?: 'connection_info_var_pop_fields';
+  server_port?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate var_samp on columns */
+export type Connection_Info_Var_Samp_Fields = {
+  __typename?: 'connection_info_var_samp_fields';
+  server_port?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate variance on columns */
+export type Connection_Info_Variance_Fields = {
+  __typename?: 'connection_info_variance_fields';
+  server_port?: Maybe<Scalars['Float']['output']>;
+};
+
 /** columns and relationships of "consumer_numbers" */
 export type Consumer_Numbers = {
   __typename?: 'consumer_numbers';
@@ -17447,6 +17543,665 @@ export type Consumer_Numbers_Var_Samp_Fields = {
 export type Consumer_Numbers_Variance_Fields = {
   __typename?: 'consumer_numbers_variance_fields';
   id?: Maybe<Scalars['Float']['output']>;
+};
+
+/** columns and relationships of "contacts" */
+export type Contacts = {
+  __typename?: 'contacts';
+  created_at: Scalars['timestamptz']['output'];
+  /** Type of user who created the contact: customer | hopdrive */
+  created_by_type?: Maybe<Scalars['String']['output']>;
+  /** ID of the user who created this contact record */
+  created_by_user_id?: Maybe<Scalars['Int']['output']>;
+  /** Email address for contact communication */
+  email?: Maybe<Scalars['String']['output']>;
+  id: Scalars['bigint']['output'];
+  landline_number?: Maybe<Scalars['String']['output']>;
+  mobile_is_verified: Scalars['Boolean']['output'];
+  mobile_number?: Maybe<Scalars['String']['output']>;
+  /** Full name of the contact person */
+  name: Scalars['String']['output'];
+  /** Additional contact information */
+  notes?: Maybe<Scalars['String']['output']>;
+  ttl_expires_at?: Maybe<Scalars['timestamptz']['output']>;
+  updated_at: Scalars['timestamptz']['output'];
+};
+
+/** aggregated selection of "contacts" */
+export type Contacts_Aggregate = {
+  __typename?: 'contacts_aggregate';
+  aggregate?: Maybe<Contacts_Aggregate_Fields>;
+  nodes: Array<Contacts>;
+};
+
+/** aggregate fields of "contacts" */
+export type Contacts_Aggregate_Fields = {
+  __typename?: 'contacts_aggregate_fields';
+  avg?: Maybe<Contacts_Avg_Fields>;
+  count: Scalars['Int']['output'];
+  max?: Maybe<Contacts_Max_Fields>;
+  min?: Maybe<Contacts_Min_Fields>;
+  stddev?: Maybe<Contacts_Stddev_Fields>;
+  stddev_pop?: Maybe<Contacts_Stddev_Pop_Fields>;
+  stddev_samp?: Maybe<Contacts_Stddev_Samp_Fields>;
+  sum?: Maybe<Contacts_Sum_Fields>;
+  var_pop?: Maybe<Contacts_Var_Pop_Fields>;
+  var_samp?: Maybe<Contacts_Var_Samp_Fields>;
+  variance?: Maybe<Contacts_Variance_Fields>;
+};
+
+
+/** aggregate fields of "contacts" */
+export type Contacts_Aggregate_FieldsCountArgs = {
+  columns?: InputMaybe<Array<Contacts_Select_Column>>;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** aggregate avg on columns */
+export type Contacts_Avg_Fields = {
+  __typename?: 'contacts_avg_fields';
+  /** ID of the user who created this contact record */
+  created_by_user_id?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+};
+
+/** Boolean expression to filter rows from the table "contacts". All fields are combined with a logical 'AND'. */
+export type Contacts_Bool_Exp = {
+  _and?: InputMaybe<Array<Contacts_Bool_Exp>>;
+  _not?: InputMaybe<Contacts_Bool_Exp>;
+  _or?: InputMaybe<Array<Contacts_Bool_Exp>>;
+  created_at?: InputMaybe<Timestamptz_Comparison_Exp>;
+  created_by_type?: InputMaybe<String_Comparison_Exp>;
+  created_by_user_id?: InputMaybe<Int_Comparison_Exp>;
+  email?: InputMaybe<String_Comparison_Exp>;
+  id?: InputMaybe<Bigint_Comparison_Exp>;
+  landline_number?: InputMaybe<String_Comparison_Exp>;
+  mobile_is_verified?: InputMaybe<Boolean_Comparison_Exp>;
+  mobile_number?: InputMaybe<String_Comparison_Exp>;
+  name?: InputMaybe<String_Comparison_Exp>;
+  notes?: InputMaybe<String_Comparison_Exp>;
+  ttl_expires_at?: InputMaybe<Timestamptz_Comparison_Exp>;
+  updated_at?: InputMaybe<Timestamptz_Comparison_Exp>;
+};
+
+/** unique or primary key constraints on table "contacts" */
+export enum Contacts_Constraint {
+  /** unique or primary key constraint on columns "id" */
+  ContactsPkey = 'contacts_pkey'
+}
+
+/** input type for incrementing numeric columns in table "contacts" */
+export type Contacts_Inc_Input = {
+  /** ID of the user who created this contact record */
+  created_by_user_id?: InputMaybe<Scalars['Int']['input']>;
+  id?: InputMaybe<Scalars['bigint']['input']>;
+};
+
+/** input type for inserting data into table "contacts" */
+export type Contacts_Insert_Input = {
+  created_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  /** Type of user who created the contact: customer | hopdrive */
+  created_by_type?: InputMaybe<Scalars['String']['input']>;
+  /** ID of the user who created this contact record */
+  created_by_user_id?: InputMaybe<Scalars['Int']['input']>;
+  /** Email address for contact communication */
+  email?: InputMaybe<Scalars['String']['input']>;
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  landline_number?: InputMaybe<Scalars['String']['input']>;
+  mobile_is_verified?: InputMaybe<Scalars['Boolean']['input']>;
+  mobile_number?: InputMaybe<Scalars['String']['input']>;
+  /** Full name of the contact person */
+  name?: InputMaybe<Scalars['String']['input']>;
+  /** Additional contact information */
+  notes?: InputMaybe<Scalars['String']['input']>;
+  ttl_expires_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
+};
+
+/** aggregate max on columns */
+export type Contacts_Max_Fields = {
+  __typename?: 'contacts_max_fields';
+  created_at?: Maybe<Scalars['timestamptz']['output']>;
+  /** Type of user who created the contact: customer | hopdrive */
+  created_by_type?: Maybe<Scalars['String']['output']>;
+  /** ID of the user who created this contact record */
+  created_by_user_id?: Maybe<Scalars['Int']['output']>;
+  /** Email address for contact communication */
+  email?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['bigint']['output']>;
+  landline_number?: Maybe<Scalars['String']['output']>;
+  mobile_number?: Maybe<Scalars['String']['output']>;
+  /** Full name of the contact person */
+  name?: Maybe<Scalars['String']['output']>;
+  /** Additional contact information */
+  notes?: Maybe<Scalars['String']['output']>;
+  ttl_expires_at?: Maybe<Scalars['timestamptz']['output']>;
+  updated_at?: Maybe<Scalars['timestamptz']['output']>;
+};
+
+/** aggregate min on columns */
+export type Contacts_Min_Fields = {
+  __typename?: 'contacts_min_fields';
+  created_at?: Maybe<Scalars['timestamptz']['output']>;
+  /** Type of user who created the contact: customer | hopdrive */
+  created_by_type?: Maybe<Scalars['String']['output']>;
+  /** ID of the user who created this contact record */
+  created_by_user_id?: Maybe<Scalars['Int']['output']>;
+  /** Email address for contact communication */
+  email?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['bigint']['output']>;
+  landline_number?: Maybe<Scalars['String']['output']>;
+  mobile_number?: Maybe<Scalars['String']['output']>;
+  /** Full name of the contact person */
+  name?: Maybe<Scalars['String']['output']>;
+  /** Additional contact information */
+  notes?: Maybe<Scalars['String']['output']>;
+  ttl_expires_at?: Maybe<Scalars['timestamptz']['output']>;
+  updated_at?: Maybe<Scalars['timestamptz']['output']>;
+};
+
+/** response of any mutation on the table "contacts" */
+export type Contacts_Mutation_Response = {
+  __typename?: 'contacts_mutation_response';
+  /** number of rows affected by the mutation */
+  affected_rows: Scalars['Int']['output'];
+  /** data from the rows affected by the mutation */
+  returning: Array<Contacts>;
+};
+
+/** input type for inserting object relation for remote table "contacts" */
+export type Contacts_Obj_Rel_Insert_Input = {
+  data: Contacts_Insert_Input;
+  /** upsert condition */
+  on_conflict?: InputMaybe<Contacts_On_Conflict>;
+};
+
+/** on_conflict condition type for table "contacts" */
+export type Contacts_On_Conflict = {
+  constraint: Contacts_Constraint;
+  update_columns?: Array<Contacts_Update_Column>;
+  where?: InputMaybe<Contacts_Bool_Exp>;
+};
+
+/** Ordering options when selecting data from "contacts". */
+export type Contacts_Order_By = {
+  created_at?: InputMaybe<Order_By>;
+  created_by_type?: InputMaybe<Order_By>;
+  created_by_user_id?: InputMaybe<Order_By>;
+  email?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  landline_number?: InputMaybe<Order_By>;
+  mobile_is_verified?: InputMaybe<Order_By>;
+  mobile_number?: InputMaybe<Order_By>;
+  name?: InputMaybe<Order_By>;
+  notes?: InputMaybe<Order_By>;
+  ttl_expires_at?: InputMaybe<Order_By>;
+  updated_at?: InputMaybe<Order_By>;
+};
+
+/** primary key columns input for table: contacts */
+export type Contacts_Pk_Columns_Input = {
+  id: Scalars['bigint']['input'];
+};
+
+/** select columns of table "contacts" */
+export enum Contacts_Select_Column {
+  /** column name */
+  CreatedAt = 'created_at',
+  /** column name */
+  CreatedByType = 'created_by_type',
+  /** column name */
+  CreatedByUserId = 'created_by_user_id',
+  /** column name */
+  Email = 'email',
+  /** column name */
+  Id = 'id',
+  /** column name */
+  LandlineNumber = 'landline_number',
+  /** column name */
+  MobileIsVerified = 'mobile_is_verified',
+  /** column name */
+  MobileNumber = 'mobile_number',
+  /** column name */
+  Name = 'name',
+  /** column name */
+  Notes = 'notes',
+  /** column name */
+  TtlExpiresAt = 'ttl_expires_at',
+  /** column name */
+  UpdatedAt = 'updated_at'
+}
+
+/** input type for updating data in table "contacts" */
+export type Contacts_Set_Input = {
+  created_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  /** Type of user who created the contact: customer | hopdrive */
+  created_by_type?: InputMaybe<Scalars['String']['input']>;
+  /** ID of the user who created this contact record */
+  created_by_user_id?: InputMaybe<Scalars['Int']['input']>;
+  /** Email address for contact communication */
+  email?: InputMaybe<Scalars['String']['input']>;
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  landline_number?: InputMaybe<Scalars['String']['input']>;
+  mobile_is_verified?: InputMaybe<Scalars['Boolean']['input']>;
+  mobile_number?: InputMaybe<Scalars['String']['input']>;
+  /** Full name of the contact person */
+  name?: InputMaybe<Scalars['String']['input']>;
+  /** Additional contact information */
+  notes?: InputMaybe<Scalars['String']['input']>;
+  ttl_expires_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
+};
+
+/** aggregate stddev on columns */
+export type Contacts_Stddev_Fields = {
+  __typename?: 'contacts_stddev_fields';
+  /** ID of the user who created this contact record */
+  created_by_user_id?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate stddev_pop on columns */
+export type Contacts_Stddev_Pop_Fields = {
+  __typename?: 'contacts_stddev_pop_fields';
+  /** ID of the user who created this contact record */
+  created_by_user_id?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate stddev_samp on columns */
+export type Contacts_Stddev_Samp_Fields = {
+  __typename?: 'contacts_stddev_samp_fields';
+  /** ID of the user who created this contact record */
+  created_by_user_id?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+};
+
+/** Streaming cursor of the table "contacts" */
+export type Contacts_Stream_Cursor_Input = {
+  /** Stream column input with initial value */
+  initial_value: Contacts_Stream_Cursor_Value_Input;
+  /** cursor ordering */
+  ordering?: InputMaybe<Cursor_Ordering>;
+};
+
+/** Initial value of the column from where the streaming should start */
+export type Contacts_Stream_Cursor_Value_Input = {
+  created_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  /** Type of user who created the contact: customer | hopdrive */
+  created_by_type?: InputMaybe<Scalars['String']['input']>;
+  /** ID of the user who created this contact record */
+  created_by_user_id?: InputMaybe<Scalars['Int']['input']>;
+  /** Email address for contact communication */
+  email?: InputMaybe<Scalars['String']['input']>;
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  landline_number?: InputMaybe<Scalars['String']['input']>;
+  mobile_is_verified?: InputMaybe<Scalars['Boolean']['input']>;
+  mobile_number?: InputMaybe<Scalars['String']['input']>;
+  /** Full name of the contact person */
+  name?: InputMaybe<Scalars['String']['input']>;
+  /** Additional contact information */
+  notes?: InputMaybe<Scalars['String']['input']>;
+  ttl_expires_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
+};
+
+/** aggregate sum on columns */
+export type Contacts_Sum_Fields = {
+  __typename?: 'contacts_sum_fields';
+  /** ID of the user who created this contact record */
+  created_by_user_id?: Maybe<Scalars['Int']['output']>;
+  id?: Maybe<Scalars['bigint']['output']>;
+};
+
+/** update columns of table "contacts" */
+export enum Contacts_Update_Column {
+  /** column name */
+  CreatedAt = 'created_at',
+  /** column name */
+  CreatedByType = 'created_by_type',
+  /** column name */
+  CreatedByUserId = 'created_by_user_id',
+  /** column name */
+  Email = 'email',
+  /** column name */
+  Id = 'id',
+  /** column name */
+  LandlineNumber = 'landline_number',
+  /** column name */
+  MobileIsVerified = 'mobile_is_verified',
+  /** column name */
+  MobileNumber = 'mobile_number',
+  /** column name */
+  Name = 'name',
+  /** column name */
+  Notes = 'notes',
+  /** column name */
+  TtlExpiresAt = 'ttl_expires_at',
+  /** column name */
+  UpdatedAt = 'updated_at'
+}
+
+export type Contacts_Updates = {
+  /** increments the numeric columns with given value of the filtered values */
+  _inc?: InputMaybe<Contacts_Inc_Input>;
+  /** sets the columns of the filtered rows to the given values */
+  _set?: InputMaybe<Contacts_Set_Input>;
+  /** filter the rows which have to be updated */
+  where: Contacts_Bool_Exp;
+};
+
+/** aggregate var_pop on columns */
+export type Contacts_Var_Pop_Fields = {
+  __typename?: 'contacts_var_pop_fields';
+  /** ID of the user who created this contact record */
+  created_by_user_id?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate var_samp on columns */
+export type Contacts_Var_Samp_Fields = {
+  __typename?: 'contacts_var_samp_fields';
+  /** ID of the user who created this contact record */
+  created_by_user_id?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate variance on columns */
+export type Contacts_Variance_Fields = {
+  __typename?: 'contacts_variance_fields';
+  /** ID of the user who created this contact record */
+  created_by_user_id?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+};
+
+/** Table to link contacts to moves */
+export type Contactstomoves = {
+  __typename?: 'contactstomoves';
+  /** An object relationship */
+  contact: Contacts;
+  contact_id: Scalars['bigint']['output'];
+  contact_notes?: Maybe<Scalars['String']['output']>;
+  /** Type of contact: pickup | delivery | pickup_confirmation | delivery_confirmation | consumer */
+  contact_type: Scalars['String']['output'];
+  created_at: Scalars['timestamptz']['output'];
+  id: Scalars['bigint']['output'];
+  is_primary: Scalars['Boolean']['output'];
+  /** An object relationship */
+  move: Moves;
+  move_id: Scalars['bigint']['output'];
+};
+
+/** aggregated selection of "contactstomoves" */
+export type Contactstomoves_Aggregate = {
+  __typename?: 'contactstomoves_aggregate';
+  aggregate?: Maybe<Contactstomoves_Aggregate_Fields>;
+  nodes: Array<Contactstomoves>;
+};
+
+/** aggregate fields of "contactstomoves" */
+export type Contactstomoves_Aggregate_Fields = {
+  __typename?: 'contactstomoves_aggregate_fields';
+  avg?: Maybe<Contactstomoves_Avg_Fields>;
+  count: Scalars['Int']['output'];
+  max?: Maybe<Contactstomoves_Max_Fields>;
+  min?: Maybe<Contactstomoves_Min_Fields>;
+  stddev?: Maybe<Contactstomoves_Stddev_Fields>;
+  stddev_pop?: Maybe<Contactstomoves_Stddev_Pop_Fields>;
+  stddev_samp?: Maybe<Contactstomoves_Stddev_Samp_Fields>;
+  sum?: Maybe<Contactstomoves_Sum_Fields>;
+  var_pop?: Maybe<Contactstomoves_Var_Pop_Fields>;
+  var_samp?: Maybe<Contactstomoves_Var_Samp_Fields>;
+  variance?: Maybe<Contactstomoves_Variance_Fields>;
+};
+
+
+/** aggregate fields of "contactstomoves" */
+export type Contactstomoves_Aggregate_FieldsCountArgs = {
+  columns?: InputMaybe<Array<Contactstomoves_Select_Column>>;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** aggregate avg on columns */
+export type Contactstomoves_Avg_Fields = {
+  __typename?: 'contactstomoves_avg_fields';
+  contact_id?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+  move_id?: Maybe<Scalars['Float']['output']>;
+};
+
+/** Boolean expression to filter rows from the table "contactstomoves". All fields are combined with a logical 'AND'. */
+export type Contactstomoves_Bool_Exp = {
+  _and?: InputMaybe<Array<Contactstomoves_Bool_Exp>>;
+  _not?: InputMaybe<Contactstomoves_Bool_Exp>;
+  _or?: InputMaybe<Array<Contactstomoves_Bool_Exp>>;
+  contact?: InputMaybe<Contacts_Bool_Exp>;
+  contact_id?: InputMaybe<Bigint_Comparison_Exp>;
+  contact_notes?: InputMaybe<String_Comparison_Exp>;
+  contact_type?: InputMaybe<String_Comparison_Exp>;
+  created_at?: InputMaybe<Timestamptz_Comparison_Exp>;
+  id?: InputMaybe<Bigint_Comparison_Exp>;
+  is_primary?: InputMaybe<Boolean_Comparison_Exp>;
+  move?: InputMaybe<Moves_Bool_Exp>;
+  move_id?: InputMaybe<Bigint_Comparison_Exp>;
+};
+
+/** unique or primary key constraints on table "contactstomoves" */
+export enum Contactstomoves_Constraint {
+  /** unique or primary key constraint on columns "id" */
+  ContactstomovesPkey = 'contactstomoves_pkey'
+}
+
+/** input type for incrementing numeric columns in table "contactstomoves" */
+export type Contactstomoves_Inc_Input = {
+  contact_id?: InputMaybe<Scalars['bigint']['input']>;
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  move_id?: InputMaybe<Scalars['bigint']['input']>;
+};
+
+/** input type for inserting data into table "contactstomoves" */
+export type Contactstomoves_Insert_Input = {
+  contact?: InputMaybe<Contacts_Obj_Rel_Insert_Input>;
+  contact_id?: InputMaybe<Scalars['bigint']['input']>;
+  contact_notes?: InputMaybe<Scalars['String']['input']>;
+  /** Type of contact: pickup | delivery | pickup_confirmation | delivery_confirmation | consumer */
+  contact_type?: InputMaybe<Scalars['String']['input']>;
+  created_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  is_primary?: InputMaybe<Scalars['Boolean']['input']>;
+  move?: InputMaybe<Moves_Obj_Rel_Insert_Input>;
+  move_id?: InputMaybe<Scalars['bigint']['input']>;
+};
+
+/** aggregate max on columns */
+export type Contactstomoves_Max_Fields = {
+  __typename?: 'contactstomoves_max_fields';
+  contact_id?: Maybe<Scalars['bigint']['output']>;
+  contact_notes?: Maybe<Scalars['String']['output']>;
+  /** Type of contact: pickup | delivery | pickup_confirmation | delivery_confirmation | consumer */
+  contact_type?: Maybe<Scalars['String']['output']>;
+  created_at?: Maybe<Scalars['timestamptz']['output']>;
+  id?: Maybe<Scalars['bigint']['output']>;
+  move_id?: Maybe<Scalars['bigint']['output']>;
+};
+
+/** aggregate min on columns */
+export type Contactstomoves_Min_Fields = {
+  __typename?: 'contactstomoves_min_fields';
+  contact_id?: Maybe<Scalars['bigint']['output']>;
+  contact_notes?: Maybe<Scalars['String']['output']>;
+  /** Type of contact: pickup | delivery | pickup_confirmation | delivery_confirmation | consumer */
+  contact_type?: Maybe<Scalars['String']['output']>;
+  created_at?: Maybe<Scalars['timestamptz']['output']>;
+  id?: Maybe<Scalars['bigint']['output']>;
+  move_id?: Maybe<Scalars['bigint']['output']>;
+};
+
+/** response of any mutation on the table "contactstomoves" */
+export type Contactstomoves_Mutation_Response = {
+  __typename?: 'contactstomoves_mutation_response';
+  /** number of rows affected by the mutation */
+  affected_rows: Scalars['Int']['output'];
+  /** data from the rows affected by the mutation */
+  returning: Array<Contactstomoves>;
+};
+
+/** on_conflict condition type for table "contactstomoves" */
+export type Contactstomoves_On_Conflict = {
+  constraint: Contactstomoves_Constraint;
+  update_columns?: Array<Contactstomoves_Update_Column>;
+  where?: InputMaybe<Contactstomoves_Bool_Exp>;
+};
+
+/** Ordering options when selecting data from "contactstomoves". */
+export type Contactstomoves_Order_By = {
+  contact?: InputMaybe<Contacts_Order_By>;
+  contact_id?: InputMaybe<Order_By>;
+  contact_notes?: InputMaybe<Order_By>;
+  contact_type?: InputMaybe<Order_By>;
+  created_at?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  is_primary?: InputMaybe<Order_By>;
+  move?: InputMaybe<Moves_Order_By>;
+  move_id?: InputMaybe<Order_By>;
+};
+
+/** primary key columns input for table: contactstomoves */
+export type Contactstomoves_Pk_Columns_Input = {
+  id: Scalars['bigint']['input'];
+};
+
+/** select columns of table "contactstomoves" */
+export enum Contactstomoves_Select_Column {
+  /** column name */
+  ContactId = 'contact_id',
+  /** column name */
+  ContactNotes = 'contact_notes',
+  /** column name */
+  ContactType = 'contact_type',
+  /** column name */
+  CreatedAt = 'created_at',
+  /** column name */
+  Id = 'id',
+  /** column name */
+  IsPrimary = 'is_primary',
+  /** column name */
+  MoveId = 'move_id'
+}
+
+/** input type for updating data in table "contactstomoves" */
+export type Contactstomoves_Set_Input = {
+  contact_id?: InputMaybe<Scalars['bigint']['input']>;
+  contact_notes?: InputMaybe<Scalars['String']['input']>;
+  /** Type of contact: pickup | delivery | pickup_confirmation | delivery_confirmation | consumer */
+  contact_type?: InputMaybe<Scalars['String']['input']>;
+  created_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  is_primary?: InputMaybe<Scalars['Boolean']['input']>;
+  move_id?: InputMaybe<Scalars['bigint']['input']>;
+};
+
+/** aggregate stddev on columns */
+export type Contactstomoves_Stddev_Fields = {
+  __typename?: 'contactstomoves_stddev_fields';
+  contact_id?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+  move_id?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate stddev_pop on columns */
+export type Contactstomoves_Stddev_Pop_Fields = {
+  __typename?: 'contactstomoves_stddev_pop_fields';
+  contact_id?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+  move_id?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate stddev_samp on columns */
+export type Contactstomoves_Stddev_Samp_Fields = {
+  __typename?: 'contactstomoves_stddev_samp_fields';
+  contact_id?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+  move_id?: Maybe<Scalars['Float']['output']>;
+};
+
+/** Streaming cursor of the table "contactstomoves" */
+export type Contactstomoves_Stream_Cursor_Input = {
+  /** Stream column input with initial value */
+  initial_value: Contactstomoves_Stream_Cursor_Value_Input;
+  /** cursor ordering */
+  ordering?: InputMaybe<Cursor_Ordering>;
+};
+
+/** Initial value of the column from where the streaming should start */
+export type Contactstomoves_Stream_Cursor_Value_Input = {
+  contact_id?: InputMaybe<Scalars['bigint']['input']>;
+  contact_notes?: InputMaybe<Scalars['String']['input']>;
+  /** Type of contact: pickup | delivery | pickup_confirmation | delivery_confirmation | consumer */
+  contact_type?: InputMaybe<Scalars['String']['input']>;
+  created_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  is_primary?: InputMaybe<Scalars['Boolean']['input']>;
+  move_id?: InputMaybe<Scalars['bigint']['input']>;
+};
+
+/** aggregate sum on columns */
+export type Contactstomoves_Sum_Fields = {
+  __typename?: 'contactstomoves_sum_fields';
+  contact_id?: Maybe<Scalars['bigint']['output']>;
+  id?: Maybe<Scalars['bigint']['output']>;
+  move_id?: Maybe<Scalars['bigint']['output']>;
+};
+
+/** update columns of table "contactstomoves" */
+export enum Contactstomoves_Update_Column {
+  /** column name */
+  ContactId = 'contact_id',
+  /** column name */
+  ContactNotes = 'contact_notes',
+  /** column name */
+  ContactType = 'contact_type',
+  /** column name */
+  CreatedAt = 'created_at',
+  /** column name */
+  Id = 'id',
+  /** column name */
+  IsPrimary = 'is_primary',
+  /** column name */
+  MoveId = 'move_id'
+}
+
+export type Contactstomoves_Updates = {
+  /** increments the numeric columns with given value of the filtered values */
+  _inc?: InputMaybe<Contactstomoves_Inc_Input>;
+  /** sets the columns of the filtered rows to the given values */
+  _set?: InputMaybe<Contactstomoves_Set_Input>;
+  /** filter the rows which have to be updated */
+  where: Contactstomoves_Bool_Exp;
+};
+
+/** aggregate var_pop on columns */
+export type Contactstomoves_Var_Pop_Fields = {
+  __typename?: 'contactstomoves_var_pop_fields';
+  contact_id?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+  move_id?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate var_samp on columns */
+export type Contactstomoves_Var_Samp_Fields = {
+  __typename?: 'contactstomoves_var_samp_fields';
+  contact_id?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+  move_id?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate variance on columns */
+export type Contactstomoves_Variance_Fields = {
+  __typename?: 'contactstomoves_variance_fields';
+  contact_id?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+  move_id?: Maybe<Scalars['Float']['output']>;
 };
 
 /** Contains information about individual plans that should be coordinated. */
@@ -19940,6 +20695,294 @@ export type Customerstocertifications_Variance_Fields = {
 /** order by variance() on columns of table "customerstocertifications" */
 export type Customerstocertifications_Variance_Order_By = {
   customer_id?: InputMaybe<Order_By>;
+};
+
+/** columns and relationships of "dashboard_stats" */
+export type Dashboard_Stats = {
+  __typename?: 'dashboard_stats';
+  avg_duration_ms?: Maybe<Scalars['numeric']['output']>;
+  failed_invocations?: Maybe<Scalars['bigint']['output']>;
+  hour_bucket?: Maybe<Scalars['timestamptz']['output']>;
+  max_duration_ms?: Maybe<Scalars['Int']['output']>;
+  min_duration_ms?: Maybe<Scalars['Int']['output']>;
+  p95_duration_ms?: Maybe<Scalars['float8']['output']>;
+  source_function?: Maybe<Scalars['String']['output']>;
+  successful_invocations?: Maybe<Scalars['bigint']['output']>;
+  total_events_detected?: Maybe<Scalars['bigint']['output']>;
+  total_invocations?: Maybe<Scalars['bigint']['output']>;
+  total_jobs_run?: Maybe<Scalars['bigint']['output']>;
+  total_jobs_succeeded?: Maybe<Scalars['bigint']['output']>;
+};
+
+/** aggregated selection of "dashboard_stats" */
+export type Dashboard_Stats_Aggregate = {
+  __typename?: 'dashboard_stats_aggregate';
+  aggregate?: Maybe<Dashboard_Stats_Aggregate_Fields>;
+  nodes: Array<Dashboard_Stats>;
+};
+
+/** aggregate fields of "dashboard_stats" */
+export type Dashboard_Stats_Aggregate_Fields = {
+  __typename?: 'dashboard_stats_aggregate_fields';
+  avg?: Maybe<Dashboard_Stats_Avg_Fields>;
+  count: Scalars['Int']['output'];
+  max?: Maybe<Dashboard_Stats_Max_Fields>;
+  min?: Maybe<Dashboard_Stats_Min_Fields>;
+  stddev?: Maybe<Dashboard_Stats_Stddev_Fields>;
+  stddev_pop?: Maybe<Dashboard_Stats_Stddev_Pop_Fields>;
+  stddev_samp?: Maybe<Dashboard_Stats_Stddev_Samp_Fields>;
+  sum?: Maybe<Dashboard_Stats_Sum_Fields>;
+  var_pop?: Maybe<Dashboard_Stats_Var_Pop_Fields>;
+  var_samp?: Maybe<Dashboard_Stats_Var_Samp_Fields>;
+  variance?: Maybe<Dashboard_Stats_Variance_Fields>;
+};
+
+
+/** aggregate fields of "dashboard_stats" */
+export type Dashboard_Stats_Aggregate_FieldsCountArgs = {
+  columns?: InputMaybe<Array<Dashboard_Stats_Select_Column>>;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** aggregate avg on columns */
+export type Dashboard_Stats_Avg_Fields = {
+  __typename?: 'dashboard_stats_avg_fields';
+  avg_duration_ms?: Maybe<Scalars['Float']['output']>;
+  failed_invocations?: Maybe<Scalars['Float']['output']>;
+  max_duration_ms?: Maybe<Scalars['Float']['output']>;
+  min_duration_ms?: Maybe<Scalars['Float']['output']>;
+  p95_duration_ms?: Maybe<Scalars['Float']['output']>;
+  successful_invocations?: Maybe<Scalars['Float']['output']>;
+  total_events_detected?: Maybe<Scalars['Float']['output']>;
+  total_invocations?: Maybe<Scalars['Float']['output']>;
+  total_jobs_run?: Maybe<Scalars['Float']['output']>;
+  total_jobs_succeeded?: Maybe<Scalars['Float']['output']>;
+};
+
+/** Boolean expression to filter rows from the table "dashboard_stats". All fields are combined with a logical 'AND'. */
+export type Dashboard_Stats_Bool_Exp = {
+  _and?: InputMaybe<Array<Dashboard_Stats_Bool_Exp>>;
+  _not?: InputMaybe<Dashboard_Stats_Bool_Exp>;
+  _or?: InputMaybe<Array<Dashboard_Stats_Bool_Exp>>;
+  avg_duration_ms?: InputMaybe<Numeric_Comparison_Exp>;
+  failed_invocations?: InputMaybe<Bigint_Comparison_Exp>;
+  hour_bucket?: InputMaybe<Timestamptz_Comparison_Exp>;
+  max_duration_ms?: InputMaybe<Int_Comparison_Exp>;
+  min_duration_ms?: InputMaybe<Int_Comparison_Exp>;
+  p95_duration_ms?: InputMaybe<Float8_Comparison_Exp>;
+  source_function?: InputMaybe<String_Comparison_Exp>;
+  successful_invocations?: InputMaybe<Bigint_Comparison_Exp>;
+  total_events_detected?: InputMaybe<Bigint_Comparison_Exp>;
+  total_invocations?: InputMaybe<Bigint_Comparison_Exp>;
+  total_jobs_run?: InputMaybe<Bigint_Comparison_Exp>;
+  total_jobs_succeeded?: InputMaybe<Bigint_Comparison_Exp>;
+};
+
+/** aggregate max on columns */
+export type Dashboard_Stats_Max_Fields = {
+  __typename?: 'dashboard_stats_max_fields';
+  avg_duration_ms?: Maybe<Scalars['numeric']['output']>;
+  failed_invocations?: Maybe<Scalars['bigint']['output']>;
+  hour_bucket?: Maybe<Scalars['timestamptz']['output']>;
+  max_duration_ms?: Maybe<Scalars['Int']['output']>;
+  min_duration_ms?: Maybe<Scalars['Int']['output']>;
+  p95_duration_ms?: Maybe<Scalars['float8']['output']>;
+  source_function?: Maybe<Scalars['String']['output']>;
+  successful_invocations?: Maybe<Scalars['bigint']['output']>;
+  total_events_detected?: Maybe<Scalars['bigint']['output']>;
+  total_invocations?: Maybe<Scalars['bigint']['output']>;
+  total_jobs_run?: Maybe<Scalars['bigint']['output']>;
+  total_jobs_succeeded?: Maybe<Scalars['bigint']['output']>;
+};
+
+/** aggregate min on columns */
+export type Dashboard_Stats_Min_Fields = {
+  __typename?: 'dashboard_stats_min_fields';
+  avg_duration_ms?: Maybe<Scalars['numeric']['output']>;
+  failed_invocations?: Maybe<Scalars['bigint']['output']>;
+  hour_bucket?: Maybe<Scalars['timestamptz']['output']>;
+  max_duration_ms?: Maybe<Scalars['Int']['output']>;
+  min_duration_ms?: Maybe<Scalars['Int']['output']>;
+  p95_duration_ms?: Maybe<Scalars['float8']['output']>;
+  source_function?: Maybe<Scalars['String']['output']>;
+  successful_invocations?: Maybe<Scalars['bigint']['output']>;
+  total_events_detected?: Maybe<Scalars['bigint']['output']>;
+  total_invocations?: Maybe<Scalars['bigint']['output']>;
+  total_jobs_run?: Maybe<Scalars['bigint']['output']>;
+  total_jobs_succeeded?: Maybe<Scalars['bigint']['output']>;
+};
+
+/** Ordering options when selecting data from "dashboard_stats". */
+export type Dashboard_Stats_Order_By = {
+  avg_duration_ms?: InputMaybe<Order_By>;
+  failed_invocations?: InputMaybe<Order_By>;
+  hour_bucket?: InputMaybe<Order_By>;
+  max_duration_ms?: InputMaybe<Order_By>;
+  min_duration_ms?: InputMaybe<Order_By>;
+  p95_duration_ms?: InputMaybe<Order_By>;
+  source_function?: InputMaybe<Order_By>;
+  successful_invocations?: InputMaybe<Order_By>;
+  total_events_detected?: InputMaybe<Order_By>;
+  total_invocations?: InputMaybe<Order_By>;
+  total_jobs_run?: InputMaybe<Order_By>;
+  total_jobs_succeeded?: InputMaybe<Order_By>;
+};
+
+/** select columns of table "dashboard_stats" */
+export enum Dashboard_Stats_Select_Column {
+  /** column name */
+  AvgDurationMs = 'avg_duration_ms',
+  /** column name */
+  FailedInvocations = 'failed_invocations',
+  /** column name */
+  HourBucket = 'hour_bucket',
+  /** column name */
+  MaxDurationMs = 'max_duration_ms',
+  /** column name */
+  MinDurationMs = 'min_duration_ms',
+  /** column name */
+  P95DurationMs = 'p95_duration_ms',
+  /** column name */
+  SourceFunction = 'source_function',
+  /** column name */
+  SuccessfulInvocations = 'successful_invocations',
+  /** column name */
+  TotalEventsDetected = 'total_events_detected',
+  /** column name */
+  TotalInvocations = 'total_invocations',
+  /** column name */
+  TotalJobsRun = 'total_jobs_run',
+  /** column name */
+  TotalJobsSucceeded = 'total_jobs_succeeded'
+}
+
+/** aggregate stddev on columns */
+export type Dashboard_Stats_Stddev_Fields = {
+  __typename?: 'dashboard_stats_stddev_fields';
+  avg_duration_ms?: Maybe<Scalars['Float']['output']>;
+  failed_invocations?: Maybe<Scalars['Float']['output']>;
+  max_duration_ms?: Maybe<Scalars['Float']['output']>;
+  min_duration_ms?: Maybe<Scalars['Float']['output']>;
+  p95_duration_ms?: Maybe<Scalars['Float']['output']>;
+  successful_invocations?: Maybe<Scalars['Float']['output']>;
+  total_events_detected?: Maybe<Scalars['Float']['output']>;
+  total_invocations?: Maybe<Scalars['Float']['output']>;
+  total_jobs_run?: Maybe<Scalars['Float']['output']>;
+  total_jobs_succeeded?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate stddev_pop on columns */
+export type Dashboard_Stats_Stddev_Pop_Fields = {
+  __typename?: 'dashboard_stats_stddev_pop_fields';
+  avg_duration_ms?: Maybe<Scalars['Float']['output']>;
+  failed_invocations?: Maybe<Scalars['Float']['output']>;
+  max_duration_ms?: Maybe<Scalars['Float']['output']>;
+  min_duration_ms?: Maybe<Scalars['Float']['output']>;
+  p95_duration_ms?: Maybe<Scalars['Float']['output']>;
+  successful_invocations?: Maybe<Scalars['Float']['output']>;
+  total_events_detected?: Maybe<Scalars['Float']['output']>;
+  total_invocations?: Maybe<Scalars['Float']['output']>;
+  total_jobs_run?: Maybe<Scalars['Float']['output']>;
+  total_jobs_succeeded?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate stddev_samp on columns */
+export type Dashboard_Stats_Stddev_Samp_Fields = {
+  __typename?: 'dashboard_stats_stddev_samp_fields';
+  avg_duration_ms?: Maybe<Scalars['Float']['output']>;
+  failed_invocations?: Maybe<Scalars['Float']['output']>;
+  max_duration_ms?: Maybe<Scalars['Float']['output']>;
+  min_duration_ms?: Maybe<Scalars['Float']['output']>;
+  p95_duration_ms?: Maybe<Scalars['Float']['output']>;
+  successful_invocations?: Maybe<Scalars['Float']['output']>;
+  total_events_detected?: Maybe<Scalars['Float']['output']>;
+  total_invocations?: Maybe<Scalars['Float']['output']>;
+  total_jobs_run?: Maybe<Scalars['Float']['output']>;
+  total_jobs_succeeded?: Maybe<Scalars['Float']['output']>;
+};
+
+/** Streaming cursor of the table "dashboard_stats" */
+export type Dashboard_Stats_Stream_Cursor_Input = {
+  /** Stream column input with initial value */
+  initial_value: Dashboard_Stats_Stream_Cursor_Value_Input;
+  /** cursor ordering */
+  ordering?: InputMaybe<Cursor_Ordering>;
+};
+
+/** Initial value of the column from where the streaming should start */
+export type Dashboard_Stats_Stream_Cursor_Value_Input = {
+  avg_duration_ms?: InputMaybe<Scalars['numeric']['input']>;
+  failed_invocations?: InputMaybe<Scalars['bigint']['input']>;
+  hour_bucket?: InputMaybe<Scalars['timestamptz']['input']>;
+  max_duration_ms?: InputMaybe<Scalars['Int']['input']>;
+  min_duration_ms?: InputMaybe<Scalars['Int']['input']>;
+  p95_duration_ms?: InputMaybe<Scalars['float8']['input']>;
+  source_function?: InputMaybe<Scalars['String']['input']>;
+  successful_invocations?: InputMaybe<Scalars['bigint']['input']>;
+  total_events_detected?: InputMaybe<Scalars['bigint']['input']>;
+  total_invocations?: InputMaybe<Scalars['bigint']['input']>;
+  total_jobs_run?: InputMaybe<Scalars['bigint']['input']>;
+  total_jobs_succeeded?: InputMaybe<Scalars['bigint']['input']>;
+};
+
+/** aggregate sum on columns */
+export type Dashboard_Stats_Sum_Fields = {
+  __typename?: 'dashboard_stats_sum_fields';
+  avg_duration_ms?: Maybe<Scalars['numeric']['output']>;
+  failed_invocations?: Maybe<Scalars['bigint']['output']>;
+  max_duration_ms?: Maybe<Scalars['Int']['output']>;
+  min_duration_ms?: Maybe<Scalars['Int']['output']>;
+  p95_duration_ms?: Maybe<Scalars['float8']['output']>;
+  successful_invocations?: Maybe<Scalars['bigint']['output']>;
+  total_events_detected?: Maybe<Scalars['bigint']['output']>;
+  total_invocations?: Maybe<Scalars['bigint']['output']>;
+  total_jobs_run?: Maybe<Scalars['bigint']['output']>;
+  total_jobs_succeeded?: Maybe<Scalars['bigint']['output']>;
+};
+
+/** aggregate var_pop on columns */
+export type Dashboard_Stats_Var_Pop_Fields = {
+  __typename?: 'dashboard_stats_var_pop_fields';
+  avg_duration_ms?: Maybe<Scalars['Float']['output']>;
+  failed_invocations?: Maybe<Scalars['Float']['output']>;
+  max_duration_ms?: Maybe<Scalars['Float']['output']>;
+  min_duration_ms?: Maybe<Scalars['Float']['output']>;
+  p95_duration_ms?: Maybe<Scalars['Float']['output']>;
+  successful_invocations?: Maybe<Scalars['Float']['output']>;
+  total_events_detected?: Maybe<Scalars['Float']['output']>;
+  total_invocations?: Maybe<Scalars['Float']['output']>;
+  total_jobs_run?: Maybe<Scalars['Float']['output']>;
+  total_jobs_succeeded?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate var_samp on columns */
+export type Dashboard_Stats_Var_Samp_Fields = {
+  __typename?: 'dashboard_stats_var_samp_fields';
+  avg_duration_ms?: Maybe<Scalars['Float']['output']>;
+  failed_invocations?: Maybe<Scalars['Float']['output']>;
+  max_duration_ms?: Maybe<Scalars['Float']['output']>;
+  min_duration_ms?: Maybe<Scalars['Float']['output']>;
+  p95_duration_ms?: Maybe<Scalars['Float']['output']>;
+  successful_invocations?: Maybe<Scalars['Float']['output']>;
+  total_events_detected?: Maybe<Scalars['Float']['output']>;
+  total_invocations?: Maybe<Scalars['Float']['output']>;
+  total_jobs_run?: Maybe<Scalars['Float']['output']>;
+  total_jobs_succeeded?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate variance on columns */
+export type Dashboard_Stats_Variance_Fields = {
+  __typename?: 'dashboard_stats_variance_fields';
+  avg_duration_ms?: Maybe<Scalars['Float']['output']>;
+  failed_invocations?: Maybe<Scalars['Float']['output']>;
+  max_duration_ms?: Maybe<Scalars['Float']['output']>;
+  min_duration_ms?: Maybe<Scalars['Float']['output']>;
+  p95_duration_ms?: Maybe<Scalars['Float']['output']>;
+  successful_invocations?: Maybe<Scalars['Float']['output']>;
+  total_events_detected?: Maybe<Scalars['Float']['output']>;
+  total_invocations?: Maybe<Scalars['Float']['output']>;
+  total_jobs_run?: Maybe<Scalars['Float']['output']>;
+  total_jobs_succeeded?: Maybe<Scalars['Float']['output']>;
 };
 
 /** Boolean expression to compare columns of type "date". All fields are combined with logical 'AND'. */
@@ -26486,7 +27529,7 @@ export type Driverscheduledetails_Bool_Exp = {
 
 /** unique or primary key constraints on table "driverscheduledetails" */
 export enum Driverscheduledetails_Constraint {
-  /** unique or primary key constraint on columns "day", "block_start_time", "driver_schedule_id" */
+  /** unique or primary key constraint on columns "block_start_time", "driver_schedule_id", "day" */
   DriverscheduledetailsDriverScheduleIdDayBlockStartTiKey = 'driverscheduledetails_driver_schedule_id_day_block_start_ti_key',
   /** unique or primary key constraint on columns "id" */
   DriverscheduledetailsPkey = 'driverscheduledetails_pkey'
@@ -26889,7 +27932,7 @@ export type Driverschedules_Bool_Exp = {
 
 /** unique or primary key constraints on table "driverschedules" */
 export enum Driverschedules_Constraint {
-  /** unique or primary key constraint on columns "type", "driver_id" */
+  /** unique or primary key constraint on columns "driver_id", "type" */
   DriverschedulesDriverIdTypeKey = 'driverschedules_driver_id_type_key',
   /** unique or primary key constraint on columns "id" */
   DriverschedulesPkey = 'driverschedules_pkey'
@@ -27394,7 +28437,7 @@ export type Driverstocertifications_Bool_Exp = {
 
 /** unique or primary key constraints on table "driverstocertifications" */
 export enum Driverstocertifications_Constraint {
-  /** unique or primary key constraint on columns "effective_date", "driver_id", "certification_key" */
+  /** unique or primary key constraint on columns "driver_id", "effective_date", "certification_key" */
   DriverstocertificationsPkey = 'driverstocertifications_pkey'
 }
 
@@ -27802,7 +28845,7 @@ export type Driverstousecasesoptout_Bool_Exp = {
 
 /** unique or primary key constraints on table "driverstousecasesoptout" */
 export enum Driverstousecasesoptout_Constraint {
-  /** unique or primary key constraint on columns "usecase_key", "driver_id" */
+  /** unique or primary key constraint on columns "driver_id", "usecase_key" */
   DriverstousecasesoptoutPkey = 'driverstousecasesoptout_pkey'
 }
 
@@ -32078,9 +33121,7 @@ export type Groupable_Moves = {
   actual_pickup_mileage?: Maybe<Scalars['bigint']['output']>;
   auto_assign?: Maybe<Scalars['smallint']['output']>;
   cancel_reason?: Maybe<Scalars['String']['output']>;
-  cancel_requested_at?: Maybe<Scalars['timestamptz']['output']>;
   cancel_status?: Maybe<Scalars['String']['output']>;
-  canceled_at?: Maybe<Scalars['timestamptz']['output']>;
   chargeable?: Maybe<Scalars['Boolean']['output']>;
   class?: Maybe<Scalars['String']['output']>;
   config?: Maybe<Scalars['jsonb']['output']>;
@@ -32342,9 +33383,7 @@ export type Groupable_Moves_Bool_Exp = {
   actual_pickup_mileage?: InputMaybe<Bigint_Comparison_Exp>;
   auto_assign?: InputMaybe<Smallint_Comparison_Exp>;
   cancel_reason?: InputMaybe<String_Comparison_Exp>;
-  cancel_requested_at?: InputMaybe<Timestamptz_Comparison_Exp>;
   cancel_status?: InputMaybe<String_Comparison_Exp>;
-  canceled_at?: InputMaybe<Timestamptz_Comparison_Exp>;
   chargeable?: InputMaybe<Boolean_Comparison_Exp>;
   class?: InputMaybe<String_Comparison_Exp>;
   config?: InputMaybe<Jsonb_Comparison_Exp>;
@@ -32438,9 +33477,7 @@ export type Groupable_Moves_Insert_Input = {
   actual_pickup_mileage?: InputMaybe<Scalars['bigint']['input']>;
   auto_assign?: InputMaybe<Scalars['smallint']['input']>;
   cancel_reason?: InputMaybe<Scalars['String']['input']>;
-  cancel_requested_at?: InputMaybe<Scalars['timestamptz']['input']>;
   cancel_status?: InputMaybe<Scalars['String']['input']>;
-  canceled_at?: InputMaybe<Scalars['timestamptz']['input']>;
   chargeable?: InputMaybe<Scalars['Boolean']['input']>;
   class?: InputMaybe<Scalars['String']['input']>;
   config?: InputMaybe<Scalars['jsonb']['input']>;
@@ -32535,9 +33572,7 @@ export type Groupable_Moves_Max_Fields = {
   actual_pickup_mileage?: Maybe<Scalars['bigint']['output']>;
   auto_assign?: Maybe<Scalars['smallint']['output']>;
   cancel_reason?: Maybe<Scalars['String']['output']>;
-  cancel_requested_at?: Maybe<Scalars['timestamptz']['output']>;
   cancel_status?: Maybe<Scalars['String']['output']>;
-  canceled_at?: Maybe<Scalars['timestamptz']['output']>;
   class?: Maybe<Scalars['String']['output']>;
   consumer_at_pickup?: Maybe<Scalars['smallint']['output']>;
   consumer_name?: Maybe<Scalars['String']['output']>;
@@ -32619,9 +33654,7 @@ export type Groupable_Moves_Max_Order_By = {
   actual_pickup_mileage?: InputMaybe<Order_By>;
   auto_assign?: InputMaybe<Order_By>;
   cancel_reason?: InputMaybe<Order_By>;
-  cancel_requested_at?: InputMaybe<Order_By>;
   cancel_status?: InputMaybe<Order_By>;
-  canceled_at?: InputMaybe<Order_By>;
   class?: InputMaybe<Order_By>;
   consumer_at_pickup?: InputMaybe<Order_By>;
   consumer_name?: InputMaybe<Order_By>;
@@ -32704,9 +33737,7 @@ export type Groupable_Moves_Min_Fields = {
   actual_pickup_mileage?: Maybe<Scalars['bigint']['output']>;
   auto_assign?: Maybe<Scalars['smallint']['output']>;
   cancel_reason?: Maybe<Scalars['String']['output']>;
-  cancel_requested_at?: Maybe<Scalars['timestamptz']['output']>;
   cancel_status?: Maybe<Scalars['String']['output']>;
-  canceled_at?: Maybe<Scalars['timestamptz']['output']>;
   class?: Maybe<Scalars['String']['output']>;
   consumer_at_pickup?: Maybe<Scalars['smallint']['output']>;
   consumer_name?: Maybe<Scalars['String']['output']>;
@@ -32788,9 +33819,7 @@ export type Groupable_Moves_Min_Order_By = {
   actual_pickup_mileage?: InputMaybe<Order_By>;
   auto_assign?: InputMaybe<Order_By>;
   cancel_reason?: InputMaybe<Order_By>;
-  cancel_requested_at?: InputMaybe<Order_By>;
   cancel_status?: InputMaybe<Order_By>;
-  canceled_at?: InputMaybe<Order_By>;
   class?: InputMaybe<Order_By>;
   consumer_at_pickup?: InputMaybe<Order_By>;
   consumer_name?: InputMaybe<Order_By>;
@@ -32872,9 +33901,7 @@ export type Groupable_Moves_Order_By = {
   actual_pickup_mileage?: InputMaybe<Order_By>;
   auto_assign?: InputMaybe<Order_By>;
   cancel_reason?: InputMaybe<Order_By>;
-  cancel_requested_at?: InputMaybe<Order_By>;
   cancel_status?: InputMaybe<Order_By>;
-  canceled_at?: InputMaybe<Order_By>;
   chargeable?: InputMaybe<Order_By>;
   class?: InputMaybe<Order_By>;
   config?: InputMaybe<Order_By>;
@@ -32974,11 +34001,7 @@ export enum Groupable_Moves_Select_Column {
   /** column name */
   CancelReason = 'cancel_reason',
   /** column name */
-  CancelRequestedAt = 'cancel_requested_at',
-  /** column name */
   CancelStatus = 'cancel_status',
-  /** column name */
-  CanceledAt = 'canceled_at',
   /** column name */
   Chargeable = 'chargeable',
   /** column name */
@@ -33387,9 +34410,7 @@ export type Groupable_Moves_Stream_Cursor_Value_Input = {
   actual_pickup_mileage?: InputMaybe<Scalars['bigint']['input']>;
   auto_assign?: InputMaybe<Scalars['smallint']['input']>;
   cancel_reason?: InputMaybe<Scalars['String']['input']>;
-  cancel_requested_at?: InputMaybe<Scalars['timestamptz']['input']>;
   cancel_status?: InputMaybe<Scalars['String']['input']>;
-  canceled_at?: InputMaybe<Scalars['timestamptz']['input']>;
   chargeable?: InputMaybe<Scalars['Boolean']['input']>;
   class?: InputMaybe<Scalars['String']['input']>;
   config?: InputMaybe<Scalars['jsonb']['input']>;
@@ -34389,6 +35410,19 @@ export type Hangtags_Variance_Order_By = {
   id?: InputMaybe<Order_By>;
   move_id?: InputMaybe<Order_By>;
   workflow_id?: InputMaybe<Order_By>;
+};
+
+/** Boolean expression to compare columns of type "inet". All fields are combined with logical 'AND'. */
+export type Inet_Comparison_Exp = {
+  _eq?: InputMaybe<Scalars['inet']['input']>;
+  _gt?: InputMaybe<Scalars['inet']['input']>;
+  _gte?: InputMaybe<Scalars['inet']['input']>;
+  _in?: InputMaybe<Array<Scalars['inet']['input']>>;
+  _is_null?: InputMaybe<Scalars['Boolean']['input']>;
+  _lt?: InputMaybe<Scalars['inet']['input']>;
+  _lte?: InputMaybe<Scalars['inet']['input']>;
+  _neq?: InputMaybe<Scalars['inet']['input']>;
+  _nin?: InputMaybe<Array<Scalars['inet']['input']>>;
 };
 
 /** Table of insurance rates used in different markets. Is related to customers through their raterulegroup */
@@ -37484,7 +38518,7 @@ export type Lanes_Bool_Exp = {
 
 /** unique or primary key constraints on table "lanes" */
 export enum Lanes_Constraint {
-  /** unique or primary key constraint on columns "origin_location_id", "destination_location_id", "customer_id" */
+  /** unique or primary key constraint on columns "destination_location_id", "origin_location_id", "customer_id" */
   LanesCustomerIdOriginLocationIdDestinationLocationIdKe = 'lanes_customer_id_origin_location_id_destination_location_id_ke',
   /** unique or primary key constraint on columns "id" */
   LanesPkey = 'lanes_pkey'
@@ -39737,7 +40771,7 @@ export type Locationstocertifications_Bool_Exp = {
 
 /** unique or primary key constraints on table "locationstocertifications" */
 export enum Locationstocertifications_Constraint {
-  /** unique or primary key constraint on columns "certification_key", "location_id" */
+  /** unique or primary key constraint on columns "location_id", "certification_key" */
   LocationstocertificationsPkey = 'locationstocertifications_pkey'
 }
 
@@ -42087,6 +43121,329 @@ export type Lyftrides_Variance_Order_By = {
   ride_move_id?: InputMaybe<Order_By>;
 };
 
+/** Table for tracking manual rides that could not be called via vendor API */
+export type Manualrides = {
+  __typename?: 'manualrides';
+  id: Scalars['bigint']['output'];
+  manual_cost: Scalars['numeric']['output'];
+  notes?: Maybe<Scalars['String']['output']>;
+  receipt_urls?: Maybe<Scalars['jsonb']['output']>;
+  ride_id: Scalars['bigint']['output'];
+  status_history: Scalars['jsonb']['output'];
+  vendor_description: Scalars['String']['output'];
+};
+
+
+/** Table for tracking manual rides that could not be called via vendor API */
+export type ManualridesReceipt_UrlsArgs = {
+  path?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+/** Table for tracking manual rides that could not be called via vendor API */
+export type ManualridesStatus_HistoryArgs = {
+  path?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** aggregated selection of "manualrides" */
+export type Manualrides_Aggregate = {
+  __typename?: 'manualrides_aggregate';
+  aggregate?: Maybe<Manualrides_Aggregate_Fields>;
+  nodes: Array<Manualrides>;
+};
+
+/** aggregate fields of "manualrides" */
+export type Manualrides_Aggregate_Fields = {
+  __typename?: 'manualrides_aggregate_fields';
+  avg?: Maybe<Manualrides_Avg_Fields>;
+  count: Scalars['Int']['output'];
+  max?: Maybe<Manualrides_Max_Fields>;
+  min?: Maybe<Manualrides_Min_Fields>;
+  stddev?: Maybe<Manualrides_Stddev_Fields>;
+  stddev_pop?: Maybe<Manualrides_Stddev_Pop_Fields>;
+  stddev_samp?: Maybe<Manualrides_Stddev_Samp_Fields>;
+  sum?: Maybe<Manualrides_Sum_Fields>;
+  var_pop?: Maybe<Manualrides_Var_Pop_Fields>;
+  var_samp?: Maybe<Manualrides_Var_Samp_Fields>;
+  variance?: Maybe<Manualrides_Variance_Fields>;
+};
+
+
+/** aggregate fields of "manualrides" */
+export type Manualrides_Aggregate_FieldsCountArgs = {
+  columns?: InputMaybe<Array<Manualrides_Select_Column>>;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** append existing jsonb value of filtered columns with new jsonb value */
+export type Manualrides_Append_Input = {
+  receipt_urls?: InputMaybe<Scalars['jsonb']['input']>;
+  status_history?: InputMaybe<Scalars['jsonb']['input']>;
+};
+
+/** aggregate avg on columns */
+export type Manualrides_Avg_Fields = {
+  __typename?: 'manualrides_avg_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  manual_cost?: Maybe<Scalars['Float']['output']>;
+  ride_id?: Maybe<Scalars['Float']['output']>;
+};
+
+/** Boolean expression to filter rows from the table "manualrides". All fields are combined with a logical 'AND'. */
+export type Manualrides_Bool_Exp = {
+  _and?: InputMaybe<Array<Manualrides_Bool_Exp>>;
+  _not?: InputMaybe<Manualrides_Bool_Exp>;
+  _or?: InputMaybe<Array<Manualrides_Bool_Exp>>;
+  id?: InputMaybe<Bigint_Comparison_Exp>;
+  manual_cost?: InputMaybe<Numeric_Comparison_Exp>;
+  notes?: InputMaybe<String_Comparison_Exp>;
+  receipt_urls?: InputMaybe<Jsonb_Comparison_Exp>;
+  ride_id?: InputMaybe<Bigint_Comparison_Exp>;
+  status_history?: InputMaybe<Jsonb_Comparison_Exp>;
+  vendor_description?: InputMaybe<String_Comparison_Exp>;
+};
+
+/** unique or primary key constraints on table "manualrides" */
+export enum Manualrides_Constraint {
+  /** unique or primary key constraint on columns "id" */
+  ManualridesPkey = 'manualrides_pkey'
+}
+
+/** delete the field or element with specified path (for JSON arrays, negative integers count from the end) */
+export type Manualrides_Delete_At_Path_Input = {
+  receipt_urls?: InputMaybe<Array<Scalars['String']['input']>>;
+  status_history?: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+/** delete the array element with specified index (negative integers count from the end). throws an error if top level container is not an array */
+export type Manualrides_Delete_Elem_Input = {
+  receipt_urls?: InputMaybe<Scalars['Int']['input']>;
+  status_history?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** delete key/value pair or string element. key/value pairs are matched based on their key value */
+export type Manualrides_Delete_Key_Input = {
+  receipt_urls?: InputMaybe<Scalars['String']['input']>;
+  status_history?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** input type for incrementing numeric columns in table "manualrides" */
+export type Manualrides_Inc_Input = {
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  manual_cost?: InputMaybe<Scalars['numeric']['input']>;
+  ride_id?: InputMaybe<Scalars['bigint']['input']>;
+};
+
+/** input type for inserting data into table "manualrides" */
+export type Manualrides_Insert_Input = {
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  manual_cost?: InputMaybe<Scalars['numeric']['input']>;
+  notes?: InputMaybe<Scalars['String']['input']>;
+  receipt_urls?: InputMaybe<Scalars['jsonb']['input']>;
+  ride_id?: InputMaybe<Scalars['bigint']['input']>;
+  status_history?: InputMaybe<Scalars['jsonb']['input']>;
+  vendor_description?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** aggregate max on columns */
+export type Manualrides_Max_Fields = {
+  __typename?: 'manualrides_max_fields';
+  id?: Maybe<Scalars['bigint']['output']>;
+  manual_cost?: Maybe<Scalars['numeric']['output']>;
+  notes?: Maybe<Scalars['String']['output']>;
+  ride_id?: Maybe<Scalars['bigint']['output']>;
+  vendor_description?: Maybe<Scalars['String']['output']>;
+};
+
+/** aggregate min on columns */
+export type Manualrides_Min_Fields = {
+  __typename?: 'manualrides_min_fields';
+  id?: Maybe<Scalars['bigint']['output']>;
+  manual_cost?: Maybe<Scalars['numeric']['output']>;
+  notes?: Maybe<Scalars['String']['output']>;
+  ride_id?: Maybe<Scalars['bigint']['output']>;
+  vendor_description?: Maybe<Scalars['String']['output']>;
+};
+
+/** response of any mutation on the table "manualrides" */
+export type Manualrides_Mutation_Response = {
+  __typename?: 'manualrides_mutation_response';
+  /** number of rows affected by the mutation */
+  affected_rows: Scalars['Int']['output'];
+  /** data from the rows affected by the mutation */
+  returning: Array<Manualrides>;
+};
+
+/** on_conflict condition type for table "manualrides" */
+export type Manualrides_On_Conflict = {
+  constraint: Manualrides_Constraint;
+  update_columns?: Array<Manualrides_Update_Column>;
+  where?: InputMaybe<Manualrides_Bool_Exp>;
+};
+
+/** Ordering options when selecting data from "manualrides". */
+export type Manualrides_Order_By = {
+  id?: InputMaybe<Order_By>;
+  manual_cost?: InputMaybe<Order_By>;
+  notes?: InputMaybe<Order_By>;
+  receipt_urls?: InputMaybe<Order_By>;
+  ride_id?: InputMaybe<Order_By>;
+  status_history?: InputMaybe<Order_By>;
+  vendor_description?: InputMaybe<Order_By>;
+};
+
+/** primary key columns input for table: manualrides */
+export type Manualrides_Pk_Columns_Input = {
+  id: Scalars['bigint']['input'];
+};
+
+/** prepend existing jsonb value of filtered columns with new jsonb value */
+export type Manualrides_Prepend_Input = {
+  receipt_urls?: InputMaybe<Scalars['jsonb']['input']>;
+  status_history?: InputMaybe<Scalars['jsonb']['input']>;
+};
+
+/** select columns of table "manualrides" */
+export enum Manualrides_Select_Column {
+  /** column name */
+  Id = 'id',
+  /** column name */
+  ManualCost = 'manual_cost',
+  /** column name */
+  Notes = 'notes',
+  /** column name */
+  ReceiptUrls = 'receipt_urls',
+  /** column name */
+  RideId = 'ride_id',
+  /** column name */
+  StatusHistory = 'status_history',
+  /** column name */
+  VendorDescription = 'vendor_description'
+}
+
+/** input type for updating data in table "manualrides" */
+export type Manualrides_Set_Input = {
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  manual_cost?: InputMaybe<Scalars['numeric']['input']>;
+  notes?: InputMaybe<Scalars['String']['input']>;
+  receipt_urls?: InputMaybe<Scalars['jsonb']['input']>;
+  ride_id?: InputMaybe<Scalars['bigint']['input']>;
+  status_history?: InputMaybe<Scalars['jsonb']['input']>;
+  vendor_description?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** aggregate stddev on columns */
+export type Manualrides_Stddev_Fields = {
+  __typename?: 'manualrides_stddev_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  manual_cost?: Maybe<Scalars['Float']['output']>;
+  ride_id?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate stddev_pop on columns */
+export type Manualrides_Stddev_Pop_Fields = {
+  __typename?: 'manualrides_stddev_pop_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  manual_cost?: Maybe<Scalars['Float']['output']>;
+  ride_id?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate stddev_samp on columns */
+export type Manualrides_Stddev_Samp_Fields = {
+  __typename?: 'manualrides_stddev_samp_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  manual_cost?: Maybe<Scalars['Float']['output']>;
+  ride_id?: Maybe<Scalars['Float']['output']>;
+};
+
+/** Streaming cursor of the table "manualrides" */
+export type Manualrides_Stream_Cursor_Input = {
+  /** Stream column input with initial value */
+  initial_value: Manualrides_Stream_Cursor_Value_Input;
+  /** cursor ordering */
+  ordering?: InputMaybe<Cursor_Ordering>;
+};
+
+/** Initial value of the column from where the streaming should start */
+export type Manualrides_Stream_Cursor_Value_Input = {
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  manual_cost?: InputMaybe<Scalars['numeric']['input']>;
+  notes?: InputMaybe<Scalars['String']['input']>;
+  receipt_urls?: InputMaybe<Scalars['jsonb']['input']>;
+  ride_id?: InputMaybe<Scalars['bigint']['input']>;
+  status_history?: InputMaybe<Scalars['jsonb']['input']>;
+  vendor_description?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** aggregate sum on columns */
+export type Manualrides_Sum_Fields = {
+  __typename?: 'manualrides_sum_fields';
+  id?: Maybe<Scalars['bigint']['output']>;
+  manual_cost?: Maybe<Scalars['numeric']['output']>;
+  ride_id?: Maybe<Scalars['bigint']['output']>;
+};
+
+/** update columns of table "manualrides" */
+export enum Manualrides_Update_Column {
+  /** column name */
+  Id = 'id',
+  /** column name */
+  ManualCost = 'manual_cost',
+  /** column name */
+  Notes = 'notes',
+  /** column name */
+  ReceiptUrls = 'receipt_urls',
+  /** column name */
+  RideId = 'ride_id',
+  /** column name */
+  StatusHistory = 'status_history',
+  /** column name */
+  VendorDescription = 'vendor_description'
+}
+
+export type Manualrides_Updates = {
+  /** append existing jsonb value of filtered columns with new jsonb value */
+  _append?: InputMaybe<Manualrides_Append_Input>;
+  /** delete the field or element with specified path (for JSON arrays, negative integers count from the end) */
+  _delete_at_path?: InputMaybe<Manualrides_Delete_At_Path_Input>;
+  /** delete the array element with specified index (negative integers count from the end). throws an error if top level container is not an array */
+  _delete_elem?: InputMaybe<Manualrides_Delete_Elem_Input>;
+  /** delete key/value pair or string element. key/value pairs are matched based on their key value */
+  _delete_key?: InputMaybe<Manualrides_Delete_Key_Input>;
+  /** increments the numeric columns with given value of the filtered values */
+  _inc?: InputMaybe<Manualrides_Inc_Input>;
+  /** prepend existing jsonb value of filtered columns with new jsonb value */
+  _prepend?: InputMaybe<Manualrides_Prepend_Input>;
+  /** sets the columns of the filtered rows to the given values */
+  _set?: InputMaybe<Manualrides_Set_Input>;
+  /** filter the rows which have to be updated */
+  where: Manualrides_Bool_Exp;
+};
+
+/** aggregate var_pop on columns */
+export type Manualrides_Var_Pop_Fields = {
+  __typename?: 'manualrides_var_pop_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  manual_cost?: Maybe<Scalars['Float']['output']>;
+  ride_id?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate var_samp on columns */
+export type Manualrides_Var_Samp_Fields = {
+  __typename?: 'manualrides_var_samp_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  manual_cost?: Maybe<Scalars['Float']['output']>;
+  ride_id?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate variance on columns */
+export type Manualrides_Variance_Fields = {
+  __typename?: 'manualrides_variance_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  manual_cost?: Maybe<Scalars['Float']['output']>;
+  ride_id?: Maybe<Scalars['Float']['output']>;
+};
+
 /** Pre-aggregated hourly metrics for dashboard performance */
 export type Metrics_Hourly = {
   __typename?: 'metrics_hourly';
@@ -43645,6 +45002,7 @@ export type Moves = {
   delivery_started?: Maybe<Scalars['timestamptz']['output']>;
   delivery_stop_id?: Maybe<Scalars['String']['output']>;
   delivery_successful?: Maybe<Scalars['timestamptz']['output']>;
+  /** Tookan delivery template which overrides the default customer delivery template */
   delivery_template_override?: Maybe<Scalars['String']['output']>;
   delivery_time?: Maybe<Scalars['timestamptz']['output']>;
   /** An object relationship */
@@ -43733,6 +45091,7 @@ export type Moves = {
   pickup_started?: Maybe<Scalars['timestamptz']['output']>;
   pickup_stop_id?: Maybe<Scalars['String']['output']>;
   pickup_successful?: Maybe<Scalars['timestamptz']['output']>;
+  /** Tookan pickup template which overrides the default customer pickup template */
   pickup_template_override?: Maybe<Scalars['String']['output']>;
   pickup_time?: Maybe<Scalars['timestamptz']['output']>;
   /** An object relationship */
@@ -43759,9 +45118,17 @@ export type Moves = {
   ride?: Maybe<Lyftrides>;
   /** Config for ride algorithm selection and quality criteria */
   ride_config?: Maybe<Scalars['jsonb']['output']>;
+  /** An array relationship */
+  ride_estimates: Array<Rideestimates>;
+  /** An aggregate relationship */
+  ride_estimates_aggregate: Rideestimates_Aggregate;
   ride_type?: Maybe<Scalars['String']['output']>;
   /** An object relationship */
   ridegroup?: Maybe<Ridegroups>;
+  /** An array relationship */
+  ridehails: Array<Ridehails>;
+  /** An aggregate relationship */
+  ridehails_aggregate: Ridehails_Aggregate;
   /** An array relationship */
   scenariotomoves: Array<Scenariotomoves>;
   /** An aggregate relationship */
@@ -44056,6 +45423,46 @@ export type MovesPickup_Workflow_DataArgs = {
 /** columns and relationships of "moves" */
 export type MovesRide_ConfigArgs = {
   path?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+/** columns and relationships of "moves" */
+export type MovesRide_EstimatesArgs = {
+  distinct_on?: InputMaybe<Array<Rideestimates_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Rideestimates_Order_By>>;
+  where?: InputMaybe<Rideestimates_Bool_Exp>;
+};
+
+
+/** columns and relationships of "moves" */
+export type MovesRide_Estimates_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Rideestimates_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Rideestimates_Order_By>>;
+  where?: InputMaybe<Rideestimates_Bool_Exp>;
+};
+
+
+/** columns and relationships of "moves" */
+export type MovesRidehailsArgs = {
+  distinct_on?: InputMaybe<Array<Ridehails_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Ridehails_Order_By>>;
+  where?: InputMaybe<Ridehails_Bool_Exp>;
+};
+
+
+/** columns and relationships of "moves" */
+export type MovesRidehails_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Ridehails_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Ridehails_Order_By>>;
+  where?: InputMaybe<Ridehails_Bool_Exp>;
 };
 
 
@@ -44382,8 +45789,12 @@ export type Moves_Bool_Exp = {
   return_ride_id?: InputMaybe<Bigint_Comparison_Exp>;
   ride?: InputMaybe<Lyftrides_Bool_Exp>;
   ride_config?: InputMaybe<Jsonb_Comparison_Exp>;
+  ride_estimates?: InputMaybe<Rideestimates_Bool_Exp>;
+  ride_estimates_aggregate?: InputMaybe<Rideestimates_Aggregate_Bool_Exp>;
   ride_type?: InputMaybe<String_Comparison_Exp>;
   ridegroup?: InputMaybe<Ridegroups_Bool_Exp>;
+  ridehails?: InputMaybe<Ridehails_Bool_Exp>;
+  ridehails_aggregate?: InputMaybe<Ridehails_Aggregate_Bool_Exp>;
   scenariotomoves?: InputMaybe<Scenariotomoves_Bool_Exp>;
   scenariotomoves_aggregate?: InputMaybe<Scenariotomoves_Aggregate_Bool_Exp>;
   sequence?: InputMaybe<Bigint_Comparison_Exp>;
@@ -44537,6 +45948,7 @@ export type Moves_Insert_Input = {
   delivery_started?: InputMaybe<Scalars['timestamptz']['input']>;
   delivery_stop_id?: InputMaybe<Scalars['String']['input']>;
   delivery_successful?: InputMaybe<Scalars['timestamptz']['input']>;
+  /** Tookan delivery template which overrides the default customer delivery template */
   delivery_template_override?: InputMaybe<Scalars['String']['input']>;
   delivery_time?: InputMaybe<Scalars['timestamptz']['input']>;
   delivery_workflow?: InputMaybe<Workflows_Obj_Rel_Insert_Input>;
@@ -44590,6 +46002,7 @@ export type Moves_Insert_Input = {
   pickup_started?: InputMaybe<Scalars['timestamptz']['input']>;
   pickup_stop_id?: InputMaybe<Scalars['String']['input']>;
   pickup_successful?: InputMaybe<Scalars['timestamptz']['input']>;
+  /** Tookan pickup template which overrides the default customer pickup template */
   pickup_template_override?: InputMaybe<Scalars['String']['input']>;
   pickup_time?: InputMaybe<Scalars['timestamptz']['input']>;
   pickup_workflow?: InputMaybe<Workflows_Obj_Rel_Insert_Input>;
@@ -44610,8 +46023,10 @@ export type Moves_Insert_Input = {
   ride?: InputMaybe<Lyftrides_Obj_Rel_Insert_Input>;
   /** Config for ride algorithm selection and quality criteria */
   ride_config?: InputMaybe<Scalars['jsonb']['input']>;
+  ride_estimates?: InputMaybe<Rideestimates_Arr_Rel_Insert_Input>;
   ride_type?: InputMaybe<Scalars['String']['input']>;
   ridegroup?: InputMaybe<Ridegroups_Obj_Rel_Insert_Input>;
+  ridehails?: InputMaybe<Ridehails_Arr_Rel_Insert_Input>;
   scenariotomoves?: InputMaybe<Scenariotomoves_Arr_Rel_Insert_Input>;
   sequence?: InputMaybe<Scalars['bigint']['input']>;
   /** If true, prevents editing of move in Admin Portal */
@@ -44682,6 +46097,7 @@ export type Moves_Max_Fields = {
   delivery_started?: Maybe<Scalars['timestamptz']['output']>;
   delivery_stop_id?: Maybe<Scalars['String']['output']>;
   delivery_successful?: Maybe<Scalars['timestamptz']['output']>;
+  /** Tookan delivery template which overrides the default customer delivery template */
   delivery_template_override?: Maybe<Scalars['String']['output']>;
   delivery_time?: Maybe<Scalars['timestamptz']['output']>;
   delivery_workflow_id?: Maybe<Scalars['Int']['output']>;
@@ -44710,6 +46126,7 @@ export type Moves_Max_Fields = {
   pickup_started?: Maybe<Scalars['timestamptz']['output']>;
   pickup_stop_id?: Maybe<Scalars['String']['output']>;
   pickup_successful?: Maybe<Scalars['timestamptz']['output']>;
+  /** Tookan pickup template which overrides the default customer pickup template */
   pickup_template_override?: Maybe<Scalars['String']['output']>;
   pickup_time?: Maybe<Scalars['timestamptz']['output']>;
   pickup_workflow_id?: Maybe<Scalars['Int']['output']>;
@@ -44779,6 +46196,7 @@ export type Moves_Max_Order_By = {
   delivery_started?: InputMaybe<Order_By>;
   delivery_stop_id?: InputMaybe<Order_By>;
   delivery_successful?: InputMaybe<Order_By>;
+  /** Tookan delivery template which overrides the default customer delivery template */
   delivery_template_override?: InputMaybe<Order_By>;
   delivery_time?: InputMaybe<Order_By>;
   delivery_workflow_id?: InputMaybe<Order_By>;
@@ -44807,6 +46225,7 @@ export type Moves_Max_Order_By = {
   pickup_started?: InputMaybe<Order_By>;
   pickup_stop_id?: InputMaybe<Order_By>;
   pickup_successful?: InputMaybe<Order_By>;
+  /** Tookan pickup template which overrides the default customer pickup template */
   pickup_template_override?: InputMaybe<Order_By>;
   pickup_time?: InputMaybe<Order_By>;
   pickup_workflow_id?: InputMaybe<Order_By>;
@@ -44877,6 +46296,7 @@ export type Moves_Min_Fields = {
   delivery_started?: Maybe<Scalars['timestamptz']['output']>;
   delivery_stop_id?: Maybe<Scalars['String']['output']>;
   delivery_successful?: Maybe<Scalars['timestamptz']['output']>;
+  /** Tookan delivery template which overrides the default customer delivery template */
   delivery_template_override?: Maybe<Scalars['String']['output']>;
   delivery_time?: Maybe<Scalars['timestamptz']['output']>;
   delivery_workflow_id?: Maybe<Scalars['Int']['output']>;
@@ -44905,6 +46325,7 @@ export type Moves_Min_Fields = {
   pickup_started?: Maybe<Scalars['timestamptz']['output']>;
   pickup_stop_id?: Maybe<Scalars['String']['output']>;
   pickup_successful?: Maybe<Scalars['timestamptz']['output']>;
+  /** Tookan pickup template which overrides the default customer pickup template */
   pickup_template_override?: Maybe<Scalars['String']['output']>;
   pickup_time?: Maybe<Scalars['timestamptz']['output']>;
   pickup_workflow_id?: Maybe<Scalars['Int']['output']>;
@@ -44974,6 +46395,7 @@ export type Moves_Min_Order_By = {
   delivery_started?: InputMaybe<Order_By>;
   delivery_stop_id?: InputMaybe<Order_By>;
   delivery_successful?: InputMaybe<Order_By>;
+  /** Tookan delivery template which overrides the default customer delivery template */
   delivery_template_override?: InputMaybe<Order_By>;
   delivery_time?: InputMaybe<Order_By>;
   delivery_workflow_id?: InputMaybe<Order_By>;
@@ -45002,6 +46424,7 @@ export type Moves_Min_Order_By = {
   pickup_started?: InputMaybe<Order_By>;
   pickup_stop_id?: InputMaybe<Order_By>;
   pickup_successful?: InputMaybe<Order_By>;
+  /** Tookan pickup template which overrides the default customer pickup template */
   pickup_template_override?: InputMaybe<Order_By>;
   pickup_time?: InputMaybe<Order_By>;
   pickup_workflow_id?: InputMaybe<Order_By>;
@@ -45166,8 +46589,10 @@ export type Moves_Order_By = {
   return_ride_id?: InputMaybe<Order_By>;
   ride?: InputMaybe<Lyftrides_Order_By>;
   ride_config?: InputMaybe<Order_By>;
+  ride_estimates_aggregate?: InputMaybe<Rideestimates_Aggregate_Order_By>;
   ride_type?: InputMaybe<Order_By>;
   ridegroup?: InputMaybe<Ridegroups_Order_By>;
+  ridehails_aggregate?: InputMaybe<Ridehails_Aggregate_Order_By>;
   scenariotomoves_aggregate?: InputMaybe<Scenariotomoves_Aggregate_Order_By>;
   sequence?: InputMaybe<Order_By>;
   settled?: InputMaybe<Order_By>;
@@ -45479,6 +46904,7 @@ export type Moves_Set_Input = {
   delivery_started?: InputMaybe<Scalars['timestamptz']['input']>;
   delivery_stop_id?: InputMaybe<Scalars['String']['input']>;
   delivery_successful?: InputMaybe<Scalars['timestamptz']['input']>;
+  /** Tookan delivery template which overrides the default customer delivery template */
   delivery_template_override?: InputMaybe<Scalars['String']['input']>;
   delivery_time?: InputMaybe<Scalars['timestamptz']['input']>;
   delivery_workflow_data?: InputMaybe<Scalars['jsonb']['input']>;
@@ -45513,6 +46939,7 @@ export type Moves_Set_Input = {
   pickup_started?: InputMaybe<Scalars['timestamptz']['input']>;
   pickup_stop_id?: InputMaybe<Scalars['String']['input']>;
   pickup_successful?: InputMaybe<Scalars['timestamptz']['input']>;
+  /** Tookan pickup template which overrides the default customer pickup template */
   pickup_template_override?: InputMaybe<Scalars['String']['input']>;
   pickup_time?: InputMaybe<Scalars['timestamptz']['input']>;
   pickup_workflow_data?: InputMaybe<Scalars['jsonb']['input']>;
@@ -45821,6 +47248,7 @@ export type Moves_Stream_Cursor_Value_Input = {
   delivery_started?: InputMaybe<Scalars['timestamptz']['input']>;
   delivery_stop_id?: InputMaybe<Scalars['String']['input']>;
   delivery_successful?: InputMaybe<Scalars['timestamptz']['input']>;
+  /** Tookan delivery template which overrides the default customer delivery template */
   delivery_template_override?: InputMaybe<Scalars['String']['input']>;
   delivery_time?: InputMaybe<Scalars['timestamptz']['input']>;
   delivery_workflow_data?: InputMaybe<Scalars['jsonb']['input']>;
@@ -45855,6 +47283,7 @@ export type Moves_Stream_Cursor_Value_Input = {
   pickup_started?: InputMaybe<Scalars['timestamptz']['input']>;
   pickup_stop_id?: InputMaybe<Scalars['String']['input']>;
   pickup_successful?: InputMaybe<Scalars['timestamptz']['input']>;
+  /** Tookan pickup template which overrides the default customer pickup template */
   pickup_template_override?: InputMaybe<Scalars['String']['input']>;
   pickup_time?: InputMaybe<Scalars['timestamptz']['input']>;
   pickup_workflow_data?: InputMaybe<Scalars['jsonb']['input']>;
@@ -46534,6 +47963,14 @@ export type Mutation_Root = {
   delete_consumer_numbers?: Maybe<Consumer_Numbers_Mutation_Response>;
   /** delete single row from the table: "consumer_numbers" */
   delete_consumer_numbers_by_pk?: Maybe<Consumer_Numbers>;
+  /** delete data from the table: "contacts" */
+  delete_contacts?: Maybe<Contacts_Mutation_Response>;
+  /** delete single row from the table: "contacts" */
+  delete_contacts_by_pk?: Maybe<Contacts>;
+  /** delete data from the table: "contactstomoves" */
+  delete_contactstomoves?: Maybe<Contactstomoves_Mutation_Response>;
+  /** delete single row from the table: "contactstomoves" */
+  delete_contactstomoves_by_pk?: Maybe<Contactstomoves>;
   /** delete data from the table: "coordinatedplans" */
   delete_coordinatedplans?: Maybe<Coordinatedplans_Mutation_Response>;
   /** delete single row from the table: "coordinatedplans" */
@@ -46680,6 +48117,10 @@ export type Mutation_Root = {
   delete_lyftrides?: Maybe<Lyftrides_Mutation_Response>;
   /** delete single row from the table: "lyftrides" */
   delete_lyftrides_by_pk?: Maybe<Lyftrides>;
+  /** delete data from the table: "manualrides" */
+  delete_manualrides?: Maybe<Manualrides_Mutation_Response>;
+  /** delete single row from the table: "manualrides" */
+  delete_manualrides_by_pk?: Maybe<Manualrides>;
   /** delete data from the table: "metrics_hourly" */
   delete_metrics_hourly?: Maybe<Metrics_Hourly_Mutation_Response>;
   /** delete single row from the table: "metrics_hourly" */
@@ -46764,10 +48205,18 @@ export type Mutation_Root = {
   delete_regions?: Maybe<Regions_Mutation_Response>;
   /** delete single row from the table: "regions" */
   delete_regions_by_pk?: Maybe<Regions>;
+  /** delete data from the table: "rideestimates" */
+  delete_rideestimates?: Maybe<Rideestimates_Mutation_Response>;
+  /** delete single row from the table: "rideestimates" */
+  delete_rideestimates_by_pk?: Maybe<Rideestimates>;
   /** delete data from the table: "ridegroups" */
   delete_ridegroups?: Maybe<Ridegroups_Mutation_Response>;
   /** delete single row from the table: "ridegroups" */
   delete_ridegroups_by_pk?: Maybe<Ridegroups>;
+  /** delete data from the table: "ridehails" */
+  delete_ridehails?: Maybe<Ridehails_Mutation_Response>;
+  /** delete single row from the table: "ridehails" */
+  delete_ridehails_by_pk?: Maybe<Ridehails>;
   /** delete data from the table: "ridesharefares" */
   delete_ridesharefares?: Maybe<Ridesharefares_Mutation_Response>;
   /** delete single row from the table: "ridesharefares" */
@@ -47032,6 +48481,14 @@ export type Mutation_Root = {
   insert_consumer_numbers?: Maybe<Consumer_Numbers_Mutation_Response>;
   /** insert a single row into the table: "consumer_numbers" */
   insert_consumer_numbers_one?: Maybe<Consumer_Numbers>;
+  /** insert data into the table: "contacts" */
+  insert_contacts?: Maybe<Contacts_Mutation_Response>;
+  /** insert a single row into the table: "contacts" */
+  insert_contacts_one?: Maybe<Contacts>;
+  /** insert data into the table: "contactstomoves" */
+  insert_contactstomoves?: Maybe<Contactstomoves_Mutation_Response>;
+  /** insert a single row into the table: "contactstomoves" */
+  insert_contactstomoves_one?: Maybe<Contactstomoves>;
   /** insert data into the table: "coordinatedplans" */
   insert_coordinatedplans?: Maybe<Coordinatedplans_Mutation_Response>;
   /** insert a single row into the table: "coordinatedplans" */
@@ -47180,6 +48637,10 @@ export type Mutation_Root = {
   insert_lyftrides?: Maybe<Lyftrides_Mutation_Response>;
   /** insert a single row into the table: "lyftrides" */
   insert_lyftrides_one?: Maybe<Lyftrides>;
+  /** insert data into the table: "manualrides" */
+  insert_manualrides?: Maybe<Manualrides_Mutation_Response>;
+  /** insert a single row into the table: "manualrides" */
+  insert_manualrides_one?: Maybe<Manualrides>;
   /** insert data into the table: "metrics_hourly" */
   insert_metrics_hourly?: Maybe<Metrics_Hourly_Mutation_Response>;
   /** insert a single row into the table: "metrics_hourly" */
@@ -47264,10 +48725,18 @@ export type Mutation_Root = {
   insert_regions?: Maybe<Regions_Mutation_Response>;
   /** insert a single row into the table: "regions" */
   insert_regions_one?: Maybe<Regions>;
+  /** insert data into the table: "rideestimates" */
+  insert_rideestimates?: Maybe<Rideestimates_Mutation_Response>;
+  /** insert a single row into the table: "rideestimates" */
+  insert_rideestimates_one?: Maybe<Rideestimates>;
   /** insert data into the table: "ridegroups" */
   insert_ridegroups?: Maybe<Ridegroups_Mutation_Response>;
   /** insert a single row into the table: "ridegroups" */
   insert_ridegroups_one?: Maybe<Ridegroups>;
+  /** insert data into the table: "ridehails" */
+  insert_ridehails?: Maybe<Ridehails_Mutation_Response>;
+  /** insert a single row into the table: "ridehails" */
+  insert_ridehails_one?: Maybe<Ridehails>;
   /** insert data into the table: "ridesharefares" */
   insert_ridesharefares?: Maybe<Ridesharefares_Mutation_Response>;
   /** insert a single row into the table: "ridesharefares" */
@@ -47596,6 +49065,18 @@ export type Mutation_Root = {
   update_consumer_numbers_by_pk?: Maybe<Consumer_Numbers>;
   /** update multiples rows of table: "consumer_numbers" */
   update_consumer_numbers_many?: Maybe<Array<Maybe<Consumer_Numbers_Mutation_Response>>>;
+  /** update data of the table: "contacts" */
+  update_contacts?: Maybe<Contacts_Mutation_Response>;
+  /** update single row of the table: "contacts" */
+  update_contacts_by_pk?: Maybe<Contacts>;
+  /** update multiples rows of table: "contacts" */
+  update_contacts_many?: Maybe<Array<Maybe<Contacts_Mutation_Response>>>;
+  /** update data of the table: "contactstomoves" */
+  update_contactstomoves?: Maybe<Contactstomoves_Mutation_Response>;
+  /** update single row of the table: "contactstomoves" */
+  update_contactstomoves_by_pk?: Maybe<Contactstomoves>;
+  /** update multiples rows of table: "contactstomoves" */
+  update_contactstomoves_many?: Maybe<Array<Maybe<Contactstomoves_Mutation_Response>>>;
   /** update data of the table: "coordinatedplans" */
   update_coordinatedplans?: Maybe<Coordinatedplans_Mutation_Response>;
   /** update single row of the table: "coordinatedplans" */
@@ -47816,6 +49297,12 @@ export type Mutation_Root = {
   update_lyftrides_by_pk?: Maybe<Lyftrides>;
   /** update multiples rows of table: "lyftrides" */
   update_lyftrides_many?: Maybe<Array<Maybe<Lyftrides_Mutation_Response>>>;
+  /** update data of the table: "manualrides" */
+  update_manualrides?: Maybe<Manualrides_Mutation_Response>;
+  /** update single row of the table: "manualrides" */
+  update_manualrides_by_pk?: Maybe<Manualrides>;
+  /** update multiples rows of table: "manualrides" */
+  update_manualrides_many?: Maybe<Array<Maybe<Manualrides_Mutation_Response>>>;
   /** update data of the table: "metrics_hourly" */
   update_metrics_hourly?: Maybe<Metrics_Hourly_Mutation_Response>;
   /** update single row of the table: "metrics_hourly" */
@@ -47942,12 +49429,24 @@ export type Mutation_Root = {
   update_regions_by_pk?: Maybe<Regions>;
   /** update multiples rows of table: "regions" */
   update_regions_many?: Maybe<Array<Maybe<Regions_Mutation_Response>>>;
+  /** update data of the table: "rideestimates" */
+  update_rideestimates?: Maybe<Rideestimates_Mutation_Response>;
+  /** update single row of the table: "rideestimates" */
+  update_rideestimates_by_pk?: Maybe<Rideestimates>;
+  /** update multiples rows of table: "rideestimates" */
+  update_rideestimates_many?: Maybe<Array<Maybe<Rideestimates_Mutation_Response>>>;
   /** update data of the table: "ridegroups" */
   update_ridegroups?: Maybe<Ridegroups_Mutation_Response>;
   /** update single row of the table: "ridegroups" */
   update_ridegroups_by_pk?: Maybe<Ridegroups>;
   /** update multiples rows of table: "ridegroups" */
   update_ridegroups_many?: Maybe<Array<Maybe<Ridegroups_Mutation_Response>>>;
+  /** update data of the table: "ridehails" */
+  update_ridehails?: Maybe<Ridehails_Mutation_Response>;
+  /** update single row of the table: "ridehails" */
+  update_ridehails_by_pk?: Maybe<Ridehails>;
+  /** update multiples rows of table: "ridehails" */
+  update_ridehails_many?: Maybe<Array<Maybe<Ridehails_Mutation_Response>>>;
   /** update data of the table: "ridesharefares" */
   update_ridesharefares?: Maybe<Ridesharefares_Mutation_Response>;
   /** update single row of the table: "ridesharefares" */
@@ -48211,7 +49710,7 @@ export type Mutation_RootDelete_AlgorithmsArgs = {
 
 /** mutation root */
 export type Mutation_RootDelete_Algorithms_By_PkArgs = {
-  id: Scalars['bigint']['input'];
+  key: Scalars['String']['input'];
 };
 
 
@@ -48535,6 +50034,30 @@ export type Mutation_RootDelete_Consumer_NumbersArgs = {
 
 /** mutation root */
 export type Mutation_RootDelete_Consumer_Numbers_By_PkArgs = {
+  id: Scalars['bigint']['input'];
+};
+
+
+/** mutation root */
+export type Mutation_RootDelete_ContactsArgs = {
+  where: Contacts_Bool_Exp;
+};
+
+
+/** mutation root */
+export type Mutation_RootDelete_Contacts_By_PkArgs = {
+  id: Scalars['bigint']['input'];
+};
+
+
+/** mutation root */
+export type Mutation_RootDelete_ContactstomovesArgs = {
+  where: Contactstomoves_Bool_Exp;
+};
+
+
+/** mutation root */
+export type Mutation_RootDelete_Contactstomoves_By_PkArgs = {
   id: Scalars['bigint']['input'];
 };
 
@@ -48984,6 +50507,18 @@ export type Mutation_RootDelete_Lyftrides_By_PkArgs = {
 
 
 /** mutation root */
+export type Mutation_RootDelete_ManualridesArgs = {
+  where: Manualrides_Bool_Exp;
+};
+
+
+/** mutation root */
+export type Mutation_RootDelete_Manualrides_By_PkArgs = {
+  id: Scalars['bigint']['input'];
+};
+
+
+/** mutation root */
 export type Mutation_RootDelete_Metrics_HourlyArgs = {
   where: Metrics_Hourly_Bool_Exp;
 };
@@ -49237,6 +50772,18 @@ export type Mutation_RootDelete_Regions_By_PkArgs = {
 
 
 /** mutation root */
+export type Mutation_RootDelete_RideestimatesArgs = {
+  where: Rideestimates_Bool_Exp;
+};
+
+
+/** mutation root */
+export type Mutation_RootDelete_Rideestimates_By_PkArgs = {
+  id: Scalars['uuid']['input'];
+};
+
+
+/** mutation root */
 export type Mutation_RootDelete_RidegroupsArgs = {
   where: Ridegroups_Bool_Exp;
 };
@@ -49246,6 +50793,18 @@ export type Mutation_RootDelete_RidegroupsArgs = {
 export type Mutation_RootDelete_Ridegroups_By_PkArgs = {
   drive_move_id: Scalars['bigint']['input'];
   group_id: Scalars['uuid']['input'];
+};
+
+
+/** mutation root */
+export type Mutation_RootDelete_RidehailsArgs = {
+  where: Ridehails_Bool_Exp;
+};
+
+
+/** mutation root */
+export type Mutation_RootDelete_Ridehails_By_PkArgs = {
+  id: Scalars['bigint']['input'];
 };
 
 
@@ -50109,6 +51668,34 @@ export type Mutation_RootInsert_Consumer_Numbers_OneArgs = {
 
 
 /** mutation root */
+export type Mutation_RootInsert_ContactsArgs = {
+  objects: Array<Contacts_Insert_Input>;
+  on_conflict?: InputMaybe<Contacts_On_Conflict>;
+};
+
+
+/** mutation root */
+export type Mutation_RootInsert_Contacts_OneArgs = {
+  object: Contacts_Insert_Input;
+  on_conflict?: InputMaybe<Contacts_On_Conflict>;
+};
+
+
+/** mutation root */
+export type Mutation_RootInsert_ContactstomovesArgs = {
+  objects: Array<Contactstomoves_Insert_Input>;
+  on_conflict?: InputMaybe<Contactstomoves_On_Conflict>;
+};
+
+
+/** mutation root */
+export type Mutation_RootInsert_Contactstomoves_OneArgs = {
+  object: Contactstomoves_Insert_Input;
+  on_conflict?: InputMaybe<Contactstomoves_On_Conflict>;
+};
+
+
+/** mutation root */
 export type Mutation_RootInsert_CoordinatedplansArgs = {
   objects: Array<Coordinatedplans_Insert_Input>;
   on_conflict?: InputMaybe<Coordinatedplans_On_Conflict>;
@@ -50625,6 +52212,20 @@ export type Mutation_RootInsert_Lyftrides_OneArgs = {
 
 
 /** mutation root */
+export type Mutation_RootInsert_ManualridesArgs = {
+  objects: Array<Manualrides_Insert_Input>;
+  on_conflict?: InputMaybe<Manualrides_On_Conflict>;
+};
+
+
+/** mutation root */
+export type Mutation_RootInsert_Manualrides_OneArgs = {
+  object: Manualrides_Insert_Input;
+  on_conflict?: InputMaybe<Manualrides_On_Conflict>;
+};
+
+
+/** mutation root */
 export type Mutation_RootInsert_Metrics_HourlyArgs = {
   objects: Array<Metrics_Hourly_Insert_Input>;
   on_conflict?: InputMaybe<Metrics_Hourly_On_Conflict>;
@@ -50919,6 +52520,20 @@ export type Mutation_RootInsert_Regions_OneArgs = {
 
 
 /** mutation root */
+export type Mutation_RootInsert_RideestimatesArgs = {
+  objects: Array<Rideestimates_Insert_Input>;
+  on_conflict?: InputMaybe<Rideestimates_On_Conflict>;
+};
+
+
+/** mutation root */
+export type Mutation_RootInsert_Rideestimates_OneArgs = {
+  object: Rideestimates_Insert_Input;
+  on_conflict?: InputMaybe<Rideestimates_On_Conflict>;
+};
+
+
+/** mutation root */
 export type Mutation_RootInsert_RidegroupsArgs = {
   objects: Array<Ridegroups_Insert_Input>;
   on_conflict?: InputMaybe<Ridegroups_On_Conflict>;
@@ -50929,6 +52544,20 @@ export type Mutation_RootInsert_RidegroupsArgs = {
 export type Mutation_RootInsert_Ridegroups_OneArgs = {
   object: Ridegroups_Insert_Input;
   on_conflict?: InputMaybe<Ridegroups_On_Conflict>;
+};
+
+
+/** mutation root */
+export type Mutation_RootInsert_RidehailsArgs = {
+  objects: Array<Ridehails_Insert_Input>;
+  on_conflict?: InputMaybe<Ridehails_On_Conflict>;
+};
+
+
+/** mutation root */
+export type Mutation_RootInsert_Ridehails_OneArgs = {
+  object: Ridehails_Insert_Input;
+  on_conflict?: InputMaybe<Ridehails_On_Conflict>;
 };
 
 
@@ -51522,7 +53151,6 @@ export type Mutation_RootUpdate_AlgorithmsArgs = {
   _delete_at_path?: InputMaybe<Algorithms_Delete_At_Path_Input>;
   _delete_elem?: InputMaybe<Algorithms_Delete_Elem_Input>;
   _delete_key?: InputMaybe<Algorithms_Delete_Key_Input>;
-  _inc?: InputMaybe<Algorithms_Inc_Input>;
   _prepend?: InputMaybe<Algorithms_Prepend_Input>;
   _set?: InputMaybe<Algorithms_Set_Input>;
   where: Algorithms_Bool_Exp;
@@ -51535,7 +53163,6 @@ export type Mutation_RootUpdate_Algorithms_By_PkArgs = {
   _delete_at_path?: InputMaybe<Algorithms_Delete_At_Path_Input>;
   _delete_elem?: InputMaybe<Algorithms_Delete_Elem_Input>;
   _delete_key?: InputMaybe<Algorithms_Delete_Key_Input>;
-  _inc?: InputMaybe<Algorithms_Inc_Input>;
   _prepend?: InputMaybe<Algorithms_Prepend_Input>;
   _set?: InputMaybe<Algorithms_Set_Input>;
   pk_columns: Algorithms_Pk_Columns_Input;
@@ -52217,6 +53844,50 @@ export type Mutation_RootUpdate_Consumer_Numbers_By_PkArgs = {
 /** mutation root */
 export type Mutation_RootUpdate_Consumer_Numbers_ManyArgs = {
   updates: Array<Consumer_Numbers_Updates>;
+};
+
+
+/** mutation root */
+export type Mutation_RootUpdate_ContactsArgs = {
+  _inc?: InputMaybe<Contacts_Inc_Input>;
+  _set?: InputMaybe<Contacts_Set_Input>;
+  where: Contacts_Bool_Exp;
+};
+
+
+/** mutation root */
+export type Mutation_RootUpdate_Contacts_By_PkArgs = {
+  _inc?: InputMaybe<Contacts_Inc_Input>;
+  _set?: InputMaybe<Contacts_Set_Input>;
+  pk_columns: Contacts_Pk_Columns_Input;
+};
+
+
+/** mutation root */
+export type Mutation_RootUpdate_Contacts_ManyArgs = {
+  updates: Array<Contacts_Updates>;
+};
+
+
+/** mutation root */
+export type Mutation_RootUpdate_ContactstomovesArgs = {
+  _inc?: InputMaybe<Contactstomoves_Inc_Input>;
+  _set?: InputMaybe<Contactstomoves_Set_Input>;
+  where: Contactstomoves_Bool_Exp;
+};
+
+
+/** mutation root */
+export type Mutation_RootUpdate_Contactstomoves_By_PkArgs = {
+  _inc?: InputMaybe<Contactstomoves_Inc_Input>;
+  _set?: InputMaybe<Contactstomoves_Set_Input>;
+  pk_columns: Contactstomoves_Pk_Columns_Input;
+};
+
+
+/** mutation root */
+export type Mutation_RootUpdate_Contactstomoves_ManyArgs = {
+  updates: Array<Contactstomoves_Updates>;
 };
 
 
@@ -53115,6 +54786,38 @@ export type Mutation_RootUpdate_Lyftrides_ManyArgs = {
 
 
 /** mutation root */
+export type Mutation_RootUpdate_ManualridesArgs = {
+  _append?: InputMaybe<Manualrides_Append_Input>;
+  _delete_at_path?: InputMaybe<Manualrides_Delete_At_Path_Input>;
+  _delete_elem?: InputMaybe<Manualrides_Delete_Elem_Input>;
+  _delete_key?: InputMaybe<Manualrides_Delete_Key_Input>;
+  _inc?: InputMaybe<Manualrides_Inc_Input>;
+  _prepend?: InputMaybe<Manualrides_Prepend_Input>;
+  _set?: InputMaybe<Manualrides_Set_Input>;
+  where: Manualrides_Bool_Exp;
+};
+
+
+/** mutation root */
+export type Mutation_RootUpdate_Manualrides_By_PkArgs = {
+  _append?: InputMaybe<Manualrides_Append_Input>;
+  _delete_at_path?: InputMaybe<Manualrides_Delete_At_Path_Input>;
+  _delete_elem?: InputMaybe<Manualrides_Delete_Elem_Input>;
+  _delete_key?: InputMaybe<Manualrides_Delete_Key_Input>;
+  _inc?: InputMaybe<Manualrides_Inc_Input>;
+  _prepend?: InputMaybe<Manualrides_Prepend_Input>;
+  _set?: InputMaybe<Manualrides_Set_Input>;
+  pk_columns: Manualrides_Pk_Columns_Input;
+};
+
+
+/** mutation root */
+export type Mutation_RootUpdate_Manualrides_ManyArgs = {
+  updates: Array<Manualrides_Updates>;
+};
+
+
+/** mutation root */
 export type Mutation_RootUpdate_Metrics_HourlyArgs = {
   _append?: InputMaybe<Metrics_Hourly_Append_Input>;
   _delete_at_path?: InputMaybe<Metrics_Hourly_Delete_At_Path_Input>;
@@ -53647,6 +55350,38 @@ export type Mutation_RootUpdate_Regions_ManyArgs = {
 
 
 /** mutation root */
+export type Mutation_RootUpdate_RideestimatesArgs = {
+  _append?: InputMaybe<Rideestimates_Append_Input>;
+  _delete_at_path?: InputMaybe<Rideestimates_Delete_At_Path_Input>;
+  _delete_elem?: InputMaybe<Rideestimates_Delete_Elem_Input>;
+  _delete_key?: InputMaybe<Rideestimates_Delete_Key_Input>;
+  _inc?: InputMaybe<Rideestimates_Inc_Input>;
+  _prepend?: InputMaybe<Rideestimates_Prepend_Input>;
+  _set?: InputMaybe<Rideestimates_Set_Input>;
+  where: Rideestimates_Bool_Exp;
+};
+
+
+/** mutation root */
+export type Mutation_RootUpdate_Rideestimates_By_PkArgs = {
+  _append?: InputMaybe<Rideestimates_Append_Input>;
+  _delete_at_path?: InputMaybe<Rideestimates_Delete_At_Path_Input>;
+  _delete_elem?: InputMaybe<Rideestimates_Delete_Elem_Input>;
+  _delete_key?: InputMaybe<Rideestimates_Delete_Key_Input>;
+  _inc?: InputMaybe<Rideestimates_Inc_Input>;
+  _prepend?: InputMaybe<Rideestimates_Prepend_Input>;
+  _set?: InputMaybe<Rideestimates_Set_Input>;
+  pk_columns: Rideestimates_Pk_Columns_Input;
+};
+
+
+/** mutation root */
+export type Mutation_RootUpdate_Rideestimates_ManyArgs = {
+  updates: Array<Rideestimates_Updates>;
+};
+
+
+/** mutation root */
 export type Mutation_RootUpdate_RidegroupsArgs = {
   _inc?: InputMaybe<Ridegroups_Inc_Input>;
   _set?: InputMaybe<Ridegroups_Set_Input>;
@@ -53665,6 +55400,38 @@ export type Mutation_RootUpdate_Ridegroups_By_PkArgs = {
 /** mutation root */
 export type Mutation_RootUpdate_Ridegroups_ManyArgs = {
   updates: Array<Ridegroups_Updates>;
+};
+
+
+/** mutation root */
+export type Mutation_RootUpdate_RidehailsArgs = {
+  _append?: InputMaybe<Ridehails_Append_Input>;
+  _delete_at_path?: InputMaybe<Ridehails_Delete_At_Path_Input>;
+  _delete_elem?: InputMaybe<Ridehails_Delete_Elem_Input>;
+  _delete_key?: InputMaybe<Ridehails_Delete_Key_Input>;
+  _inc?: InputMaybe<Ridehails_Inc_Input>;
+  _prepend?: InputMaybe<Ridehails_Prepend_Input>;
+  _set?: InputMaybe<Ridehails_Set_Input>;
+  where: Ridehails_Bool_Exp;
+};
+
+
+/** mutation root */
+export type Mutation_RootUpdate_Ridehails_By_PkArgs = {
+  _append?: InputMaybe<Ridehails_Append_Input>;
+  _delete_at_path?: InputMaybe<Ridehails_Delete_At_Path_Input>;
+  _delete_elem?: InputMaybe<Ridehails_Delete_Elem_Input>;
+  _delete_key?: InputMaybe<Ridehails_Delete_Key_Input>;
+  _inc?: InputMaybe<Ridehails_Inc_Input>;
+  _prepend?: InputMaybe<Ridehails_Prepend_Input>;
+  _set?: InputMaybe<Ridehails_Set_Input>;
+  pk_columns: Ridehails_Pk_Columns_Input;
+};
+
+
+/** mutation root */
+export type Mutation_RootUpdate_Ridehails_ManyArgs = {
+  updates: Array<Ridehails_Updates>;
 };
 
 
@@ -54483,6 +56250,19 @@ export type Mutation_RootUpdate_Workflowsettypestocertifications_By_PkArgs = {
 /** mutation root */
 export type Mutation_RootUpdate_Workflowsettypestocertifications_ManyArgs = {
   updates: Array<Workflowsettypestocertifications_Updates>;
+};
+
+/** Boolean expression to compare columns of type "name". All fields are combined with logical 'AND'. */
+export type Name_Comparison_Exp = {
+  _eq?: InputMaybe<Scalars['name']['input']>;
+  _gt?: InputMaybe<Scalars['name']['input']>;
+  _gte?: InputMaybe<Scalars['name']['input']>;
+  _in?: InputMaybe<Array<Scalars['name']['input']>>;
+  _is_null?: InputMaybe<Scalars['Boolean']['input']>;
+  _lt?: InputMaybe<Scalars['name']['input']>;
+  _lte?: InputMaybe<Scalars['name']['input']>;
+  _neq?: InputMaybe<Scalars['name']['input']>;
+  _nin?: InputMaybe<Array<Scalars['name']['input']>>;
 };
 
 /** The notifications table is the core system of record for any notifications shown to admins. Type can be either inform or action. Assignment fields are for action types only and will be null for the inform. */
@@ -56495,7 +58275,7 @@ export type Paycycles_Bool_Exp = {
 export enum Paycycles_Constraint {
   /** unique or primary key constraint on columns "id" */
   PaycyclesPkey = 'paycycles_pkey',
-  /** unique or primary key constraint on columns "tax_class", "end_date", "start_date" */
+  /** unique or primary key constraint on columns "start_date", "end_date", "tax_class" */
   PaycyclesStartDateEndDateTaxClassKey = 'paycycles_start_date_end_date_tax_class_key'
 }
 
@@ -57115,7 +58895,7 @@ export type Payertocustomer_Bool_Exp = {
 
 /** unique or primary key constraints on table "payertocustomer" */
 export enum Payertocustomer_Constraint {
-  /** unique or primary key constraint on columns "payer_id", "payee_id" */
+  /** unique or primary key constraint on columns "payee_id", "payer_id" */
   PayertocustomerPayerIdPayeeIdKey = 'payertocustomer_payer_id_payee_id_key',
   /** unique or primary key constraint on columns "id" */
   PayertocustomerPkey = 'payertocustomer_pkey'
@@ -61048,12 +62828,28 @@ export type Query_Root = {
   chasevehiclesassigned_aggregate: Chasevehiclesassigned_Aggregate;
   /** fetch data from the table: "chasevehiclesassigned" using primary key columns */
   chasevehiclesassigned_by_pk?: Maybe<Chasevehiclesassigned>;
+  /** fetch data from the table: "connection_info" */
+  connection_info: Array<Connection_Info>;
+  /** fetch aggregated fields from the table: "connection_info" */
+  connection_info_aggregate: Connection_Info_Aggregate;
   /** fetch data from the table: "consumer_numbers" */
   consumer_numbers: Array<Consumer_Numbers>;
   /** fetch aggregated fields from the table: "consumer_numbers" */
   consumer_numbers_aggregate: Consumer_Numbers_Aggregate;
   /** fetch data from the table: "consumer_numbers" using primary key columns */
   consumer_numbers_by_pk?: Maybe<Consumer_Numbers>;
+  /** fetch data from the table: "contacts" */
+  contacts: Array<Contacts>;
+  /** fetch aggregated fields from the table: "contacts" */
+  contacts_aggregate: Contacts_Aggregate;
+  /** fetch data from the table: "contacts" using primary key columns */
+  contacts_by_pk?: Maybe<Contacts>;
+  /** fetch data from the table: "contactstomoves" */
+  contactstomoves: Array<Contactstomoves>;
+  /** fetch aggregated fields from the table: "contactstomoves" */
+  contactstomoves_aggregate: Contactstomoves_Aggregate;
+  /** fetch data from the table: "contactstomoves" using primary key columns */
+  contactstomoves_by_pk?: Maybe<Contactstomoves>;
   /** fetch data from the table: "coordinatedplans" */
   coordinatedplans: Array<Coordinatedplans>;
   /** fetch aggregated fields from the table: "coordinatedplans" */
@@ -61078,6 +62874,10 @@ export type Query_Root = {
   customerstocertifications_aggregate: Customerstocertifications_Aggregate;
   /** fetch data from the table: "customerstocertifications" using primary key columns */
   customerstocertifications_by_pk?: Maybe<Customerstocertifications>;
+  /** fetch data from the table: "dashboard_stats" */
+  dashboard_stats: Array<Dashboard_Stats>;
+  /** fetch aggregated fields from the table: "dashboard_stats" */
+  dashboard_stats_aggregate: Dashboard_Stats_Aggregate;
   /** fetch data from the table: "dealer_viewable_admin_info" */
   dealer_viewable_admin_info: Array<Dealer_Viewable_Admin_Info>;
   /** fetch aggregated fields from the table: "dealer_viewable_admin_info" */
@@ -61294,6 +63094,12 @@ export type Query_Root = {
   lyftrides_aggregate: Lyftrides_Aggregate;
   /** fetch data from the table: "lyftrides" using primary key columns */
   lyftrides_by_pk?: Maybe<Lyftrides>;
+  /** fetch data from the table: "manualrides" */
+  manualrides: Array<Manualrides>;
+  /** fetch aggregated fields from the table: "manualrides" */
+  manualrides_aggregate: Manualrides_Aggregate;
+  /** fetch data from the table: "manualrides" using primary key columns */
+  manualrides_by_pk?: Maybe<Manualrides>;
   /** fetch data from the table: "metrics_hourly" */
   metrics_hourly: Array<Metrics_Hourly>;
   /** fetch aggregated fields from the table: "metrics_hourly" */
@@ -61436,12 +63242,24 @@ export type Query_Root = {
   regions_aggregate: Regions_Aggregate;
   /** fetch data from the table: "regions" using primary key columns */
   regions_by_pk?: Maybe<Regions>;
+  /** fetch data from the table: "rideestimates" */
+  rideestimates: Array<Rideestimates>;
+  /** fetch aggregated fields from the table: "rideestimates" */
+  rideestimates_aggregate: Rideestimates_Aggregate;
+  /** fetch data from the table: "rideestimates" using primary key columns */
+  rideestimates_by_pk?: Maybe<Rideestimates>;
   /** fetch data from the table: "ridegroups" */
   ridegroups: Array<Ridegroups>;
   /** fetch aggregated fields from the table: "ridegroups" */
   ridegroups_aggregate: Ridegroups_Aggregate;
   /** fetch data from the table: "ridegroups" using primary key columns */
   ridegroups_by_pk?: Maybe<Ridegroups>;
+  /** An array relationship */
+  ridehails: Array<Ridehails>;
+  /** An aggregate relationship */
+  ridehails_aggregate: Ridehails_Aggregate;
+  /** fetch data from the table: "ridehails" using primary key columns */
+  ridehails_by_pk?: Maybe<Ridehails>;
   /** fetch data from the table: "ridesharefares" */
   ridesharefares: Array<Ridesharefares>;
   /** fetch aggregated fields from the table: "ridesharefares" */
@@ -61760,7 +63578,7 @@ export type Query_RootAlgorithms_AggregateArgs = {
 
 
 export type Query_RootAlgorithms_By_PkArgs = {
-  id: Scalars['bigint']['input'];
+  key: Scalars['String']['input'];
 };
 
 
@@ -62380,6 +64198,24 @@ export type Query_RootChasevehiclesassigned_By_PkArgs = {
 };
 
 
+export type Query_RootConnection_InfoArgs = {
+  distinct_on?: InputMaybe<Array<Connection_Info_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Connection_Info_Order_By>>;
+  where?: InputMaybe<Connection_Info_Bool_Exp>;
+};
+
+
+export type Query_RootConnection_Info_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Connection_Info_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Connection_Info_Order_By>>;
+  where?: InputMaybe<Connection_Info_Bool_Exp>;
+};
+
+
 export type Query_RootConsumer_NumbersArgs = {
   distinct_on?: InputMaybe<Array<Consumer_Numbers_Select_Column>>;
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -62399,6 +64235,52 @@ export type Query_RootConsumer_Numbers_AggregateArgs = {
 
 
 export type Query_RootConsumer_Numbers_By_PkArgs = {
+  id: Scalars['bigint']['input'];
+};
+
+
+export type Query_RootContactsArgs = {
+  distinct_on?: InputMaybe<Array<Contacts_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Contacts_Order_By>>;
+  where?: InputMaybe<Contacts_Bool_Exp>;
+};
+
+
+export type Query_RootContacts_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Contacts_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Contacts_Order_By>>;
+  where?: InputMaybe<Contacts_Bool_Exp>;
+};
+
+
+export type Query_RootContacts_By_PkArgs = {
+  id: Scalars['bigint']['input'];
+};
+
+
+export type Query_RootContactstomovesArgs = {
+  distinct_on?: InputMaybe<Array<Contactstomoves_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Contactstomoves_Order_By>>;
+  where?: InputMaybe<Contactstomoves_Bool_Exp>;
+};
+
+
+export type Query_RootContactstomoves_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Contactstomoves_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Contactstomoves_Order_By>>;
+  where?: InputMaybe<Contactstomoves_Bool_Exp>;
+};
+
+
+export type Query_RootContactstomoves_By_PkArgs = {
   id: Scalars['bigint']['input'];
 };
 
@@ -62494,6 +64376,24 @@ export type Query_RootCustomerstocertifications_AggregateArgs = {
 export type Query_RootCustomerstocertifications_By_PkArgs = {
   certification_key: Scalars['String']['input'];
   customer_id: Scalars['bigint']['input'];
+};
+
+
+export type Query_RootDashboard_StatsArgs = {
+  distinct_on?: InputMaybe<Array<Dashboard_Stats_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Dashboard_Stats_Order_By>>;
+  where?: InputMaybe<Dashboard_Stats_Bool_Exp>;
+};
+
+
+export type Query_RootDashboard_Stats_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Dashboard_Stats_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Dashboard_Stats_Order_By>>;
+  where?: InputMaybe<Dashboard_Stats_Bool_Exp>;
 };
 
 
@@ -63345,6 +65245,29 @@ export type Query_RootLyftrides_By_PkArgs = {
 };
 
 
+export type Query_RootManualridesArgs = {
+  distinct_on?: InputMaybe<Array<Manualrides_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Manualrides_Order_By>>;
+  where?: InputMaybe<Manualrides_Bool_Exp>;
+};
+
+
+export type Query_RootManualrides_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Manualrides_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Manualrides_Order_By>>;
+  where?: InputMaybe<Manualrides_Bool_Exp>;
+};
+
+
+export type Query_RootManualrides_By_PkArgs = {
+  id: Scalars['bigint']['input'];
+};
+
+
 export type Query_RootMetrics_HourlyArgs = {
   distinct_on?: InputMaybe<Array<Metrics_Hourly_Select_Column>>;
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -63901,6 +65824,29 @@ export type Query_RootRegions_By_PkArgs = {
 };
 
 
+export type Query_RootRideestimatesArgs = {
+  distinct_on?: InputMaybe<Array<Rideestimates_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Rideestimates_Order_By>>;
+  where?: InputMaybe<Rideestimates_Bool_Exp>;
+};
+
+
+export type Query_RootRideestimates_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Rideestimates_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Rideestimates_Order_By>>;
+  where?: InputMaybe<Rideestimates_Bool_Exp>;
+};
+
+
+export type Query_RootRideestimates_By_PkArgs = {
+  id: Scalars['uuid']['input'];
+};
+
+
 export type Query_RootRidegroupsArgs = {
   distinct_on?: InputMaybe<Array<Ridegroups_Select_Column>>;
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -63922,6 +65868,29 @@ export type Query_RootRidegroups_AggregateArgs = {
 export type Query_RootRidegroups_By_PkArgs = {
   drive_move_id: Scalars['bigint']['input'];
   group_id: Scalars['uuid']['input'];
+};
+
+
+export type Query_RootRidehailsArgs = {
+  distinct_on?: InputMaybe<Array<Ridehails_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Ridehails_Order_By>>;
+  where?: InputMaybe<Ridehails_Bool_Exp>;
+};
+
+
+export type Query_RootRidehails_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Ridehails_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Ridehails_Order_By>>;
+  where?: InputMaybe<Ridehails_Bool_Exp>;
+};
+
+
+export type Query_RootRidehails_By_PkArgs = {
+  id: Scalars['bigint']['input'];
 };
 
 
@@ -66502,6 +68471,8 @@ export type Regions = {
   accounting_class_num?: Maybe<Scalars['String']['output']>;
   createdat?: Maybe<Scalars['timestamptz']['output']>;
   description?: Maybe<Scalars['String']['output']>;
+  /** Determines if this region uses daylight-savings time (coupled with timezone gives a definitive time). */
+  dst_flag?: Maybe<Scalars['Boolean']['output']>;
   email?: Maybe<Scalars['String']['output']>;
   geofence?: Maybe<Scalars['geometry']['output']>;
   id: Scalars['bigint']['output'];
@@ -66586,6 +68557,7 @@ export type Regions_Bool_Exp = {
   accounting_class_num?: InputMaybe<String_Comparison_Exp>;
   createdat?: InputMaybe<Timestamptz_Comparison_Exp>;
   description?: InputMaybe<String_Comparison_Exp>;
+  dst_flag?: InputMaybe<Boolean_Comparison_Exp>;
   email?: InputMaybe<String_Comparison_Exp>;
   geofence?: InputMaybe<Geometry_Comparison_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
@@ -66622,6 +68594,8 @@ export type Regions_Insert_Input = {
   accounting_class_num?: InputMaybe<Scalars['String']['input']>;
   createdat?: InputMaybe<Scalars['timestamptz']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
+  /** Determines if this region uses daylight-savings time (coupled with timezone gives a definitive time). */
+  dst_flag?: InputMaybe<Scalars['Boolean']['input']>;
   email?: InputMaybe<Scalars['String']['input']>;
   geofence?: InputMaybe<Scalars['geometry']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
@@ -66703,6 +68677,7 @@ export type Regions_Order_By = {
   accounting_class_num?: InputMaybe<Order_By>;
   createdat?: InputMaybe<Order_By>;
   description?: InputMaybe<Order_By>;
+  dst_flag?: InputMaybe<Order_By>;
   email?: InputMaybe<Order_By>;
   geofence?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
@@ -66730,6 +68705,8 @@ export enum Regions_Select_Column {
   /** column name */
   Description = 'description',
   /** column name */
+  DstFlag = 'dst_flag',
+  /** column name */
   Email = 'email',
   /** column name */
   Geofence = 'geofence',
@@ -66756,6 +68733,8 @@ export type Regions_Set_Input = {
   accounting_class_num?: InputMaybe<Scalars['String']['input']>;
   createdat?: InputMaybe<Scalars['timestamptz']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
+  /** Determines if this region uses daylight-savings time (coupled with timezone gives a definitive time). */
+  dst_flag?: InputMaybe<Scalars['Boolean']['input']>;
   email?: InputMaybe<Scalars['String']['input']>;
   geofence?: InputMaybe<Scalars['geometry']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
@@ -66807,6 +68786,8 @@ export type Regions_Stream_Cursor_Value_Input = {
   accounting_class_num?: InputMaybe<Scalars['String']['input']>;
   createdat?: InputMaybe<Scalars['timestamptz']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
+  /** Determines if this region uses daylight-savings time (coupled with timezone gives a definitive time). */
+  dst_flag?: InputMaybe<Scalars['Boolean']['input']>;
   email?: InputMaybe<Scalars['String']['input']>;
   geofence?: InputMaybe<Scalars['geometry']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
@@ -66837,6 +68818,8 @@ export enum Regions_Update_Column {
   Createdat = 'createdat',
   /** column name */
   Description = 'description',
+  /** column name */
+  DstFlag = 'dst_flag',
   /** column name */
   Email = 'email',
   /** column name */
@@ -66890,6 +68873,1011 @@ export type Regions_Variance_Fields = {
   id?: Maybe<Scalars['Float']['output']>;
   region_id?: Maybe<Scalars['Float']['output']>;
   team_id?: Maybe<Scalars['Float']['output']>;
+};
+
+/** Rideshare estimates for moves and ride groups with spatial data */
+export type Rideestimates = {
+  __typename?: 'rideestimates';
+  /** When this estimate was created */
+  created_at: Scalars['timestamptz']['output'];
+  /** Which user, or system created this estimate */
+  created_by: Scalars['String']['output'];
+  /** Dropoff location as PostGIS point */
+  dropoff_point?: Maybe<Scalars['geometry']['output']>;
+  /** When this estimate expires */
+  expires_at: Scalars['timestamptz']['output'];
+  /** Primary key UUID */
+  id: Scalars['uuid']['output'];
+  /** An object relationship */
+  move?: Maybe<Moves>;
+  /** Number of passengers for product selection */
+  passenger_count?: Maybe<Scalars['Int']['output']>;
+  /** Estimated time to pickup in seconds */
+  pickup_eta_seconds?: Maybe<Scalars['Int']['output']>;
+  /** Pickup location as PostGIS point */
+  pickup_point?: Maybe<Scalars['geometry']['output']>;
+  /** Maximum estimated price in dollars */
+  price_max?: Maybe<Scalars['numeric']['output']>;
+  /** Minimum estimated price in dollars */
+  price_min?: Maybe<Scalars['numeric']['output']>;
+  /** Product type (e.g., UberX, Lyft, UberXL) */
+  product_type: Scalars['String']['output'];
+  /** Rideshare provider (uber or lyft) */
+  provider: Scalars['String']['output'];
+  /** Raw API response for debugging */
+  raw_response?: Maybe<Scalars['jsonb']['output']>;
+  /** Foreign key to ride_groups table (XOR with ride_move_id) */
+  ride_group_id?: Maybe<Scalars['uuid']['output']>;
+  /** Foreign key to moves table (XOR with ride_group_id) */
+  ride_move_id?: Maybe<Scalars['bigint']['output']>;
+  /** Whether estimate came from API call or cache */
+  source: Scalars['String']['output'];
+  /** Reference to original estimate if this is cached */
+  source_estimate_id?: Maybe<Scalars['uuid']['output']>;
+  /** Surge pricing multiplier if applicable */
+  surge_multiplier?: Maybe<Scalars['numeric']['output']>;
+  /** Estimated trip distance in miles */
+  trip_distance_miles?: Maybe<Scalars['numeric']['output']>;
+  /** Estimated trip duration in seconds */
+  trip_duration_seconds?: Maybe<Scalars['Int']['output']>;
+  updated_at: Scalars['timestamptz']['output'];
+  updated_by?: Maybe<Scalars['String']['output']>;
+};
+
+
+/** Rideshare estimates for moves and ride groups with spatial data */
+export type RideestimatesRaw_ResponseArgs = {
+  path?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** aggregated selection of "rideestimates" */
+export type Rideestimates_Aggregate = {
+  __typename?: 'rideestimates_aggregate';
+  aggregate?: Maybe<Rideestimates_Aggregate_Fields>;
+  nodes: Array<Rideestimates>;
+};
+
+export type Rideestimates_Aggregate_Bool_Exp = {
+  count?: InputMaybe<Rideestimates_Aggregate_Bool_Exp_Count>;
+};
+
+export type Rideestimates_Aggregate_Bool_Exp_Count = {
+  arguments?: InputMaybe<Array<Rideestimates_Select_Column>>;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<Rideestimates_Bool_Exp>;
+  predicate: Int_Comparison_Exp;
+};
+
+/** aggregate fields of "rideestimates" */
+export type Rideestimates_Aggregate_Fields = {
+  __typename?: 'rideestimates_aggregate_fields';
+  avg?: Maybe<Rideestimates_Avg_Fields>;
+  count: Scalars['Int']['output'];
+  max?: Maybe<Rideestimates_Max_Fields>;
+  min?: Maybe<Rideestimates_Min_Fields>;
+  stddev?: Maybe<Rideestimates_Stddev_Fields>;
+  stddev_pop?: Maybe<Rideestimates_Stddev_Pop_Fields>;
+  stddev_samp?: Maybe<Rideestimates_Stddev_Samp_Fields>;
+  sum?: Maybe<Rideestimates_Sum_Fields>;
+  var_pop?: Maybe<Rideestimates_Var_Pop_Fields>;
+  var_samp?: Maybe<Rideestimates_Var_Samp_Fields>;
+  variance?: Maybe<Rideestimates_Variance_Fields>;
+};
+
+
+/** aggregate fields of "rideestimates" */
+export type Rideestimates_Aggregate_FieldsCountArgs = {
+  columns?: InputMaybe<Array<Rideestimates_Select_Column>>;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** order by aggregate values of table "rideestimates" */
+export type Rideestimates_Aggregate_Order_By = {
+  avg?: InputMaybe<Rideestimates_Avg_Order_By>;
+  count?: InputMaybe<Order_By>;
+  max?: InputMaybe<Rideestimates_Max_Order_By>;
+  min?: InputMaybe<Rideestimates_Min_Order_By>;
+  stddev?: InputMaybe<Rideestimates_Stddev_Order_By>;
+  stddev_pop?: InputMaybe<Rideestimates_Stddev_Pop_Order_By>;
+  stddev_samp?: InputMaybe<Rideestimates_Stddev_Samp_Order_By>;
+  sum?: InputMaybe<Rideestimates_Sum_Order_By>;
+  var_pop?: InputMaybe<Rideestimates_Var_Pop_Order_By>;
+  var_samp?: InputMaybe<Rideestimates_Var_Samp_Order_By>;
+  variance?: InputMaybe<Rideestimates_Variance_Order_By>;
+};
+
+/** append existing jsonb value of filtered columns with new jsonb value */
+export type Rideestimates_Append_Input = {
+  /** Raw API response for debugging */
+  raw_response?: InputMaybe<Scalars['jsonb']['input']>;
+};
+
+/** input type for inserting array relation for remote table "rideestimates" */
+export type Rideestimates_Arr_Rel_Insert_Input = {
+  data: Array<Rideestimates_Insert_Input>;
+  /** upsert condition */
+  on_conflict?: InputMaybe<Rideestimates_On_Conflict>;
+};
+
+/** aggregate avg on columns */
+export type Rideestimates_Avg_Fields = {
+  __typename?: 'rideestimates_avg_fields';
+  /** Number of passengers for product selection */
+  passenger_count?: Maybe<Scalars['Float']['output']>;
+  /** Estimated time to pickup in seconds */
+  pickup_eta_seconds?: Maybe<Scalars['Float']['output']>;
+  /** Maximum estimated price in dollars */
+  price_max?: Maybe<Scalars['Float']['output']>;
+  /** Minimum estimated price in dollars */
+  price_min?: Maybe<Scalars['Float']['output']>;
+  /** Foreign key to moves table (XOR with ride_group_id) */
+  ride_move_id?: Maybe<Scalars['Float']['output']>;
+  /** Surge pricing multiplier if applicable */
+  surge_multiplier?: Maybe<Scalars['Float']['output']>;
+  /** Estimated trip distance in miles */
+  trip_distance_miles?: Maybe<Scalars['Float']['output']>;
+  /** Estimated trip duration in seconds */
+  trip_duration_seconds?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by avg() on columns of table "rideestimates" */
+export type Rideestimates_Avg_Order_By = {
+  /** Number of passengers for product selection */
+  passenger_count?: InputMaybe<Order_By>;
+  /** Estimated time to pickup in seconds */
+  pickup_eta_seconds?: InputMaybe<Order_By>;
+  /** Maximum estimated price in dollars */
+  price_max?: InputMaybe<Order_By>;
+  /** Minimum estimated price in dollars */
+  price_min?: InputMaybe<Order_By>;
+  /** Foreign key to moves table (XOR with ride_group_id) */
+  ride_move_id?: InputMaybe<Order_By>;
+  /** Surge pricing multiplier if applicable */
+  surge_multiplier?: InputMaybe<Order_By>;
+  /** Estimated trip distance in miles */
+  trip_distance_miles?: InputMaybe<Order_By>;
+  /** Estimated trip duration in seconds */
+  trip_duration_seconds?: InputMaybe<Order_By>;
+};
+
+/** Boolean expression to filter rows from the table "rideestimates". All fields are combined with a logical 'AND'. */
+export type Rideestimates_Bool_Exp = {
+  _and?: InputMaybe<Array<Rideestimates_Bool_Exp>>;
+  _not?: InputMaybe<Rideestimates_Bool_Exp>;
+  _or?: InputMaybe<Array<Rideestimates_Bool_Exp>>;
+  created_at?: InputMaybe<Timestamptz_Comparison_Exp>;
+  created_by?: InputMaybe<String_Comparison_Exp>;
+  dropoff_point?: InputMaybe<Geometry_Comparison_Exp>;
+  expires_at?: InputMaybe<Timestamptz_Comparison_Exp>;
+  id?: InputMaybe<Uuid_Comparison_Exp>;
+  move?: InputMaybe<Moves_Bool_Exp>;
+  passenger_count?: InputMaybe<Int_Comparison_Exp>;
+  pickup_eta_seconds?: InputMaybe<Int_Comparison_Exp>;
+  pickup_point?: InputMaybe<Geometry_Comparison_Exp>;
+  price_max?: InputMaybe<Numeric_Comparison_Exp>;
+  price_min?: InputMaybe<Numeric_Comparison_Exp>;
+  product_type?: InputMaybe<String_Comparison_Exp>;
+  provider?: InputMaybe<String_Comparison_Exp>;
+  raw_response?: InputMaybe<Jsonb_Comparison_Exp>;
+  ride_group_id?: InputMaybe<Uuid_Comparison_Exp>;
+  ride_move_id?: InputMaybe<Bigint_Comparison_Exp>;
+  source?: InputMaybe<String_Comparison_Exp>;
+  source_estimate_id?: InputMaybe<Uuid_Comparison_Exp>;
+  surge_multiplier?: InputMaybe<Numeric_Comparison_Exp>;
+  trip_distance_miles?: InputMaybe<Numeric_Comparison_Exp>;
+  trip_duration_seconds?: InputMaybe<Int_Comparison_Exp>;
+  updated_at?: InputMaybe<Timestamptz_Comparison_Exp>;
+  updated_by?: InputMaybe<String_Comparison_Exp>;
+};
+
+/** unique or primary key constraints on table "rideestimates" */
+export enum Rideestimates_Constraint {
+  /** unique or primary key constraint on columns "id" */
+  RideestimatesPkey = 'rideestimates_pkey'
+}
+
+/** delete the field or element with specified path (for JSON arrays, negative integers count from the end) */
+export type Rideestimates_Delete_At_Path_Input = {
+  /** Raw API response for debugging */
+  raw_response?: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+/** delete the array element with specified index (negative integers count from the end). throws an error if top level container is not an array */
+export type Rideestimates_Delete_Elem_Input = {
+  /** Raw API response for debugging */
+  raw_response?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** delete key/value pair or string element. key/value pairs are matched based on their key value */
+export type Rideestimates_Delete_Key_Input = {
+  /** Raw API response for debugging */
+  raw_response?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** input type for incrementing numeric columns in table "rideestimates" */
+export type Rideestimates_Inc_Input = {
+  /** Number of passengers for product selection */
+  passenger_count?: InputMaybe<Scalars['Int']['input']>;
+  /** Estimated time to pickup in seconds */
+  pickup_eta_seconds?: InputMaybe<Scalars['Int']['input']>;
+  /** Maximum estimated price in dollars */
+  price_max?: InputMaybe<Scalars['numeric']['input']>;
+  /** Minimum estimated price in dollars */
+  price_min?: InputMaybe<Scalars['numeric']['input']>;
+  /** Foreign key to moves table (XOR with ride_group_id) */
+  ride_move_id?: InputMaybe<Scalars['bigint']['input']>;
+  /** Surge pricing multiplier if applicable */
+  surge_multiplier?: InputMaybe<Scalars['numeric']['input']>;
+  /** Estimated trip distance in miles */
+  trip_distance_miles?: InputMaybe<Scalars['numeric']['input']>;
+  /** Estimated trip duration in seconds */
+  trip_duration_seconds?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** input type for inserting data into table "rideestimates" */
+export type Rideestimates_Insert_Input = {
+  /** When this estimate was created */
+  created_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  /** Which user, or system created this estimate */
+  created_by?: InputMaybe<Scalars['String']['input']>;
+  /** Dropoff location as PostGIS point */
+  dropoff_point?: InputMaybe<Scalars['geometry']['input']>;
+  /** When this estimate expires */
+  expires_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  /** Primary key UUID */
+  id?: InputMaybe<Scalars['uuid']['input']>;
+  move?: InputMaybe<Moves_Obj_Rel_Insert_Input>;
+  /** Number of passengers for product selection */
+  passenger_count?: InputMaybe<Scalars['Int']['input']>;
+  /** Estimated time to pickup in seconds */
+  pickup_eta_seconds?: InputMaybe<Scalars['Int']['input']>;
+  /** Pickup location as PostGIS point */
+  pickup_point?: InputMaybe<Scalars['geometry']['input']>;
+  /** Maximum estimated price in dollars */
+  price_max?: InputMaybe<Scalars['numeric']['input']>;
+  /** Minimum estimated price in dollars */
+  price_min?: InputMaybe<Scalars['numeric']['input']>;
+  /** Product type (e.g., UberX, Lyft, UberXL) */
+  product_type?: InputMaybe<Scalars['String']['input']>;
+  /** Rideshare provider (uber or lyft) */
+  provider?: InputMaybe<Scalars['String']['input']>;
+  /** Raw API response for debugging */
+  raw_response?: InputMaybe<Scalars['jsonb']['input']>;
+  /** Foreign key to ride_groups table (XOR with ride_move_id) */
+  ride_group_id?: InputMaybe<Scalars['uuid']['input']>;
+  /** Foreign key to moves table (XOR with ride_group_id) */
+  ride_move_id?: InputMaybe<Scalars['bigint']['input']>;
+  /** Whether estimate came from API call or cache */
+  source?: InputMaybe<Scalars['String']['input']>;
+  /** Reference to original estimate if this is cached */
+  source_estimate_id?: InputMaybe<Scalars['uuid']['input']>;
+  /** Surge pricing multiplier if applicable */
+  surge_multiplier?: InputMaybe<Scalars['numeric']['input']>;
+  /** Estimated trip distance in miles */
+  trip_distance_miles?: InputMaybe<Scalars['numeric']['input']>;
+  /** Estimated trip duration in seconds */
+  trip_duration_seconds?: InputMaybe<Scalars['Int']['input']>;
+  updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  updated_by?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** aggregate max on columns */
+export type Rideestimates_Max_Fields = {
+  __typename?: 'rideestimates_max_fields';
+  /** When this estimate was created */
+  created_at?: Maybe<Scalars['timestamptz']['output']>;
+  /** Which user, or system created this estimate */
+  created_by?: Maybe<Scalars['String']['output']>;
+  /** When this estimate expires */
+  expires_at?: Maybe<Scalars['timestamptz']['output']>;
+  /** Primary key UUID */
+  id?: Maybe<Scalars['uuid']['output']>;
+  /** Number of passengers for product selection */
+  passenger_count?: Maybe<Scalars['Int']['output']>;
+  /** Estimated time to pickup in seconds */
+  pickup_eta_seconds?: Maybe<Scalars['Int']['output']>;
+  /** Maximum estimated price in dollars */
+  price_max?: Maybe<Scalars['numeric']['output']>;
+  /** Minimum estimated price in dollars */
+  price_min?: Maybe<Scalars['numeric']['output']>;
+  /** Product type (e.g., UberX, Lyft, UberXL) */
+  product_type?: Maybe<Scalars['String']['output']>;
+  /** Rideshare provider (uber or lyft) */
+  provider?: Maybe<Scalars['String']['output']>;
+  /** Foreign key to ride_groups table (XOR with ride_move_id) */
+  ride_group_id?: Maybe<Scalars['uuid']['output']>;
+  /** Foreign key to moves table (XOR with ride_group_id) */
+  ride_move_id?: Maybe<Scalars['bigint']['output']>;
+  /** Whether estimate came from API call or cache */
+  source?: Maybe<Scalars['String']['output']>;
+  /** Reference to original estimate if this is cached */
+  source_estimate_id?: Maybe<Scalars['uuid']['output']>;
+  /** Surge pricing multiplier if applicable */
+  surge_multiplier?: Maybe<Scalars['numeric']['output']>;
+  /** Estimated trip distance in miles */
+  trip_distance_miles?: Maybe<Scalars['numeric']['output']>;
+  /** Estimated trip duration in seconds */
+  trip_duration_seconds?: Maybe<Scalars['Int']['output']>;
+  updated_at?: Maybe<Scalars['timestamptz']['output']>;
+  updated_by?: Maybe<Scalars['String']['output']>;
+};
+
+/** order by max() on columns of table "rideestimates" */
+export type Rideestimates_Max_Order_By = {
+  /** When this estimate was created */
+  created_at?: InputMaybe<Order_By>;
+  /** Which user, or system created this estimate */
+  created_by?: InputMaybe<Order_By>;
+  /** When this estimate expires */
+  expires_at?: InputMaybe<Order_By>;
+  /** Primary key UUID */
+  id?: InputMaybe<Order_By>;
+  /** Number of passengers for product selection */
+  passenger_count?: InputMaybe<Order_By>;
+  /** Estimated time to pickup in seconds */
+  pickup_eta_seconds?: InputMaybe<Order_By>;
+  /** Maximum estimated price in dollars */
+  price_max?: InputMaybe<Order_By>;
+  /** Minimum estimated price in dollars */
+  price_min?: InputMaybe<Order_By>;
+  /** Product type (e.g., UberX, Lyft, UberXL) */
+  product_type?: InputMaybe<Order_By>;
+  /** Rideshare provider (uber or lyft) */
+  provider?: InputMaybe<Order_By>;
+  /** Foreign key to ride_groups table (XOR with ride_move_id) */
+  ride_group_id?: InputMaybe<Order_By>;
+  /** Foreign key to moves table (XOR with ride_group_id) */
+  ride_move_id?: InputMaybe<Order_By>;
+  /** Whether estimate came from API call or cache */
+  source?: InputMaybe<Order_By>;
+  /** Reference to original estimate if this is cached */
+  source_estimate_id?: InputMaybe<Order_By>;
+  /** Surge pricing multiplier if applicable */
+  surge_multiplier?: InputMaybe<Order_By>;
+  /** Estimated trip distance in miles */
+  trip_distance_miles?: InputMaybe<Order_By>;
+  /** Estimated trip duration in seconds */
+  trip_duration_seconds?: InputMaybe<Order_By>;
+  updated_at?: InputMaybe<Order_By>;
+  updated_by?: InputMaybe<Order_By>;
+};
+
+/** aggregate min on columns */
+export type Rideestimates_Min_Fields = {
+  __typename?: 'rideestimates_min_fields';
+  /** When this estimate was created */
+  created_at?: Maybe<Scalars['timestamptz']['output']>;
+  /** Which user, or system created this estimate */
+  created_by?: Maybe<Scalars['String']['output']>;
+  /** When this estimate expires */
+  expires_at?: Maybe<Scalars['timestamptz']['output']>;
+  /** Primary key UUID */
+  id?: Maybe<Scalars['uuid']['output']>;
+  /** Number of passengers for product selection */
+  passenger_count?: Maybe<Scalars['Int']['output']>;
+  /** Estimated time to pickup in seconds */
+  pickup_eta_seconds?: Maybe<Scalars['Int']['output']>;
+  /** Maximum estimated price in dollars */
+  price_max?: Maybe<Scalars['numeric']['output']>;
+  /** Minimum estimated price in dollars */
+  price_min?: Maybe<Scalars['numeric']['output']>;
+  /** Product type (e.g., UberX, Lyft, UberXL) */
+  product_type?: Maybe<Scalars['String']['output']>;
+  /** Rideshare provider (uber or lyft) */
+  provider?: Maybe<Scalars['String']['output']>;
+  /** Foreign key to ride_groups table (XOR with ride_move_id) */
+  ride_group_id?: Maybe<Scalars['uuid']['output']>;
+  /** Foreign key to moves table (XOR with ride_group_id) */
+  ride_move_id?: Maybe<Scalars['bigint']['output']>;
+  /** Whether estimate came from API call or cache */
+  source?: Maybe<Scalars['String']['output']>;
+  /** Reference to original estimate if this is cached */
+  source_estimate_id?: Maybe<Scalars['uuid']['output']>;
+  /** Surge pricing multiplier if applicable */
+  surge_multiplier?: Maybe<Scalars['numeric']['output']>;
+  /** Estimated trip distance in miles */
+  trip_distance_miles?: Maybe<Scalars['numeric']['output']>;
+  /** Estimated trip duration in seconds */
+  trip_duration_seconds?: Maybe<Scalars['Int']['output']>;
+  updated_at?: Maybe<Scalars['timestamptz']['output']>;
+  updated_by?: Maybe<Scalars['String']['output']>;
+};
+
+/** order by min() on columns of table "rideestimates" */
+export type Rideestimates_Min_Order_By = {
+  /** When this estimate was created */
+  created_at?: InputMaybe<Order_By>;
+  /** Which user, or system created this estimate */
+  created_by?: InputMaybe<Order_By>;
+  /** When this estimate expires */
+  expires_at?: InputMaybe<Order_By>;
+  /** Primary key UUID */
+  id?: InputMaybe<Order_By>;
+  /** Number of passengers for product selection */
+  passenger_count?: InputMaybe<Order_By>;
+  /** Estimated time to pickup in seconds */
+  pickup_eta_seconds?: InputMaybe<Order_By>;
+  /** Maximum estimated price in dollars */
+  price_max?: InputMaybe<Order_By>;
+  /** Minimum estimated price in dollars */
+  price_min?: InputMaybe<Order_By>;
+  /** Product type (e.g., UberX, Lyft, UberXL) */
+  product_type?: InputMaybe<Order_By>;
+  /** Rideshare provider (uber or lyft) */
+  provider?: InputMaybe<Order_By>;
+  /** Foreign key to ride_groups table (XOR with ride_move_id) */
+  ride_group_id?: InputMaybe<Order_By>;
+  /** Foreign key to moves table (XOR with ride_group_id) */
+  ride_move_id?: InputMaybe<Order_By>;
+  /** Whether estimate came from API call or cache */
+  source?: InputMaybe<Order_By>;
+  /** Reference to original estimate if this is cached */
+  source_estimate_id?: InputMaybe<Order_By>;
+  /** Surge pricing multiplier if applicable */
+  surge_multiplier?: InputMaybe<Order_By>;
+  /** Estimated trip distance in miles */
+  trip_distance_miles?: InputMaybe<Order_By>;
+  /** Estimated trip duration in seconds */
+  trip_duration_seconds?: InputMaybe<Order_By>;
+  updated_at?: InputMaybe<Order_By>;
+  updated_by?: InputMaybe<Order_By>;
+};
+
+/** response of any mutation on the table "rideestimates" */
+export type Rideestimates_Mutation_Response = {
+  __typename?: 'rideestimates_mutation_response';
+  /** number of rows affected by the mutation */
+  affected_rows: Scalars['Int']['output'];
+  /** data from the rows affected by the mutation */
+  returning: Array<Rideestimates>;
+};
+
+/** on_conflict condition type for table "rideestimates" */
+export type Rideestimates_On_Conflict = {
+  constraint: Rideestimates_Constraint;
+  update_columns?: Array<Rideestimates_Update_Column>;
+  where?: InputMaybe<Rideestimates_Bool_Exp>;
+};
+
+/** Ordering options when selecting data from "rideestimates". */
+export type Rideestimates_Order_By = {
+  created_at?: InputMaybe<Order_By>;
+  created_by?: InputMaybe<Order_By>;
+  dropoff_point?: InputMaybe<Order_By>;
+  expires_at?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  move?: InputMaybe<Moves_Order_By>;
+  passenger_count?: InputMaybe<Order_By>;
+  pickup_eta_seconds?: InputMaybe<Order_By>;
+  pickup_point?: InputMaybe<Order_By>;
+  price_max?: InputMaybe<Order_By>;
+  price_min?: InputMaybe<Order_By>;
+  product_type?: InputMaybe<Order_By>;
+  provider?: InputMaybe<Order_By>;
+  raw_response?: InputMaybe<Order_By>;
+  ride_group_id?: InputMaybe<Order_By>;
+  ride_move_id?: InputMaybe<Order_By>;
+  source?: InputMaybe<Order_By>;
+  source_estimate_id?: InputMaybe<Order_By>;
+  surge_multiplier?: InputMaybe<Order_By>;
+  trip_distance_miles?: InputMaybe<Order_By>;
+  trip_duration_seconds?: InputMaybe<Order_By>;
+  updated_at?: InputMaybe<Order_By>;
+  updated_by?: InputMaybe<Order_By>;
+};
+
+/** primary key columns input for table: rideestimates */
+export type Rideestimates_Pk_Columns_Input = {
+  /** Primary key UUID */
+  id: Scalars['uuid']['input'];
+};
+
+/** prepend existing jsonb value of filtered columns with new jsonb value */
+export type Rideestimates_Prepend_Input = {
+  /** Raw API response for debugging */
+  raw_response?: InputMaybe<Scalars['jsonb']['input']>;
+};
+
+/** select columns of table "rideestimates" */
+export enum Rideestimates_Select_Column {
+  /** column name */
+  CreatedAt = 'created_at',
+  /** column name */
+  CreatedBy = 'created_by',
+  /** column name */
+  DropoffPoint = 'dropoff_point',
+  /** column name */
+  ExpiresAt = 'expires_at',
+  /** column name */
+  Id = 'id',
+  /** column name */
+  PassengerCount = 'passenger_count',
+  /** column name */
+  PickupEtaSeconds = 'pickup_eta_seconds',
+  /** column name */
+  PickupPoint = 'pickup_point',
+  /** column name */
+  PriceMax = 'price_max',
+  /** column name */
+  PriceMin = 'price_min',
+  /** column name */
+  ProductType = 'product_type',
+  /** column name */
+  Provider = 'provider',
+  /** column name */
+  RawResponse = 'raw_response',
+  /** column name */
+  RideGroupId = 'ride_group_id',
+  /** column name */
+  RideMoveId = 'ride_move_id',
+  /** column name */
+  Source = 'source',
+  /** column name */
+  SourceEstimateId = 'source_estimate_id',
+  /** column name */
+  SurgeMultiplier = 'surge_multiplier',
+  /** column name */
+  TripDistanceMiles = 'trip_distance_miles',
+  /** column name */
+  TripDurationSeconds = 'trip_duration_seconds',
+  /** column name */
+  UpdatedAt = 'updated_at',
+  /** column name */
+  UpdatedBy = 'updated_by'
+}
+
+/** input type for updating data in table "rideestimates" */
+export type Rideestimates_Set_Input = {
+  /** When this estimate was created */
+  created_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  /** Which user, or system created this estimate */
+  created_by?: InputMaybe<Scalars['String']['input']>;
+  /** Dropoff location as PostGIS point */
+  dropoff_point?: InputMaybe<Scalars['geometry']['input']>;
+  /** When this estimate expires */
+  expires_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  /** Primary key UUID */
+  id?: InputMaybe<Scalars['uuid']['input']>;
+  /** Number of passengers for product selection */
+  passenger_count?: InputMaybe<Scalars['Int']['input']>;
+  /** Estimated time to pickup in seconds */
+  pickup_eta_seconds?: InputMaybe<Scalars['Int']['input']>;
+  /** Pickup location as PostGIS point */
+  pickup_point?: InputMaybe<Scalars['geometry']['input']>;
+  /** Maximum estimated price in dollars */
+  price_max?: InputMaybe<Scalars['numeric']['input']>;
+  /** Minimum estimated price in dollars */
+  price_min?: InputMaybe<Scalars['numeric']['input']>;
+  /** Product type (e.g., UberX, Lyft, UberXL) */
+  product_type?: InputMaybe<Scalars['String']['input']>;
+  /** Rideshare provider (uber or lyft) */
+  provider?: InputMaybe<Scalars['String']['input']>;
+  /** Raw API response for debugging */
+  raw_response?: InputMaybe<Scalars['jsonb']['input']>;
+  /** Foreign key to ride_groups table (XOR with ride_move_id) */
+  ride_group_id?: InputMaybe<Scalars['uuid']['input']>;
+  /** Foreign key to moves table (XOR with ride_group_id) */
+  ride_move_id?: InputMaybe<Scalars['bigint']['input']>;
+  /** Whether estimate came from API call or cache */
+  source?: InputMaybe<Scalars['String']['input']>;
+  /** Reference to original estimate if this is cached */
+  source_estimate_id?: InputMaybe<Scalars['uuid']['input']>;
+  /** Surge pricing multiplier if applicable */
+  surge_multiplier?: InputMaybe<Scalars['numeric']['input']>;
+  /** Estimated trip distance in miles */
+  trip_distance_miles?: InputMaybe<Scalars['numeric']['input']>;
+  /** Estimated trip duration in seconds */
+  trip_duration_seconds?: InputMaybe<Scalars['Int']['input']>;
+  updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  updated_by?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** aggregate stddev on columns */
+export type Rideestimates_Stddev_Fields = {
+  __typename?: 'rideestimates_stddev_fields';
+  /** Number of passengers for product selection */
+  passenger_count?: Maybe<Scalars['Float']['output']>;
+  /** Estimated time to pickup in seconds */
+  pickup_eta_seconds?: Maybe<Scalars['Float']['output']>;
+  /** Maximum estimated price in dollars */
+  price_max?: Maybe<Scalars['Float']['output']>;
+  /** Minimum estimated price in dollars */
+  price_min?: Maybe<Scalars['Float']['output']>;
+  /** Foreign key to moves table (XOR with ride_group_id) */
+  ride_move_id?: Maybe<Scalars['Float']['output']>;
+  /** Surge pricing multiplier if applicable */
+  surge_multiplier?: Maybe<Scalars['Float']['output']>;
+  /** Estimated trip distance in miles */
+  trip_distance_miles?: Maybe<Scalars['Float']['output']>;
+  /** Estimated trip duration in seconds */
+  trip_duration_seconds?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by stddev() on columns of table "rideestimates" */
+export type Rideestimates_Stddev_Order_By = {
+  /** Number of passengers for product selection */
+  passenger_count?: InputMaybe<Order_By>;
+  /** Estimated time to pickup in seconds */
+  pickup_eta_seconds?: InputMaybe<Order_By>;
+  /** Maximum estimated price in dollars */
+  price_max?: InputMaybe<Order_By>;
+  /** Minimum estimated price in dollars */
+  price_min?: InputMaybe<Order_By>;
+  /** Foreign key to moves table (XOR with ride_group_id) */
+  ride_move_id?: InputMaybe<Order_By>;
+  /** Surge pricing multiplier if applicable */
+  surge_multiplier?: InputMaybe<Order_By>;
+  /** Estimated trip distance in miles */
+  trip_distance_miles?: InputMaybe<Order_By>;
+  /** Estimated trip duration in seconds */
+  trip_duration_seconds?: InputMaybe<Order_By>;
+};
+
+/** aggregate stddev_pop on columns */
+export type Rideestimates_Stddev_Pop_Fields = {
+  __typename?: 'rideestimates_stddev_pop_fields';
+  /** Number of passengers for product selection */
+  passenger_count?: Maybe<Scalars['Float']['output']>;
+  /** Estimated time to pickup in seconds */
+  pickup_eta_seconds?: Maybe<Scalars['Float']['output']>;
+  /** Maximum estimated price in dollars */
+  price_max?: Maybe<Scalars['Float']['output']>;
+  /** Minimum estimated price in dollars */
+  price_min?: Maybe<Scalars['Float']['output']>;
+  /** Foreign key to moves table (XOR with ride_group_id) */
+  ride_move_id?: Maybe<Scalars['Float']['output']>;
+  /** Surge pricing multiplier if applicable */
+  surge_multiplier?: Maybe<Scalars['Float']['output']>;
+  /** Estimated trip distance in miles */
+  trip_distance_miles?: Maybe<Scalars['Float']['output']>;
+  /** Estimated trip duration in seconds */
+  trip_duration_seconds?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by stddev_pop() on columns of table "rideestimates" */
+export type Rideestimates_Stddev_Pop_Order_By = {
+  /** Number of passengers for product selection */
+  passenger_count?: InputMaybe<Order_By>;
+  /** Estimated time to pickup in seconds */
+  pickup_eta_seconds?: InputMaybe<Order_By>;
+  /** Maximum estimated price in dollars */
+  price_max?: InputMaybe<Order_By>;
+  /** Minimum estimated price in dollars */
+  price_min?: InputMaybe<Order_By>;
+  /** Foreign key to moves table (XOR with ride_group_id) */
+  ride_move_id?: InputMaybe<Order_By>;
+  /** Surge pricing multiplier if applicable */
+  surge_multiplier?: InputMaybe<Order_By>;
+  /** Estimated trip distance in miles */
+  trip_distance_miles?: InputMaybe<Order_By>;
+  /** Estimated trip duration in seconds */
+  trip_duration_seconds?: InputMaybe<Order_By>;
+};
+
+/** aggregate stddev_samp on columns */
+export type Rideestimates_Stddev_Samp_Fields = {
+  __typename?: 'rideestimates_stddev_samp_fields';
+  /** Number of passengers for product selection */
+  passenger_count?: Maybe<Scalars['Float']['output']>;
+  /** Estimated time to pickup in seconds */
+  pickup_eta_seconds?: Maybe<Scalars['Float']['output']>;
+  /** Maximum estimated price in dollars */
+  price_max?: Maybe<Scalars['Float']['output']>;
+  /** Minimum estimated price in dollars */
+  price_min?: Maybe<Scalars['Float']['output']>;
+  /** Foreign key to moves table (XOR with ride_group_id) */
+  ride_move_id?: Maybe<Scalars['Float']['output']>;
+  /** Surge pricing multiplier if applicable */
+  surge_multiplier?: Maybe<Scalars['Float']['output']>;
+  /** Estimated trip distance in miles */
+  trip_distance_miles?: Maybe<Scalars['Float']['output']>;
+  /** Estimated trip duration in seconds */
+  trip_duration_seconds?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by stddev_samp() on columns of table "rideestimates" */
+export type Rideestimates_Stddev_Samp_Order_By = {
+  /** Number of passengers for product selection */
+  passenger_count?: InputMaybe<Order_By>;
+  /** Estimated time to pickup in seconds */
+  pickup_eta_seconds?: InputMaybe<Order_By>;
+  /** Maximum estimated price in dollars */
+  price_max?: InputMaybe<Order_By>;
+  /** Minimum estimated price in dollars */
+  price_min?: InputMaybe<Order_By>;
+  /** Foreign key to moves table (XOR with ride_group_id) */
+  ride_move_id?: InputMaybe<Order_By>;
+  /** Surge pricing multiplier if applicable */
+  surge_multiplier?: InputMaybe<Order_By>;
+  /** Estimated trip distance in miles */
+  trip_distance_miles?: InputMaybe<Order_By>;
+  /** Estimated trip duration in seconds */
+  trip_duration_seconds?: InputMaybe<Order_By>;
+};
+
+/** Streaming cursor of the table "rideestimates" */
+export type Rideestimates_Stream_Cursor_Input = {
+  /** Stream column input with initial value */
+  initial_value: Rideestimates_Stream_Cursor_Value_Input;
+  /** cursor ordering */
+  ordering?: InputMaybe<Cursor_Ordering>;
+};
+
+/** Initial value of the column from where the streaming should start */
+export type Rideestimates_Stream_Cursor_Value_Input = {
+  /** When this estimate was created */
+  created_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  /** Which user, or system created this estimate */
+  created_by?: InputMaybe<Scalars['String']['input']>;
+  /** Dropoff location as PostGIS point */
+  dropoff_point?: InputMaybe<Scalars['geometry']['input']>;
+  /** When this estimate expires */
+  expires_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  /** Primary key UUID */
+  id?: InputMaybe<Scalars['uuid']['input']>;
+  /** Number of passengers for product selection */
+  passenger_count?: InputMaybe<Scalars['Int']['input']>;
+  /** Estimated time to pickup in seconds */
+  pickup_eta_seconds?: InputMaybe<Scalars['Int']['input']>;
+  /** Pickup location as PostGIS point */
+  pickup_point?: InputMaybe<Scalars['geometry']['input']>;
+  /** Maximum estimated price in dollars */
+  price_max?: InputMaybe<Scalars['numeric']['input']>;
+  /** Minimum estimated price in dollars */
+  price_min?: InputMaybe<Scalars['numeric']['input']>;
+  /** Product type (e.g., UberX, Lyft, UberXL) */
+  product_type?: InputMaybe<Scalars['String']['input']>;
+  /** Rideshare provider (uber or lyft) */
+  provider?: InputMaybe<Scalars['String']['input']>;
+  /** Raw API response for debugging */
+  raw_response?: InputMaybe<Scalars['jsonb']['input']>;
+  /** Foreign key to ride_groups table (XOR with ride_move_id) */
+  ride_group_id?: InputMaybe<Scalars['uuid']['input']>;
+  /** Foreign key to moves table (XOR with ride_group_id) */
+  ride_move_id?: InputMaybe<Scalars['bigint']['input']>;
+  /** Whether estimate came from API call or cache */
+  source?: InputMaybe<Scalars['String']['input']>;
+  /** Reference to original estimate if this is cached */
+  source_estimate_id?: InputMaybe<Scalars['uuid']['input']>;
+  /** Surge pricing multiplier if applicable */
+  surge_multiplier?: InputMaybe<Scalars['numeric']['input']>;
+  /** Estimated trip distance in miles */
+  trip_distance_miles?: InputMaybe<Scalars['numeric']['input']>;
+  /** Estimated trip duration in seconds */
+  trip_duration_seconds?: InputMaybe<Scalars['Int']['input']>;
+  updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  updated_by?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** aggregate sum on columns */
+export type Rideestimates_Sum_Fields = {
+  __typename?: 'rideestimates_sum_fields';
+  /** Number of passengers for product selection */
+  passenger_count?: Maybe<Scalars['Int']['output']>;
+  /** Estimated time to pickup in seconds */
+  pickup_eta_seconds?: Maybe<Scalars['Int']['output']>;
+  /** Maximum estimated price in dollars */
+  price_max?: Maybe<Scalars['numeric']['output']>;
+  /** Minimum estimated price in dollars */
+  price_min?: Maybe<Scalars['numeric']['output']>;
+  /** Foreign key to moves table (XOR with ride_group_id) */
+  ride_move_id?: Maybe<Scalars['bigint']['output']>;
+  /** Surge pricing multiplier if applicable */
+  surge_multiplier?: Maybe<Scalars['numeric']['output']>;
+  /** Estimated trip distance in miles */
+  trip_distance_miles?: Maybe<Scalars['numeric']['output']>;
+  /** Estimated trip duration in seconds */
+  trip_duration_seconds?: Maybe<Scalars['Int']['output']>;
+};
+
+/** order by sum() on columns of table "rideestimates" */
+export type Rideestimates_Sum_Order_By = {
+  /** Number of passengers for product selection */
+  passenger_count?: InputMaybe<Order_By>;
+  /** Estimated time to pickup in seconds */
+  pickup_eta_seconds?: InputMaybe<Order_By>;
+  /** Maximum estimated price in dollars */
+  price_max?: InputMaybe<Order_By>;
+  /** Minimum estimated price in dollars */
+  price_min?: InputMaybe<Order_By>;
+  /** Foreign key to moves table (XOR with ride_group_id) */
+  ride_move_id?: InputMaybe<Order_By>;
+  /** Surge pricing multiplier if applicable */
+  surge_multiplier?: InputMaybe<Order_By>;
+  /** Estimated trip distance in miles */
+  trip_distance_miles?: InputMaybe<Order_By>;
+  /** Estimated trip duration in seconds */
+  trip_duration_seconds?: InputMaybe<Order_By>;
+};
+
+/** update columns of table "rideestimates" */
+export enum Rideestimates_Update_Column {
+  /** column name */
+  CreatedAt = 'created_at',
+  /** column name */
+  CreatedBy = 'created_by',
+  /** column name */
+  DropoffPoint = 'dropoff_point',
+  /** column name */
+  ExpiresAt = 'expires_at',
+  /** column name */
+  Id = 'id',
+  /** column name */
+  PassengerCount = 'passenger_count',
+  /** column name */
+  PickupEtaSeconds = 'pickup_eta_seconds',
+  /** column name */
+  PickupPoint = 'pickup_point',
+  /** column name */
+  PriceMax = 'price_max',
+  /** column name */
+  PriceMin = 'price_min',
+  /** column name */
+  ProductType = 'product_type',
+  /** column name */
+  Provider = 'provider',
+  /** column name */
+  RawResponse = 'raw_response',
+  /** column name */
+  RideGroupId = 'ride_group_id',
+  /** column name */
+  RideMoveId = 'ride_move_id',
+  /** column name */
+  Source = 'source',
+  /** column name */
+  SourceEstimateId = 'source_estimate_id',
+  /** column name */
+  SurgeMultiplier = 'surge_multiplier',
+  /** column name */
+  TripDistanceMiles = 'trip_distance_miles',
+  /** column name */
+  TripDurationSeconds = 'trip_duration_seconds',
+  /** column name */
+  UpdatedAt = 'updated_at',
+  /** column name */
+  UpdatedBy = 'updated_by'
+}
+
+export type Rideestimates_Updates = {
+  /** append existing jsonb value of filtered columns with new jsonb value */
+  _append?: InputMaybe<Rideestimates_Append_Input>;
+  /** delete the field or element with specified path (for JSON arrays, negative integers count from the end) */
+  _delete_at_path?: InputMaybe<Rideestimates_Delete_At_Path_Input>;
+  /** delete the array element with specified index (negative integers count from the end). throws an error if top level container is not an array */
+  _delete_elem?: InputMaybe<Rideestimates_Delete_Elem_Input>;
+  /** delete key/value pair or string element. key/value pairs are matched based on their key value */
+  _delete_key?: InputMaybe<Rideestimates_Delete_Key_Input>;
+  /** increments the numeric columns with given value of the filtered values */
+  _inc?: InputMaybe<Rideestimates_Inc_Input>;
+  /** prepend existing jsonb value of filtered columns with new jsonb value */
+  _prepend?: InputMaybe<Rideestimates_Prepend_Input>;
+  /** sets the columns of the filtered rows to the given values */
+  _set?: InputMaybe<Rideestimates_Set_Input>;
+  /** filter the rows which have to be updated */
+  where: Rideestimates_Bool_Exp;
+};
+
+/** aggregate var_pop on columns */
+export type Rideestimates_Var_Pop_Fields = {
+  __typename?: 'rideestimates_var_pop_fields';
+  /** Number of passengers for product selection */
+  passenger_count?: Maybe<Scalars['Float']['output']>;
+  /** Estimated time to pickup in seconds */
+  pickup_eta_seconds?: Maybe<Scalars['Float']['output']>;
+  /** Maximum estimated price in dollars */
+  price_max?: Maybe<Scalars['Float']['output']>;
+  /** Minimum estimated price in dollars */
+  price_min?: Maybe<Scalars['Float']['output']>;
+  /** Foreign key to moves table (XOR with ride_group_id) */
+  ride_move_id?: Maybe<Scalars['Float']['output']>;
+  /** Surge pricing multiplier if applicable */
+  surge_multiplier?: Maybe<Scalars['Float']['output']>;
+  /** Estimated trip distance in miles */
+  trip_distance_miles?: Maybe<Scalars['Float']['output']>;
+  /** Estimated trip duration in seconds */
+  trip_duration_seconds?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by var_pop() on columns of table "rideestimates" */
+export type Rideestimates_Var_Pop_Order_By = {
+  /** Number of passengers for product selection */
+  passenger_count?: InputMaybe<Order_By>;
+  /** Estimated time to pickup in seconds */
+  pickup_eta_seconds?: InputMaybe<Order_By>;
+  /** Maximum estimated price in dollars */
+  price_max?: InputMaybe<Order_By>;
+  /** Minimum estimated price in dollars */
+  price_min?: InputMaybe<Order_By>;
+  /** Foreign key to moves table (XOR with ride_group_id) */
+  ride_move_id?: InputMaybe<Order_By>;
+  /** Surge pricing multiplier if applicable */
+  surge_multiplier?: InputMaybe<Order_By>;
+  /** Estimated trip distance in miles */
+  trip_distance_miles?: InputMaybe<Order_By>;
+  /** Estimated trip duration in seconds */
+  trip_duration_seconds?: InputMaybe<Order_By>;
+};
+
+/** aggregate var_samp on columns */
+export type Rideestimates_Var_Samp_Fields = {
+  __typename?: 'rideestimates_var_samp_fields';
+  /** Number of passengers for product selection */
+  passenger_count?: Maybe<Scalars['Float']['output']>;
+  /** Estimated time to pickup in seconds */
+  pickup_eta_seconds?: Maybe<Scalars['Float']['output']>;
+  /** Maximum estimated price in dollars */
+  price_max?: Maybe<Scalars['Float']['output']>;
+  /** Minimum estimated price in dollars */
+  price_min?: Maybe<Scalars['Float']['output']>;
+  /** Foreign key to moves table (XOR with ride_group_id) */
+  ride_move_id?: Maybe<Scalars['Float']['output']>;
+  /** Surge pricing multiplier if applicable */
+  surge_multiplier?: Maybe<Scalars['Float']['output']>;
+  /** Estimated trip distance in miles */
+  trip_distance_miles?: Maybe<Scalars['Float']['output']>;
+  /** Estimated trip duration in seconds */
+  trip_duration_seconds?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by var_samp() on columns of table "rideestimates" */
+export type Rideestimates_Var_Samp_Order_By = {
+  /** Number of passengers for product selection */
+  passenger_count?: InputMaybe<Order_By>;
+  /** Estimated time to pickup in seconds */
+  pickup_eta_seconds?: InputMaybe<Order_By>;
+  /** Maximum estimated price in dollars */
+  price_max?: InputMaybe<Order_By>;
+  /** Minimum estimated price in dollars */
+  price_min?: InputMaybe<Order_By>;
+  /** Foreign key to moves table (XOR with ride_group_id) */
+  ride_move_id?: InputMaybe<Order_By>;
+  /** Surge pricing multiplier if applicable */
+  surge_multiplier?: InputMaybe<Order_By>;
+  /** Estimated trip distance in miles */
+  trip_distance_miles?: InputMaybe<Order_By>;
+  /** Estimated trip duration in seconds */
+  trip_duration_seconds?: InputMaybe<Order_By>;
+};
+
+/** aggregate variance on columns */
+export type Rideestimates_Variance_Fields = {
+  __typename?: 'rideestimates_variance_fields';
+  /** Number of passengers for product selection */
+  passenger_count?: Maybe<Scalars['Float']['output']>;
+  /** Estimated time to pickup in seconds */
+  pickup_eta_seconds?: Maybe<Scalars['Float']['output']>;
+  /** Maximum estimated price in dollars */
+  price_max?: Maybe<Scalars['Float']['output']>;
+  /** Minimum estimated price in dollars */
+  price_min?: Maybe<Scalars['Float']['output']>;
+  /** Foreign key to moves table (XOR with ride_group_id) */
+  ride_move_id?: Maybe<Scalars['Float']['output']>;
+  /** Surge pricing multiplier if applicable */
+  surge_multiplier?: Maybe<Scalars['Float']['output']>;
+  /** Estimated trip distance in miles */
+  trip_distance_miles?: Maybe<Scalars['Float']['output']>;
+  /** Estimated trip duration in seconds */
+  trip_duration_seconds?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by variance() on columns of table "rideestimates" */
+export type Rideestimates_Variance_Order_By = {
+  /** Number of passengers for product selection */
+  passenger_count?: InputMaybe<Order_By>;
+  /** Estimated time to pickup in seconds */
+  pickup_eta_seconds?: InputMaybe<Order_By>;
+  /** Maximum estimated price in dollars */
+  price_max?: InputMaybe<Order_By>;
+  /** Minimum estimated price in dollars */
+  price_min?: InputMaybe<Order_By>;
+  /** Foreign key to moves table (XOR with ride_group_id) */
+  ride_move_id?: InputMaybe<Order_By>;
+  /** Surge pricing multiplier if applicable */
+  surge_multiplier?: InputMaybe<Order_By>;
+  /** Estimated trip distance in miles */
+  trip_distance_miles?: InputMaybe<Order_By>;
+  /** Estimated trip duration in seconds */
+  trip_duration_seconds?: InputMaybe<Order_By>;
 };
 
 /** Link table to relate shared rides to moves. */
@@ -67001,7 +69989,7 @@ export type Ridegroups_Bool_Exp = {
 export enum Ridegroups_Constraint {
   /** unique or primary key constraint on columns "drive_move_id" */
   RidegroupsDriveMoveIdKey = 'ridegroups_drive_move_id_key',
-  /** unique or primary key constraint on columns "group_id", "drive_move_id" */
+  /** unique or primary key constraint on columns "drive_move_id", "group_id" */
   RidegroupsPkey = 'ridegroups_pkey'
 }
 
@@ -67278,6 +70266,1287 @@ export type Ridegroups_Variance_Order_By = {
   id?: InputMaybe<Order_By>;
 };
 
+/** Table for comprehensive ride tracking */
+export type Ridehails = {
+  __typename?: 'ridehails';
+  actual_price?: Maybe<Scalars['numeric']['output']>;
+  algorithm_used?: Maybe<Scalars['String']['output']>;
+  all_api_calls?: Maybe<Scalars['jsonb']['output']>;
+  allocated_cost?: Maybe<Scalars['numeric']['output']>;
+  attempt_number: Scalars['Int']['output'];
+  booked_at?: Maybe<Scalars['timestamp']['output']>;
+  created_at: Scalars['timestamptz']['output'];
+  dispute_reason?: Maybe<Scalars['String']['output']>;
+  dispute_resolution?: Maybe<Scalars['String']['output']>;
+  driver_assigned_at?: Maybe<Scalars['timestamptz']['output']>;
+  driver_name?: Maybe<Scalars['String']['output']>;
+  driver_phone?: Maybe<Scalars['String']['output']>;
+  driver_photo_url?: Maybe<Scalars['String']['output']>;
+  driver_rating?: Maybe<Scalars['numeric']['output']>;
+  dropoff_address?: Maybe<Scalars['String']['output']>;
+  dropoff_at?: Maybe<Scalars['timestamptz']['output']>;
+  dropoff_lat: Scalars['numeric']['output'];
+  dropoff_lng: Scalars['numeric']['output'];
+  estimated_price?: Maybe<Scalars['numeric']['output']>;
+  estimates_considered?: Maybe<Scalars['jsonb']['output']>;
+  external_id?: Maybe<Scalars['String']['output']>;
+  has_dispute?: Maybe<Scalars['Boolean']['output']>;
+  has_lost_item?: Maybe<Scalars['Boolean']['output']>;
+  id: Scalars['bigint']['output'];
+  /** An object relationship */
+  move: Moves;
+  move_id: Scalars['bigint']['output'];
+  original_dropoff_lat?: Maybe<Scalars['numeric']['output']>;
+  original_dropoff_lng?: Maybe<Scalars['numeric']['output']>;
+  passenger_count?: Maybe<Scalars['Int']['output']>;
+  pickup_address?: Maybe<Scalars['String']['output']>;
+  pickup_at?: Maybe<Scalars['timestamptz']['output']>;
+  pickup_lat: Scalars['numeric']['output'];
+  pickup_lng: Scalars['numeric']['output'];
+  product_type?: Maybe<Scalars['String']['output']>;
+  provider?: Maybe<Scalars['String']['output']>;
+  quality_rejection_reason?: Maybe<Scalars['String']['output']>;
+  reroute_point_lat?: Maybe<Scalars['numeric']['output']>;
+  reroute_point_lng?: Maybe<Scalars['numeric']['output']>;
+  selection_reason?: Maybe<Scalars['jsonb']['output']>;
+  status?: Maybe<Scalars['String']['output']>;
+  surge_multiplier?: Maybe<Scalars['numeric']['output']>;
+  updated_at: Scalars['timestamptz']['output'];
+  vehicle_color?: Maybe<Scalars['String']['output']>;
+  vehicle_license_plate?: Maybe<Scalars['String']['output']>;
+  vehicle_make?: Maybe<Scalars['String']['output']>;
+  vehicle_model?: Maybe<Scalars['String']['output']>;
+  vehicle_photo_url?: Maybe<Scalars['String']['output']>;
+  vehicle_year?: Maybe<Scalars['Int']['output']>;
+};
+
+
+/** Table for comprehensive ride tracking */
+export type RidehailsAll_Api_CallsArgs = {
+  path?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+/** Table for comprehensive ride tracking */
+export type RidehailsEstimates_ConsideredArgs = {
+  path?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+/** Table for comprehensive ride tracking */
+export type RidehailsSelection_ReasonArgs = {
+  path?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** aggregated selection of "ridehails" */
+export type Ridehails_Aggregate = {
+  __typename?: 'ridehails_aggregate';
+  aggregate?: Maybe<Ridehails_Aggregate_Fields>;
+  nodes: Array<Ridehails>;
+};
+
+export type Ridehails_Aggregate_Bool_Exp = {
+  bool_and?: InputMaybe<Ridehails_Aggregate_Bool_Exp_Bool_And>;
+  bool_or?: InputMaybe<Ridehails_Aggregate_Bool_Exp_Bool_Or>;
+  count?: InputMaybe<Ridehails_Aggregate_Bool_Exp_Count>;
+};
+
+export type Ridehails_Aggregate_Bool_Exp_Bool_And = {
+  arguments: Ridehails_Select_Column_Ridehails_Aggregate_Bool_Exp_Bool_And_Arguments_Columns;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<Ridehails_Bool_Exp>;
+  predicate: Boolean_Comparison_Exp;
+};
+
+export type Ridehails_Aggregate_Bool_Exp_Bool_Or = {
+  arguments: Ridehails_Select_Column_Ridehails_Aggregate_Bool_Exp_Bool_Or_Arguments_Columns;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<Ridehails_Bool_Exp>;
+  predicate: Boolean_Comparison_Exp;
+};
+
+export type Ridehails_Aggregate_Bool_Exp_Count = {
+  arguments?: InputMaybe<Array<Ridehails_Select_Column>>;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<Ridehails_Bool_Exp>;
+  predicate: Int_Comparison_Exp;
+};
+
+/** aggregate fields of "ridehails" */
+export type Ridehails_Aggregate_Fields = {
+  __typename?: 'ridehails_aggregate_fields';
+  avg?: Maybe<Ridehails_Avg_Fields>;
+  count: Scalars['Int']['output'];
+  max?: Maybe<Ridehails_Max_Fields>;
+  min?: Maybe<Ridehails_Min_Fields>;
+  stddev?: Maybe<Ridehails_Stddev_Fields>;
+  stddev_pop?: Maybe<Ridehails_Stddev_Pop_Fields>;
+  stddev_samp?: Maybe<Ridehails_Stddev_Samp_Fields>;
+  sum?: Maybe<Ridehails_Sum_Fields>;
+  var_pop?: Maybe<Ridehails_Var_Pop_Fields>;
+  var_samp?: Maybe<Ridehails_Var_Samp_Fields>;
+  variance?: Maybe<Ridehails_Variance_Fields>;
+};
+
+
+/** aggregate fields of "ridehails" */
+export type Ridehails_Aggregate_FieldsCountArgs = {
+  columns?: InputMaybe<Array<Ridehails_Select_Column>>;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** order by aggregate values of table "ridehails" */
+export type Ridehails_Aggregate_Order_By = {
+  avg?: InputMaybe<Ridehails_Avg_Order_By>;
+  count?: InputMaybe<Order_By>;
+  max?: InputMaybe<Ridehails_Max_Order_By>;
+  min?: InputMaybe<Ridehails_Min_Order_By>;
+  stddev?: InputMaybe<Ridehails_Stddev_Order_By>;
+  stddev_pop?: InputMaybe<Ridehails_Stddev_Pop_Order_By>;
+  stddev_samp?: InputMaybe<Ridehails_Stddev_Samp_Order_By>;
+  sum?: InputMaybe<Ridehails_Sum_Order_By>;
+  var_pop?: InputMaybe<Ridehails_Var_Pop_Order_By>;
+  var_samp?: InputMaybe<Ridehails_Var_Samp_Order_By>;
+  variance?: InputMaybe<Ridehails_Variance_Order_By>;
+};
+
+/** append existing jsonb value of filtered columns with new jsonb value */
+export type Ridehails_Append_Input = {
+  all_api_calls?: InputMaybe<Scalars['jsonb']['input']>;
+  estimates_considered?: InputMaybe<Scalars['jsonb']['input']>;
+  selection_reason?: InputMaybe<Scalars['jsonb']['input']>;
+};
+
+/** input type for inserting array relation for remote table "ridehails" */
+export type Ridehails_Arr_Rel_Insert_Input = {
+  data: Array<Ridehails_Insert_Input>;
+  /** upsert condition */
+  on_conflict?: InputMaybe<Ridehails_On_Conflict>;
+};
+
+/** aggregate avg on columns */
+export type Ridehails_Avg_Fields = {
+  __typename?: 'ridehails_avg_fields';
+  actual_price?: Maybe<Scalars['Float']['output']>;
+  allocated_cost?: Maybe<Scalars['Float']['output']>;
+  attempt_number?: Maybe<Scalars['Float']['output']>;
+  driver_rating?: Maybe<Scalars['Float']['output']>;
+  dropoff_lat?: Maybe<Scalars['Float']['output']>;
+  dropoff_lng?: Maybe<Scalars['Float']['output']>;
+  estimated_price?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+  move_id?: Maybe<Scalars['Float']['output']>;
+  original_dropoff_lat?: Maybe<Scalars['Float']['output']>;
+  original_dropoff_lng?: Maybe<Scalars['Float']['output']>;
+  passenger_count?: Maybe<Scalars['Float']['output']>;
+  pickup_lat?: Maybe<Scalars['Float']['output']>;
+  pickup_lng?: Maybe<Scalars['Float']['output']>;
+  reroute_point_lat?: Maybe<Scalars['Float']['output']>;
+  reroute_point_lng?: Maybe<Scalars['Float']['output']>;
+  surge_multiplier?: Maybe<Scalars['Float']['output']>;
+  vehicle_year?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by avg() on columns of table "ridehails" */
+export type Ridehails_Avg_Order_By = {
+  actual_price?: InputMaybe<Order_By>;
+  allocated_cost?: InputMaybe<Order_By>;
+  attempt_number?: InputMaybe<Order_By>;
+  driver_rating?: InputMaybe<Order_By>;
+  dropoff_lat?: InputMaybe<Order_By>;
+  dropoff_lng?: InputMaybe<Order_By>;
+  estimated_price?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  move_id?: InputMaybe<Order_By>;
+  original_dropoff_lat?: InputMaybe<Order_By>;
+  original_dropoff_lng?: InputMaybe<Order_By>;
+  passenger_count?: InputMaybe<Order_By>;
+  pickup_lat?: InputMaybe<Order_By>;
+  pickup_lng?: InputMaybe<Order_By>;
+  reroute_point_lat?: InputMaybe<Order_By>;
+  reroute_point_lng?: InputMaybe<Order_By>;
+  surge_multiplier?: InputMaybe<Order_By>;
+  vehicle_year?: InputMaybe<Order_By>;
+};
+
+/** Boolean expression to filter rows from the table "ridehails". All fields are combined with a logical 'AND'. */
+export type Ridehails_Bool_Exp = {
+  _and?: InputMaybe<Array<Ridehails_Bool_Exp>>;
+  _not?: InputMaybe<Ridehails_Bool_Exp>;
+  _or?: InputMaybe<Array<Ridehails_Bool_Exp>>;
+  actual_price?: InputMaybe<Numeric_Comparison_Exp>;
+  algorithm_used?: InputMaybe<String_Comparison_Exp>;
+  all_api_calls?: InputMaybe<Jsonb_Comparison_Exp>;
+  allocated_cost?: InputMaybe<Numeric_Comparison_Exp>;
+  attempt_number?: InputMaybe<Int_Comparison_Exp>;
+  booked_at?: InputMaybe<Timestamp_Comparison_Exp>;
+  created_at?: InputMaybe<Timestamptz_Comparison_Exp>;
+  dispute_reason?: InputMaybe<String_Comparison_Exp>;
+  dispute_resolution?: InputMaybe<String_Comparison_Exp>;
+  driver_assigned_at?: InputMaybe<Timestamptz_Comparison_Exp>;
+  driver_name?: InputMaybe<String_Comparison_Exp>;
+  driver_phone?: InputMaybe<String_Comparison_Exp>;
+  driver_photo_url?: InputMaybe<String_Comparison_Exp>;
+  driver_rating?: InputMaybe<Numeric_Comparison_Exp>;
+  dropoff_address?: InputMaybe<String_Comparison_Exp>;
+  dropoff_at?: InputMaybe<Timestamptz_Comparison_Exp>;
+  dropoff_lat?: InputMaybe<Numeric_Comparison_Exp>;
+  dropoff_lng?: InputMaybe<Numeric_Comparison_Exp>;
+  estimated_price?: InputMaybe<Numeric_Comparison_Exp>;
+  estimates_considered?: InputMaybe<Jsonb_Comparison_Exp>;
+  external_id?: InputMaybe<String_Comparison_Exp>;
+  has_dispute?: InputMaybe<Boolean_Comparison_Exp>;
+  has_lost_item?: InputMaybe<Boolean_Comparison_Exp>;
+  id?: InputMaybe<Bigint_Comparison_Exp>;
+  move?: InputMaybe<Moves_Bool_Exp>;
+  move_id?: InputMaybe<Bigint_Comparison_Exp>;
+  original_dropoff_lat?: InputMaybe<Numeric_Comparison_Exp>;
+  original_dropoff_lng?: InputMaybe<Numeric_Comparison_Exp>;
+  passenger_count?: InputMaybe<Int_Comparison_Exp>;
+  pickup_address?: InputMaybe<String_Comparison_Exp>;
+  pickup_at?: InputMaybe<Timestamptz_Comparison_Exp>;
+  pickup_lat?: InputMaybe<Numeric_Comparison_Exp>;
+  pickup_lng?: InputMaybe<Numeric_Comparison_Exp>;
+  product_type?: InputMaybe<String_Comparison_Exp>;
+  provider?: InputMaybe<String_Comparison_Exp>;
+  quality_rejection_reason?: InputMaybe<String_Comparison_Exp>;
+  reroute_point_lat?: InputMaybe<Numeric_Comparison_Exp>;
+  reroute_point_lng?: InputMaybe<Numeric_Comparison_Exp>;
+  selection_reason?: InputMaybe<Jsonb_Comparison_Exp>;
+  status?: InputMaybe<String_Comparison_Exp>;
+  surge_multiplier?: InputMaybe<Numeric_Comparison_Exp>;
+  updated_at?: InputMaybe<Timestamptz_Comparison_Exp>;
+  vehicle_color?: InputMaybe<String_Comparison_Exp>;
+  vehicle_license_plate?: InputMaybe<String_Comparison_Exp>;
+  vehicle_make?: InputMaybe<String_Comparison_Exp>;
+  vehicle_model?: InputMaybe<String_Comparison_Exp>;
+  vehicle_photo_url?: InputMaybe<String_Comparison_Exp>;
+  vehicle_year?: InputMaybe<Int_Comparison_Exp>;
+};
+
+/** unique or primary key constraints on table "ridehails" */
+export enum Ridehails_Constraint {
+  /** unique or primary key constraint on columns "id" */
+  RidesPkey = 'rides_pkey'
+}
+
+/** delete the field or element with specified path (for JSON arrays, negative integers count from the end) */
+export type Ridehails_Delete_At_Path_Input = {
+  all_api_calls?: InputMaybe<Array<Scalars['String']['input']>>;
+  estimates_considered?: InputMaybe<Array<Scalars['String']['input']>>;
+  selection_reason?: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+/** delete the array element with specified index (negative integers count from the end). throws an error if top level container is not an array */
+export type Ridehails_Delete_Elem_Input = {
+  all_api_calls?: InputMaybe<Scalars['Int']['input']>;
+  estimates_considered?: InputMaybe<Scalars['Int']['input']>;
+  selection_reason?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** delete key/value pair or string element. key/value pairs are matched based on their key value */
+export type Ridehails_Delete_Key_Input = {
+  all_api_calls?: InputMaybe<Scalars['String']['input']>;
+  estimates_considered?: InputMaybe<Scalars['String']['input']>;
+  selection_reason?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** input type for incrementing numeric columns in table "ridehails" */
+export type Ridehails_Inc_Input = {
+  actual_price?: InputMaybe<Scalars['numeric']['input']>;
+  allocated_cost?: InputMaybe<Scalars['numeric']['input']>;
+  attempt_number?: InputMaybe<Scalars['Int']['input']>;
+  driver_rating?: InputMaybe<Scalars['numeric']['input']>;
+  dropoff_lat?: InputMaybe<Scalars['numeric']['input']>;
+  dropoff_lng?: InputMaybe<Scalars['numeric']['input']>;
+  estimated_price?: InputMaybe<Scalars['numeric']['input']>;
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  move_id?: InputMaybe<Scalars['bigint']['input']>;
+  original_dropoff_lat?: InputMaybe<Scalars['numeric']['input']>;
+  original_dropoff_lng?: InputMaybe<Scalars['numeric']['input']>;
+  passenger_count?: InputMaybe<Scalars['Int']['input']>;
+  pickup_lat?: InputMaybe<Scalars['numeric']['input']>;
+  pickup_lng?: InputMaybe<Scalars['numeric']['input']>;
+  reroute_point_lat?: InputMaybe<Scalars['numeric']['input']>;
+  reroute_point_lng?: InputMaybe<Scalars['numeric']['input']>;
+  surge_multiplier?: InputMaybe<Scalars['numeric']['input']>;
+  vehicle_year?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** input type for inserting data into table "ridehails" */
+export type Ridehails_Insert_Input = {
+  actual_price?: InputMaybe<Scalars['numeric']['input']>;
+  algorithm_used?: InputMaybe<Scalars['String']['input']>;
+  all_api_calls?: InputMaybe<Scalars['jsonb']['input']>;
+  allocated_cost?: InputMaybe<Scalars['numeric']['input']>;
+  attempt_number?: InputMaybe<Scalars['Int']['input']>;
+  booked_at?: InputMaybe<Scalars['timestamp']['input']>;
+  created_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  dispute_reason?: InputMaybe<Scalars['String']['input']>;
+  dispute_resolution?: InputMaybe<Scalars['String']['input']>;
+  driver_assigned_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  driver_name?: InputMaybe<Scalars['String']['input']>;
+  driver_phone?: InputMaybe<Scalars['String']['input']>;
+  driver_photo_url?: InputMaybe<Scalars['String']['input']>;
+  driver_rating?: InputMaybe<Scalars['numeric']['input']>;
+  dropoff_address?: InputMaybe<Scalars['String']['input']>;
+  dropoff_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  dropoff_lat?: InputMaybe<Scalars['numeric']['input']>;
+  dropoff_lng?: InputMaybe<Scalars['numeric']['input']>;
+  estimated_price?: InputMaybe<Scalars['numeric']['input']>;
+  estimates_considered?: InputMaybe<Scalars['jsonb']['input']>;
+  external_id?: InputMaybe<Scalars['String']['input']>;
+  has_dispute?: InputMaybe<Scalars['Boolean']['input']>;
+  has_lost_item?: InputMaybe<Scalars['Boolean']['input']>;
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  move?: InputMaybe<Moves_Obj_Rel_Insert_Input>;
+  move_id?: InputMaybe<Scalars['bigint']['input']>;
+  original_dropoff_lat?: InputMaybe<Scalars['numeric']['input']>;
+  original_dropoff_lng?: InputMaybe<Scalars['numeric']['input']>;
+  passenger_count?: InputMaybe<Scalars['Int']['input']>;
+  pickup_address?: InputMaybe<Scalars['String']['input']>;
+  pickup_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  pickup_lat?: InputMaybe<Scalars['numeric']['input']>;
+  pickup_lng?: InputMaybe<Scalars['numeric']['input']>;
+  product_type?: InputMaybe<Scalars['String']['input']>;
+  provider?: InputMaybe<Scalars['String']['input']>;
+  quality_rejection_reason?: InputMaybe<Scalars['String']['input']>;
+  reroute_point_lat?: InputMaybe<Scalars['numeric']['input']>;
+  reroute_point_lng?: InputMaybe<Scalars['numeric']['input']>;
+  selection_reason?: InputMaybe<Scalars['jsonb']['input']>;
+  status?: InputMaybe<Scalars['String']['input']>;
+  surge_multiplier?: InputMaybe<Scalars['numeric']['input']>;
+  updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  vehicle_color?: InputMaybe<Scalars['String']['input']>;
+  vehicle_license_plate?: InputMaybe<Scalars['String']['input']>;
+  vehicle_make?: InputMaybe<Scalars['String']['input']>;
+  vehicle_model?: InputMaybe<Scalars['String']['input']>;
+  vehicle_photo_url?: InputMaybe<Scalars['String']['input']>;
+  vehicle_year?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** aggregate max on columns */
+export type Ridehails_Max_Fields = {
+  __typename?: 'ridehails_max_fields';
+  actual_price?: Maybe<Scalars['numeric']['output']>;
+  algorithm_used?: Maybe<Scalars['String']['output']>;
+  allocated_cost?: Maybe<Scalars['numeric']['output']>;
+  attempt_number?: Maybe<Scalars['Int']['output']>;
+  booked_at?: Maybe<Scalars['timestamp']['output']>;
+  created_at?: Maybe<Scalars['timestamptz']['output']>;
+  dispute_reason?: Maybe<Scalars['String']['output']>;
+  dispute_resolution?: Maybe<Scalars['String']['output']>;
+  driver_assigned_at?: Maybe<Scalars['timestamptz']['output']>;
+  driver_name?: Maybe<Scalars['String']['output']>;
+  driver_phone?: Maybe<Scalars['String']['output']>;
+  driver_photo_url?: Maybe<Scalars['String']['output']>;
+  driver_rating?: Maybe<Scalars['numeric']['output']>;
+  dropoff_address?: Maybe<Scalars['String']['output']>;
+  dropoff_at?: Maybe<Scalars['timestamptz']['output']>;
+  dropoff_lat?: Maybe<Scalars['numeric']['output']>;
+  dropoff_lng?: Maybe<Scalars['numeric']['output']>;
+  estimated_price?: Maybe<Scalars['numeric']['output']>;
+  external_id?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['bigint']['output']>;
+  move_id?: Maybe<Scalars['bigint']['output']>;
+  original_dropoff_lat?: Maybe<Scalars['numeric']['output']>;
+  original_dropoff_lng?: Maybe<Scalars['numeric']['output']>;
+  passenger_count?: Maybe<Scalars['Int']['output']>;
+  pickup_address?: Maybe<Scalars['String']['output']>;
+  pickup_at?: Maybe<Scalars['timestamptz']['output']>;
+  pickup_lat?: Maybe<Scalars['numeric']['output']>;
+  pickup_lng?: Maybe<Scalars['numeric']['output']>;
+  product_type?: Maybe<Scalars['String']['output']>;
+  provider?: Maybe<Scalars['String']['output']>;
+  quality_rejection_reason?: Maybe<Scalars['String']['output']>;
+  reroute_point_lat?: Maybe<Scalars['numeric']['output']>;
+  reroute_point_lng?: Maybe<Scalars['numeric']['output']>;
+  status?: Maybe<Scalars['String']['output']>;
+  surge_multiplier?: Maybe<Scalars['numeric']['output']>;
+  updated_at?: Maybe<Scalars['timestamptz']['output']>;
+  vehicle_color?: Maybe<Scalars['String']['output']>;
+  vehicle_license_plate?: Maybe<Scalars['String']['output']>;
+  vehicle_make?: Maybe<Scalars['String']['output']>;
+  vehicle_model?: Maybe<Scalars['String']['output']>;
+  vehicle_photo_url?: Maybe<Scalars['String']['output']>;
+  vehicle_year?: Maybe<Scalars['Int']['output']>;
+};
+
+/** order by max() on columns of table "ridehails" */
+export type Ridehails_Max_Order_By = {
+  actual_price?: InputMaybe<Order_By>;
+  algorithm_used?: InputMaybe<Order_By>;
+  allocated_cost?: InputMaybe<Order_By>;
+  attempt_number?: InputMaybe<Order_By>;
+  booked_at?: InputMaybe<Order_By>;
+  created_at?: InputMaybe<Order_By>;
+  dispute_reason?: InputMaybe<Order_By>;
+  dispute_resolution?: InputMaybe<Order_By>;
+  driver_assigned_at?: InputMaybe<Order_By>;
+  driver_name?: InputMaybe<Order_By>;
+  driver_phone?: InputMaybe<Order_By>;
+  driver_photo_url?: InputMaybe<Order_By>;
+  driver_rating?: InputMaybe<Order_By>;
+  dropoff_address?: InputMaybe<Order_By>;
+  dropoff_at?: InputMaybe<Order_By>;
+  dropoff_lat?: InputMaybe<Order_By>;
+  dropoff_lng?: InputMaybe<Order_By>;
+  estimated_price?: InputMaybe<Order_By>;
+  external_id?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  move_id?: InputMaybe<Order_By>;
+  original_dropoff_lat?: InputMaybe<Order_By>;
+  original_dropoff_lng?: InputMaybe<Order_By>;
+  passenger_count?: InputMaybe<Order_By>;
+  pickup_address?: InputMaybe<Order_By>;
+  pickup_at?: InputMaybe<Order_By>;
+  pickup_lat?: InputMaybe<Order_By>;
+  pickup_lng?: InputMaybe<Order_By>;
+  product_type?: InputMaybe<Order_By>;
+  provider?: InputMaybe<Order_By>;
+  quality_rejection_reason?: InputMaybe<Order_By>;
+  reroute_point_lat?: InputMaybe<Order_By>;
+  reroute_point_lng?: InputMaybe<Order_By>;
+  status?: InputMaybe<Order_By>;
+  surge_multiplier?: InputMaybe<Order_By>;
+  updated_at?: InputMaybe<Order_By>;
+  vehicle_color?: InputMaybe<Order_By>;
+  vehicle_license_plate?: InputMaybe<Order_By>;
+  vehicle_make?: InputMaybe<Order_By>;
+  vehicle_model?: InputMaybe<Order_By>;
+  vehicle_photo_url?: InputMaybe<Order_By>;
+  vehicle_year?: InputMaybe<Order_By>;
+};
+
+/** aggregate min on columns */
+export type Ridehails_Min_Fields = {
+  __typename?: 'ridehails_min_fields';
+  actual_price?: Maybe<Scalars['numeric']['output']>;
+  algorithm_used?: Maybe<Scalars['String']['output']>;
+  allocated_cost?: Maybe<Scalars['numeric']['output']>;
+  attempt_number?: Maybe<Scalars['Int']['output']>;
+  booked_at?: Maybe<Scalars['timestamp']['output']>;
+  created_at?: Maybe<Scalars['timestamptz']['output']>;
+  dispute_reason?: Maybe<Scalars['String']['output']>;
+  dispute_resolution?: Maybe<Scalars['String']['output']>;
+  driver_assigned_at?: Maybe<Scalars['timestamptz']['output']>;
+  driver_name?: Maybe<Scalars['String']['output']>;
+  driver_phone?: Maybe<Scalars['String']['output']>;
+  driver_photo_url?: Maybe<Scalars['String']['output']>;
+  driver_rating?: Maybe<Scalars['numeric']['output']>;
+  dropoff_address?: Maybe<Scalars['String']['output']>;
+  dropoff_at?: Maybe<Scalars['timestamptz']['output']>;
+  dropoff_lat?: Maybe<Scalars['numeric']['output']>;
+  dropoff_lng?: Maybe<Scalars['numeric']['output']>;
+  estimated_price?: Maybe<Scalars['numeric']['output']>;
+  external_id?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['bigint']['output']>;
+  move_id?: Maybe<Scalars['bigint']['output']>;
+  original_dropoff_lat?: Maybe<Scalars['numeric']['output']>;
+  original_dropoff_lng?: Maybe<Scalars['numeric']['output']>;
+  passenger_count?: Maybe<Scalars['Int']['output']>;
+  pickup_address?: Maybe<Scalars['String']['output']>;
+  pickup_at?: Maybe<Scalars['timestamptz']['output']>;
+  pickup_lat?: Maybe<Scalars['numeric']['output']>;
+  pickup_lng?: Maybe<Scalars['numeric']['output']>;
+  product_type?: Maybe<Scalars['String']['output']>;
+  provider?: Maybe<Scalars['String']['output']>;
+  quality_rejection_reason?: Maybe<Scalars['String']['output']>;
+  reroute_point_lat?: Maybe<Scalars['numeric']['output']>;
+  reroute_point_lng?: Maybe<Scalars['numeric']['output']>;
+  status?: Maybe<Scalars['String']['output']>;
+  surge_multiplier?: Maybe<Scalars['numeric']['output']>;
+  updated_at?: Maybe<Scalars['timestamptz']['output']>;
+  vehicle_color?: Maybe<Scalars['String']['output']>;
+  vehicle_license_plate?: Maybe<Scalars['String']['output']>;
+  vehicle_make?: Maybe<Scalars['String']['output']>;
+  vehicle_model?: Maybe<Scalars['String']['output']>;
+  vehicle_photo_url?: Maybe<Scalars['String']['output']>;
+  vehicle_year?: Maybe<Scalars['Int']['output']>;
+};
+
+/** order by min() on columns of table "ridehails" */
+export type Ridehails_Min_Order_By = {
+  actual_price?: InputMaybe<Order_By>;
+  algorithm_used?: InputMaybe<Order_By>;
+  allocated_cost?: InputMaybe<Order_By>;
+  attempt_number?: InputMaybe<Order_By>;
+  booked_at?: InputMaybe<Order_By>;
+  created_at?: InputMaybe<Order_By>;
+  dispute_reason?: InputMaybe<Order_By>;
+  dispute_resolution?: InputMaybe<Order_By>;
+  driver_assigned_at?: InputMaybe<Order_By>;
+  driver_name?: InputMaybe<Order_By>;
+  driver_phone?: InputMaybe<Order_By>;
+  driver_photo_url?: InputMaybe<Order_By>;
+  driver_rating?: InputMaybe<Order_By>;
+  dropoff_address?: InputMaybe<Order_By>;
+  dropoff_at?: InputMaybe<Order_By>;
+  dropoff_lat?: InputMaybe<Order_By>;
+  dropoff_lng?: InputMaybe<Order_By>;
+  estimated_price?: InputMaybe<Order_By>;
+  external_id?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  move_id?: InputMaybe<Order_By>;
+  original_dropoff_lat?: InputMaybe<Order_By>;
+  original_dropoff_lng?: InputMaybe<Order_By>;
+  passenger_count?: InputMaybe<Order_By>;
+  pickup_address?: InputMaybe<Order_By>;
+  pickup_at?: InputMaybe<Order_By>;
+  pickup_lat?: InputMaybe<Order_By>;
+  pickup_lng?: InputMaybe<Order_By>;
+  product_type?: InputMaybe<Order_By>;
+  provider?: InputMaybe<Order_By>;
+  quality_rejection_reason?: InputMaybe<Order_By>;
+  reroute_point_lat?: InputMaybe<Order_By>;
+  reroute_point_lng?: InputMaybe<Order_By>;
+  status?: InputMaybe<Order_By>;
+  surge_multiplier?: InputMaybe<Order_By>;
+  updated_at?: InputMaybe<Order_By>;
+  vehicle_color?: InputMaybe<Order_By>;
+  vehicle_license_plate?: InputMaybe<Order_By>;
+  vehicle_make?: InputMaybe<Order_By>;
+  vehicle_model?: InputMaybe<Order_By>;
+  vehicle_photo_url?: InputMaybe<Order_By>;
+  vehicle_year?: InputMaybe<Order_By>;
+};
+
+/** response of any mutation on the table "ridehails" */
+export type Ridehails_Mutation_Response = {
+  __typename?: 'ridehails_mutation_response';
+  /** number of rows affected by the mutation */
+  affected_rows: Scalars['Int']['output'];
+  /** data from the rows affected by the mutation */
+  returning: Array<Ridehails>;
+};
+
+/** on_conflict condition type for table "ridehails" */
+export type Ridehails_On_Conflict = {
+  constraint: Ridehails_Constraint;
+  update_columns?: Array<Ridehails_Update_Column>;
+  where?: InputMaybe<Ridehails_Bool_Exp>;
+};
+
+/** Ordering options when selecting data from "ridehails". */
+export type Ridehails_Order_By = {
+  actual_price?: InputMaybe<Order_By>;
+  algorithm_used?: InputMaybe<Order_By>;
+  all_api_calls?: InputMaybe<Order_By>;
+  allocated_cost?: InputMaybe<Order_By>;
+  attempt_number?: InputMaybe<Order_By>;
+  booked_at?: InputMaybe<Order_By>;
+  created_at?: InputMaybe<Order_By>;
+  dispute_reason?: InputMaybe<Order_By>;
+  dispute_resolution?: InputMaybe<Order_By>;
+  driver_assigned_at?: InputMaybe<Order_By>;
+  driver_name?: InputMaybe<Order_By>;
+  driver_phone?: InputMaybe<Order_By>;
+  driver_photo_url?: InputMaybe<Order_By>;
+  driver_rating?: InputMaybe<Order_By>;
+  dropoff_address?: InputMaybe<Order_By>;
+  dropoff_at?: InputMaybe<Order_By>;
+  dropoff_lat?: InputMaybe<Order_By>;
+  dropoff_lng?: InputMaybe<Order_By>;
+  estimated_price?: InputMaybe<Order_By>;
+  estimates_considered?: InputMaybe<Order_By>;
+  external_id?: InputMaybe<Order_By>;
+  has_dispute?: InputMaybe<Order_By>;
+  has_lost_item?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  move?: InputMaybe<Moves_Order_By>;
+  move_id?: InputMaybe<Order_By>;
+  original_dropoff_lat?: InputMaybe<Order_By>;
+  original_dropoff_lng?: InputMaybe<Order_By>;
+  passenger_count?: InputMaybe<Order_By>;
+  pickup_address?: InputMaybe<Order_By>;
+  pickup_at?: InputMaybe<Order_By>;
+  pickup_lat?: InputMaybe<Order_By>;
+  pickup_lng?: InputMaybe<Order_By>;
+  product_type?: InputMaybe<Order_By>;
+  provider?: InputMaybe<Order_By>;
+  quality_rejection_reason?: InputMaybe<Order_By>;
+  reroute_point_lat?: InputMaybe<Order_By>;
+  reroute_point_lng?: InputMaybe<Order_By>;
+  selection_reason?: InputMaybe<Order_By>;
+  status?: InputMaybe<Order_By>;
+  surge_multiplier?: InputMaybe<Order_By>;
+  updated_at?: InputMaybe<Order_By>;
+  vehicle_color?: InputMaybe<Order_By>;
+  vehicle_license_plate?: InputMaybe<Order_By>;
+  vehicle_make?: InputMaybe<Order_By>;
+  vehicle_model?: InputMaybe<Order_By>;
+  vehicle_photo_url?: InputMaybe<Order_By>;
+  vehicle_year?: InputMaybe<Order_By>;
+};
+
+/** primary key columns input for table: ridehails */
+export type Ridehails_Pk_Columns_Input = {
+  id: Scalars['bigint']['input'];
+};
+
+/** prepend existing jsonb value of filtered columns with new jsonb value */
+export type Ridehails_Prepend_Input = {
+  all_api_calls?: InputMaybe<Scalars['jsonb']['input']>;
+  estimates_considered?: InputMaybe<Scalars['jsonb']['input']>;
+  selection_reason?: InputMaybe<Scalars['jsonb']['input']>;
+};
+
+/** select columns of table "ridehails" */
+export enum Ridehails_Select_Column {
+  /** column name */
+  ActualPrice = 'actual_price',
+  /** column name */
+  AlgorithmUsed = 'algorithm_used',
+  /** column name */
+  AllApiCalls = 'all_api_calls',
+  /** column name */
+  AllocatedCost = 'allocated_cost',
+  /** column name */
+  AttemptNumber = 'attempt_number',
+  /** column name */
+  BookedAt = 'booked_at',
+  /** column name */
+  CreatedAt = 'created_at',
+  /** column name */
+  DisputeReason = 'dispute_reason',
+  /** column name */
+  DisputeResolution = 'dispute_resolution',
+  /** column name */
+  DriverAssignedAt = 'driver_assigned_at',
+  /** column name */
+  DriverName = 'driver_name',
+  /** column name */
+  DriverPhone = 'driver_phone',
+  /** column name */
+  DriverPhotoUrl = 'driver_photo_url',
+  /** column name */
+  DriverRating = 'driver_rating',
+  /** column name */
+  DropoffAddress = 'dropoff_address',
+  /** column name */
+  DropoffAt = 'dropoff_at',
+  /** column name */
+  DropoffLat = 'dropoff_lat',
+  /** column name */
+  DropoffLng = 'dropoff_lng',
+  /** column name */
+  EstimatedPrice = 'estimated_price',
+  /** column name */
+  EstimatesConsidered = 'estimates_considered',
+  /** column name */
+  ExternalId = 'external_id',
+  /** column name */
+  HasDispute = 'has_dispute',
+  /** column name */
+  HasLostItem = 'has_lost_item',
+  /** column name */
+  Id = 'id',
+  /** column name */
+  MoveId = 'move_id',
+  /** column name */
+  OriginalDropoffLat = 'original_dropoff_lat',
+  /** column name */
+  OriginalDropoffLng = 'original_dropoff_lng',
+  /** column name */
+  PassengerCount = 'passenger_count',
+  /** column name */
+  PickupAddress = 'pickup_address',
+  /** column name */
+  PickupAt = 'pickup_at',
+  /** column name */
+  PickupLat = 'pickup_lat',
+  /** column name */
+  PickupLng = 'pickup_lng',
+  /** column name */
+  ProductType = 'product_type',
+  /** column name */
+  Provider = 'provider',
+  /** column name */
+  QualityRejectionReason = 'quality_rejection_reason',
+  /** column name */
+  ReroutePointLat = 'reroute_point_lat',
+  /** column name */
+  ReroutePointLng = 'reroute_point_lng',
+  /** column name */
+  SelectionReason = 'selection_reason',
+  /** column name */
+  Status = 'status',
+  /** column name */
+  SurgeMultiplier = 'surge_multiplier',
+  /** column name */
+  UpdatedAt = 'updated_at',
+  /** column name */
+  VehicleColor = 'vehicle_color',
+  /** column name */
+  VehicleLicensePlate = 'vehicle_license_plate',
+  /** column name */
+  VehicleMake = 'vehicle_make',
+  /** column name */
+  VehicleModel = 'vehicle_model',
+  /** column name */
+  VehiclePhotoUrl = 'vehicle_photo_url',
+  /** column name */
+  VehicleYear = 'vehicle_year'
+}
+
+/** select "ridehails_aggregate_bool_exp_bool_and_arguments_columns" columns of table "ridehails" */
+export enum Ridehails_Select_Column_Ridehails_Aggregate_Bool_Exp_Bool_And_Arguments_Columns {
+  /** column name */
+  HasDispute = 'has_dispute',
+  /** column name */
+  HasLostItem = 'has_lost_item'
+}
+
+/** select "ridehails_aggregate_bool_exp_bool_or_arguments_columns" columns of table "ridehails" */
+export enum Ridehails_Select_Column_Ridehails_Aggregate_Bool_Exp_Bool_Or_Arguments_Columns {
+  /** column name */
+  HasDispute = 'has_dispute',
+  /** column name */
+  HasLostItem = 'has_lost_item'
+}
+
+/** input type for updating data in table "ridehails" */
+export type Ridehails_Set_Input = {
+  actual_price?: InputMaybe<Scalars['numeric']['input']>;
+  algorithm_used?: InputMaybe<Scalars['String']['input']>;
+  all_api_calls?: InputMaybe<Scalars['jsonb']['input']>;
+  allocated_cost?: InputMaybe<Scalars['numeric']['input']>;
+  attempt_number?: InputMaybe<Scalars['Int']['input']>;
+  booked_at?: InputMaybe<Scalars['timestamp']['input']>;
+  created_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  dispute_reason?: InputMaybe<Scalars['String']['input']>;
+  dispute_resolution?: InputMaybe<Scalars['String']['input']>;
+  driver_assigned_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  driver_name?: InputMaybe<Scalars['String']['input']>;
+  driver_phone?: InputMaybe<Scalars['String']['input']>;
+  driver_photo_url?: InputMaybe<Scalars['String']['input']>;
+  driver_rating?: InputMaybe<Scalars['numeric']['input']>;
+  dropoff_address?: InputMaybe<Scalars['String']['input']>;
+  dropoff_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  dropoff_lat?: InputMaybe<Scalars['numeric']['input']>;
+  dropoff_lng?: InputMaybe<Scalars['numeric']['input']>;
+  estimated_price?: InputMaybe<Scalars['numeric']['input']>;
+  estimates_considered?: InputMaybe<Scalars['jsonb']['input']>;
+  external_id?: InputMaybe<Scalars['String']['input']>;
+  has_dispute?: InputMaybe<Scalars['Boolean']['input']>;
+  has_lost_item?: InputMaybe<Scalars['Boolean']['input']>;
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  move_id?: InputMaybe<Scalars['bigint']['input']>;
+  original_dropoff_lat?: InputMaybe<Scalars['numeric']['input']>;
+  original_dropoff_lng?: InputMaybe<Scalars['numeric']['input']>;
+  passenger_count?: InputMaybe<Scalars['Int']['input']>;
+  pickup_address?: InputMaybe<Scalars['String']['input']>;
+  pickup_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  pickup_lat?: InputMaybe<Scalars['numeric']['input']>;
+  pickup_lng?: InputMaybe<Scalars['numeric']['input']>;
+  product_type?: InputMaybe<Scalars['String']['input']>;
+  provider?: InputMaybe<Scalars['String']['input']>;
+  quality_rejection_reason?: InputMaybe<Scalars['String']['input']>;
+  reroute_point_lat?: InputMaybe<Scalars['numeric']['input']>;
+  reroute_point_lng?: InputMaybe<Scalars['numeric']['input']>;
+  selection_reason?: InputMaybe<Scalars['jsonb']['input']>;
+  status?: InputMaybe<Scalars['String']['input']>;
+  surge_multiplier?: InputMaybe<Scalars['numeric']['input']>;
+  updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  vehicle_color?: InputMaybe<Scalars['String']['input']>;
+  vehicle_license_plate?: InputMaybe<Scalars['String']['input']>;
+  vehicle_make?: InputMaybe<Scalars['String']['input']>;
+  vehicle_model?: InputMaybe<Scalars['String']['input']>;
+  vehicle_photo_url?: InputMaybe<Scalars['String']['input']>;
+  vehicle_year?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** aggregate stddev on columns */
+export type Ridehails_Stddev_Fields = {
+  __typename?: 'ridehails_stddev_fields';
+  actual_price?: Maybe<Scalars['Float']['output']>;
+  allocated_cost?: Maybe<Scalars['Float']['output']>;
+  attempt_number?: Maybe<Scalars['Float']['output']>;
+  driver_rating?: Maybe<Scalars['Float']['output']>;
+  dropoff_lat?: Maybe<Scalars['Float']['output']>;
+  dropoff_lng?: Maybe<Scalars['Float']['output']>;
+  estimated_price?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+  move_id?: Maybe<Scalars['Float']['output']>;
+  original_dropoff_lat?: Maybe<Scalars['Float']['output']>;
+  original_dropoff_lng?: Maybe<Scalars['Float']['output']>;
+  passenger_count?: Maybe<Scalars['Float']['output']>;
+  pickup_lat?: Maybe<Scalars['Float']['output']>;
+  pickup_lng?: Maybe<Scalars['Float']['output']>;
+  reroute_point_lat?: Maybe<Scalars['Float']['output']>;
+  reroute_point_lng?: Maybe<Scalars['Float']['output']>;
+  surge_multiplier?: Maybe<Scalars['Float']['output']>;
+  vehicle_year?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by stddev() on columns of table "ridehails" */
+export type Ridehails_Stddev_Order_By = {
+  actual_price?: InputMaybe<Order_By>;
+  allocated_cost?: InputMaybe<Order_By>;
+  attempt_number?: InputMaybe<Order_By>;
+  driver_rating?: InputMaybe<Order_By>;
+  dropoff_lat?: InputMaybe<Order_By>;
+  dropoff_lng?: InputMaybe<Order_By>;
+  estimated_price?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  move_id?: InputMaybe<Order_By>;
+  original_dropoff_lat?: InputMaybe<Order_By>;
+  original_dropoff_lng?: InputMaybe<Order_By>;
+  passenger_count?: InputMaybe<Order_By>;
+  pickup_lat?: InputMaybe<Order_By>;
+  pickup_lng?: InputMaybe<Order_By>;
+  reroute_point_lat?: InputMaybe<Order_By>;
+  reroute_point_lng?: InputMaybe<Order_By>;
+  surge_multiplier?: InputMaybe<Order_By>;
+  vehicle_year?: InputMaybe<Order_By>;
+};
+
+/** aggregate stddev_pop on columns */
+export type Ridehails_Stddev_Pop_Fields = {
+  __typename?: 'ridehails_stddev_pop_fields';
+  actual_price?: Maybe<Scalars['Float']['output']>;
+  allocated_cost?: Maybe<Scalars['Float']['output']>;
+  attempt_number?: Maybe<Scalars['Float']['output']>;
+  driver_rating?: Maybe<Scalars['Float']['output']>;
+  dropoff_lat?: Maybe<Scalars['Float']['output']>;
+  dropoff_lng?: Maybe<Scalars['Float']['output']>;
+  estimated_price?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+  move_id?: Maybe<Scalars['Float']['output']>;
+  original_dropoff_lat?: Maybe<Scalars['Float']['output']>;
+  original_dropoff_lng?: Maybe<Scalars['Float']['output']>;
+  passenger_count?: Maybe<Scalars['Float']['output']>;
+  pickup_lat?: Maybe<Scalars['Float']['output']>;
+  pickup_lng?: Maybe<Scalars['Float']['output']>;
+  reroute_point_lat?: Maybe<Scalars['Float']['output']>;
+  reroute_point_lng?: Maybe<Scalars['Float']['output']>;
+  surge_multiplier?: Maybe<Scalars['Float']['output']>;
+  vehicle_year?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by stddev_pop() on columns of table "ridehails" */
+export type Ridehails_Stddev_Pop_Order_By = {
+  actual_price?: InputMaybe<Order_By>;
+  allocated_cost?: InputMaybe<Order_By>;
+  attempt_number?: InputMaybe<Order_By>;
+  driver_rating?: InputMaybe<Order_By>;
+  dropoff_lat?: InputMaybe<Order_By>;
+  dropoff_lng?: InputMaybe<Order_By>;
+  estimated_price?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  move_id?: InputMaybe<Order_By>;
+  original_dropoff_lat?: InputMaybe<Order_By>;
+  original_dropoff_lng?: InputMaybe<Order_By>;
+  passenger_count?: InputMaybe<Order_By>;
+  pickup_lat?: InputMaybe<Order_By>;
+  pickup_lng?: InputMaybe<Order_By>;
+  reroute_point_lat?: InputMaybe<Order_By>;
+  reroute_point_lng?: InputMaybe<Order_By>;
+  surge_multiplier?: InputMaybe<Order_By>;
+  vehicle_year?: InputMaybe<Order_By>;
+};
+
+/** aggregate stddev_samp on columns */
+export type Ridehails_Stddev_Samp_Fields = {
+  __typename?: 'ridehails_stddev_samp_fields';
+  actual_price?: Maybe<Scalars['Float']['output']>;
+  allocated_cost?: Maybe<Scalars['Float']['output']>;
+  attempt_number?: Maybe<Scalars['Float']['output']>;
+  driver_rating?: Maybe<Scalars['Float']['output']>;
+  dropoff_lat?: Maybe<Scalars['Float']['output']>;
+  dropoff_lng?: Maybe<Scalars['Float']['output']>;
+  estimated_price?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+  move_id?: Maybe<Scalars['Float']['output']>;
+  original_dropoff_lat?: Maybe<Scalars['Float']['output']>;
+  original_dropoff_lng?: Maybe<Scalars['Float']['output']>;
+  passenger_count?: Maybe<Scalars['Float']['output']>;
+  pickup_lat?: Maybe<Scalars['Float']['output']>;
+  pickup_lng?: Maybe<Scalars['Float']['output']>;
+  reroute_point_lat?: Maybe<Scalars['Float']['output']>;
+  reroute_point_lng?: Maybe<Scalars['Float']['output']>;
+  surge_multiplier?: Maybe<Scalars['Float']['output']>;
+  vehicle_year?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by stddev_samp() on columns of table "ridehails" */
+export type Ridehails_Stddev_Samp_Order_By = {
+  actual_price?: InputMaybe<Order_By>;
+  allocated_cost?: InputMaybe<Order_By>;
+  attempt_number?: InputMaybe<Order_By>;
+  driver_rating?: InputMaybe<Order_By>;
+  dropoff_lat?: InputMaybe<Order_By>;
+  dropoff_lng?: InputMaybe<Order_By>;
+  estimated_price?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  move_id?: InputMaybe<Order_By>;
+  original_dropoff_lat?: InputMaybe<Order_By>;
+  original_dropoff_lng?: InputMaybe<Order_By>;
+  passenger_count?: InputMaybe<Order_By>;
+  pickup_lat?: InputMaybe<Order_By>;
+  pickup_lng?: InputMaybe<Order_By>;
+  reroute_point_lat?: InputMaybe<Order_By>;
+  reroute_point_lng?: InputMaybe<Order_By>;
+  surge_multiplier?: InputMaybe<Order_By>;
+  vehicle_year?: InputMaybe<Order_By>;
+};
+
+/** Streaming cursor of the table "ridehails" */
+export type Ridehails_Stream_Cursor_Input = {
+  /** Stream column input with initial value */
+  initial_value: Ridehails_Stream_Cursor_Value_Input;
+  /** cursor ordering */
+  ordering?: InputMaybe<Cursor_Ordering>;
+};
+
+/** Initial value of the column from where the streaming should start */
+export type Ridehails_Stream_Cursor_Value_Input = {
+  actual_price?: InputMaybe<Scalars['numeric']['input']>;
+  algorithm_used?: InputMaybe<Scalars['String']['input']>;
+  all_api_calls?: InputMaybe<Scalars['jsonb']['input']>;
+  allocated_cost?: InputMaybe<Scalars['numeric']['input']>;
+  attempt_number?: InputMaybe<Scalars['Int']['input']>;
+  booked_at?: InputMaybe<Scalars['timestamp']['input']>;
+  created_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  dispute_reason?: InputMaybe<Scalars['String']['input']>;
+  dispute_resolution?: InputMaybe<Scalars['String']['input']>;
+  driver_assigned_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  driver_name?: InputMaybe<Scalars['String']['input']>;
+  driver_phone?: InputMaybe<Scalars['String']['input']>;
+  driver_photo_url?: InputMaybe<Scalars['String']['input']>;
+  driver_rating?: InputMaybe<Scalars['numeric']['input']>;
+  dropoff_address?: InputMaybe<Scalars['String']['input']>;
+  dropoff_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  dropoff_lat?: InputMaybe<Scalars['numeric']['input']>;
+  dropoff_lng?: InputMaybe<Scalars['numeric']['input']>;
+  estimated_price?: InputMaybe<Scalars['numeric']['input']>;
+  estimates_considered?: InputMaybe<Scalars['jsonb']['input']>;
+  external_id?: InputMaybe<Scalars['String']['input']>;
+  has_dispute?: InputMaybe<Scalars['Boolean']['input']>;
+  has_lost_item?: InputMaybe<Scalars['Boolean']['input']>;
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  move_id?: InputMaybe<Scalars['bigint']['input']>;
+  original_dropoff_lat?: InputMaybe<Scalars['numeric']['input']>;
+  original_dropoff_lng?: InputMaybe<Scalars['numeric']['input']>;
+  passenger_count?: InputMaybe<Scalars['Int']['input']>;
+  pickup_address?: InputMaybe<Scalars['String']['input']>;
+  pickup_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  pickup_lat?: InputMaybe<Scalars['numeric']['input']>;
+  pickup_lng?: InputMaybe<Scalars['numeric']['input']>;
+  product_type?: InputMaybe<Scalars['String']['input']>;
+  provider?: InputMaybe<Scalars['String']['input']>;
+  quality_rejection_reason?: InputMaybe<Scalars['String']['input']>;
+  reroute_point_lat?: InputMaybe<Scalars['numeric']['input']>;
+  reroute_point_lng?: InputMaybe<Scalars['numeric']['input']>;
+  selection_reason?: InputMaybe<Scalars['jsonb']['input']>;
+  status?: InputMaybe<Scalars['String']['input']>;
+  surge_multiplier?: InputMaybe<Scalars['numeric']['input']>;
+  updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  vehicle_color?: InputMaybe<Scalars['String']['input']>;
+  vehicle_license_plate?: InputMaybe<Scalars['String']['input']>;
+  vehicle_make?: InputMaybe<Scalars['String']['input']>;
+  vehicle_model?: InputMaybe<Scalars['String']['input']>;
+  vehicle_photo_url?: InputMaybe<Scalars['String']['input']>;
+  vehicle_year?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** aggregate sum on columns */
+export type Ridehails_Sum_Fields = {
+  __typename?: 'ridehails_sum_fields';
+  actual_price?: Maybe<Scalars['numeric']['output']>;
+  allocated_cost?: Maybe<Scalars['numeric']['output']>;
+  attempt_number?: Maybe<Scalars['Int']['output']>;
+  driver_rating?: Maybe<Scalars['numeric']['output']>;
+  dropoff_lat?: Maybe<Scalars['numeric']['output']>;
+  dropoff_lng?: Maybe<Scalars['numeric']['output']>;
+  estimated_price?: Maybe<Scalars['numeric']['output']>;
+  id?: Maybe<Scalars['bigint']['output']>;
+  move_id?: Maybe<Scalars['bigint']['output']>;
+  original_dropoff_lat?: Maybe<Scalars['numeric']['output']>;
+  original_dropoff_lng?: Maybe<Scalars['numeric']['output']>;
+  passenger_count?: Maybe<Scalars['Int']['output']>;
+  pickup_lat?: Maybe<Scalars['numeric']['output']>;
+  pickup_lng?: Maybe<Scalars['numeric']['output']>;
+  reroute_point_lat?: Maybe<Scalars['numeric']['output']>;
+  reroute_point_lng?: Maybe<Scalars['numeric']['output']>;
+  surge_multiplier?: Maybe<Scalars['numeric']['output']>;
+  vehicle_year?: Maybe<Scalars['Int']['output']>;
+};
+
+/** order by sum() on columns of table "ridehails" */
+export type Ridehails_Sum_Order_By = {
+  actual_price?: InputMaybe<Order_By>;
+  allocated_cost?: InputMaybe<Order_By>;
+  attempt_number?: InputMaybe<Order_By>;
+  driver_rating?: InputMaybe<Order_By>;
+  dropoff_lat?: InputMaybe<Order_By>;
+  dropoff_lng?: InputMaybe<Order_By>;
+  estimated_price?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  move_id?: InputMaybe<Order_By>;
+  original_dropoff_lat?: InputMaybe<Order_By>;
+  original_dropoff_lng?: InputMaybe<Order_By>;
+  passenger_count?: InputMaybe<Order_By>;
+  pickup_lat?: InputMaybe<Order_By>;
+  pickup_lng?: InputMaybe<Order_By>;
+  reroute_point_lat?: InputMaybe<Order_By>;
+  reroute_point_lng?: InputMaybe<Order_By>;
+  surge_multiplier?: InputMaybe<Order_By>;
+  vehicle_year?: InputMaybe<Order_By>;
+};
+
+/** update columns of table "ridehails" */
+export enum Ridehails_Update_Column {
+  /** column name */
+  ActualPrice = 'actual_price',
+  /** column name */
+  AlgorithmUsed = 'algorithm_used',
+  /** column name */
+  AllApiCalls = 'all_api_calls',
+  /** column name */
+  AllocatedCost = 'allocated_cost',
+  /** column name */
+  AttemptNumber = 'attempt_number',
+  /** column name */
+  BookedAt = 'booked_at',
+  /** column name */
+  CreatedAt = 'created_at',
+  /** column name */
+  DisputeReason = 'dispute_reason',
+  /** column name */
+  DisputeResolution = 'dispute_resolution',
+  /** column name */
+  DriverAssignedAt = 'driver_assigned_at',
+  /** column name */
+  DriverName = 'driver_name',
+  /** column name */
+  DriverPhone = 'driver_phone',
+  /** column name */
+  DriverPhotoUrl = 'driver_photo_url',
+  /** column name */
+  DriverRating = 'driver_rating',
+  /** column name */
+  DropoffAddress = 'dropoff_address',
+  /** column name */
+  DropoffAt = 'dropoff_at',
+  /** column name */
+  DropoffLat = 'dropoff_lat',
+  /** column name */
+  DropoffLng = 'dropoff_lng',
+  /** column name */
+  EstimatedPrice = 'estimated_price',
+  /** column name */
+  EstimatesConsidered = 'estimates_considered',
+  /** column name */
+  ExternalId = 'external_id',
+  /** column name */
+  HasDispute = 'has_dispute',
+  /** column name */
+  HasLostItem = 'has_lost_item',
+  /** column name */
+  Id = 'id',
+  /** column name */
+  MoveId = 'move_id',
+  /** column name */
+  OriginalDropoffLat = 'original_dropoff_lat',
+  /** column name */
+  OriginalDropoffLng = 'original_dropoff_lng',
+  /** column name */
+  PassengerCount = 'passenger_count',
+  /** column name */
+  PickupAddress = 'pickup_address',
+  /** column name */
+  PickupAt = 'pickup_at',
+  /** column name */
+  PickupLat = 'pickup_lat',
+  /** column name */
+  PickupLng = 'pickup_lng',
+  /** column name */
+  ProductType = 'product_type',
+  /** column name */
+  Provider = 'provider',
+  /** column name */
+  QualityRejectionReason = 'quality_rejection_reason',
+  /** column name */
+  ReroutePointLat = 'reroute_point_lat',
+  /** column name */
+  ReroutePointLng = 'reroute_point_lng',
+  /** column name */
+  SelectionReason = 'selection_reason',
+  /** column name */
+  Status = 'status',
+  /** column name */
+  SurgeMultiplier = 'surge_multiplier',
+  /** column name */
+  UpdatedAt = 'updated_at',
+  /** column name */
+  VehicleColor = 'vehicle_color',
+  /** column name */
+  VehicleLicensePlate = 'vehicle_license_plate',
+  /** column name */
+  VehicleMake = 'vehicle_make',
+  /** column name */
+  VehicleModel = 'vehicle_model',
+  /** column name */
+  VehiclePhotoUrl = 'vehicle_photo_url',
+  /** column name */
+  VehicleYear = 'vehicle_year'
+}
+
+export type Ridehails_Updates = {
+  /** append existing jsonb value of filtered columns with new jsonb value */
+  _append?: InputMaybe<Ridehails_Append_Input>;
+  /** delete the field or element with specified path (for JSON arrays, negative integers count from the end) */
+  _delete_at_path?: InputMaybe<Ridehails_Delete_At_Path_Input>;
+  /** delete the array element with specified index (negative integers count from the end). throws an error if top level container is not an array */
+  _delete_elem?: InputMaybe<Ridehails_Delete_Elem_Input>;
+  /** delete key/value pair or string element. key/value pairs are matched based on their key value */
+  _delete_key?: InputMaybe<Ridehails_Delete_Key_Input>;
+  /** increments the numeric columns with given value of the filtered values */
+  _inc?: InputMaybe<Ridehails_Inc_Input>;
+  /** prepend existing jsonb value of filtered columns with new jsonb value */
+  _prepend?: InputMaybe<Ridehails_Prepend_Input>;
+  /** sets the columns of the filtered rows to the given values */
+  _set?: InputMaybe<Ridehails_Set_Input>;
+  /** filter the rows which have to be updated */
+  where: Ridehails_Bool_Exp;
+};
+
+/** aggregate var_pop on columns */
+export type Ridehails_Var_Pop_Fields = {
+  __typename?: 'ridehails_var_pop_fields';
+  actual_price?: Maybe<Scalars['Float']['output']>;
+  allocated_cost?: Maybe<Scalars['Float']['output']>;
+  attempt_number?: Maybe<Scalars['Float']['output']>;
+  driver_rating?: Maybe<Scalars['Float']['output']>;
+  dropoff_lat?: Maybe<Scalars['Float']['output']>;
+  dropoff_lng?: Maybe<Scalars['Float']['output']>;
+  estimated_price?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+  move_id?: Maybe<Scalars['Float']['output']>;
+  original_dropoff_lat?: Maybe<Scalars['Float']['output']>;
+  original_dropoff_lng?: Maybe<Scalars['Float']['output']>;
+  passenger_count?: Maybe<Scalars['Float']['output']>;
+  pickup_lat?: Maybe<Scalars['Float']['output']>;
+  pickup_lng?: Maybe<Scalars['Float']['output']>;
+  reroute_point_lat?: Maybe<Scalars['Float']['output']>;
+  reroute_point_lng?: Maybe<Scalars['Float']['output']>;
+  surge_multiplier?: Maybe<Scalars['Float']['output']>;
+  vehicle_year?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by var_pop() on columns of table "ridehails" */
+export type Ridehails_Var_Pop_Order_By = {
+  actual_price?: InputMaybe<Order_By>;
+  allocated_cost?: InputMaybe<Order_By>;
+  attempt_number?: InputMaybe<Order_By>;
+  driver_rating?: InputMaybe<Order_By>;
+  dropoff_lat?: InputMaybe<Order_By>;
+  dropoff_lng?: InputMaybe<Order_By>;
+  estimated_price?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  move_id?: InputMaybe<Order_By>;
+  original_dropoff_lat?: InputMaybe<Order_By>;
+  original_dropoff_lng?: InputMaybe<Order_By>;
+  passenger_count?: InputMaybe<Order_By>;
+  pickup_lat?: InputMaybe<Order_By>;
+  pickup_lng?: InputMaybe<Order_By>;
+  reroute_point_lat?: InputMaybe<Order_By>;
+  reroute_point_lng?: InputMaybe<Order_By>;
+  surge_multiplier?: InputMaybe<Order_By>;
+  vehicle_year?: InputMaybe<Order_By>;
+};
+
+/** aggregate var_samp on columns */
+export type Ridehails_Var_Samp_Fields = {
+  __typename?: 'ridehails_var_samp_fields';
+  actual_price?: Maybe<Scalars['Float']['output']>;
+  allocated_cost?: Maybe<Scalars['Float']['output']>;
+  attempt_number?: Maybe<Scalars['Float']['output']>;
+  driver_rating?: Maybe<Scalars['Float']['output']>;
+  dropoff_lat?: Maybe<Scalars['Float']['output']>;
+  dropoff_lng?: Maybe<Scalars['Float']['output']>;
+  estimated_price?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+  move_id?: Maybe<Scalars['Float']['output']>;
+  original_dropoff_lat?: Maybe<Scalars['Float']['output']>;
+  original_dropoff_lng?: Maybe<Scalars['Float']['output']>;
+  passenger_count?: Maybe<Scalars['Float']['output']>;
+  pickup_lat?: Maybe<Scalars['Float']['output']>;
+  pickup_lng?: Maybe<Scalars['Float']['output']>;
+  reroute_point_lat?: Maybe<Scalars['Float']['output']>;
+  reroute_point_lng?: Maybe<Scalars['Float']['output']>;
+  surge_multiplier?: Maybe<Scalars['Float']['output']>;
+  vehicle_year?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by var_samp() on columns of table "ridehails" */
+export type Ridehails_Var_Samp_Order_By = {
+  actual_price?: InputMaybe<Order_By>;
+  allocated_cost?: InputMaybe<Order_By>;
+  attempt_number?: InputMaybe<Order_By>;
+  driver_rating?: InputMaybe<Order_By>;
+  dropoff_lat?: InputMaybe<Order_By>;
+  dropoff_lng?: InputMaybe<Order_By>;
+  estimated_price?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  move_id?: InputMaybe<Order_By>;
+  original_dropoff_lat?: InputMaybe<Order_By>;
+  original_dropoff_lng?: InputMaybe<Order_By>;
+  passenger_count?: InputMaybe<Order_By>;
+  pickup_lat?: InputMaybe<Order_By>;
+  pickup_lng?: InputMaybe<Order_By>;
+  reroute_point_lat?: InputMaybe<Order_By>;
+  reroute_point_lng?: InputMaybe<Order_By>;
+  surge_multiplier?: InputMaybe<Order_By>;
+  vehicle_year?: InputMaybe<Order_By>;
+};
+
+/** aggregate variance on columns */
+export type Ridehails_Variance_Fields = {
+  __typename?: 'ridehails_variance_fields';
+  actual_price?: Maybe<Scalars['Float']['output']>;
+  allocated_cost?: Maybe<Scalars['Float']['output']>;
+  attempt_number?: Maybe<Scalars['Float']['output']>;
+  driver_rating?: Maybe<Scalars['Float']['output']>;
+  dropoff_lat?: Maybe<Scalars['Float']['output']>;
+  dropoff_lng?: Maybe<Scalars['Float']['output']>;
+  estimated_price?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+  move_id?: Maybe<Scalars['Float']['output']>;
+  original_dropoff_lat?: Maybe<Scalars['Float']['output']>;
+  original_dropoff_lng?: Maybe<Scalars['Float']['output']>;
+  passenger_count?: Maybe<Scalars['Float']['output']>;
+  pickup_lat?: Maybe<Scalars['Float']['output']>;
+  pickup_lng?: Maybe<Scalars['Float']['output']>;
+  reroute_point_lat?: Maybe<Scalars['Float']['output']>;
+  reroute_point_lng?: Maybe<Scalars['Float']['output']>;
+  surge_multiplier?: Maybe<Scalars['Float']['output']>;
+  vehicle_year?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by variance() on columns of table "ridehails" */
+export type Ridehails_Variance_Order_By = {
+  actual_price?: InputMaybe<Order_By>;
+  allocated_cost?: InputMaybe<Order_By>;
+  attempt_number?: InputMaybe<Order_By>;
+  driver_rating?: InputMaybe<Order_By>;
+  dropoff_lat?: InputMaybe<Order_By>;
+  dropoff_lng?: InputMaybe<Order_By>;
+  estimated_price?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  move_id?: InputMaybe<Order_By>;
+  original_dropoff_lat?: InputMaybe<Order_By>;
+  original_dropoff_lng?: InputMaybe<Order_By>;
+  passenger_count?: InputMaybe<Order_By>;
+  pickup_lat?: InputMaybe<Order_By>;
+  pickup_lng?: InputMaybe<Order_By>;
+  reroute_point_lat?: InputMaybe<Order_By>;
+  reroute_point_lng?: InputMaybe<Order_By>;
+  surge_multiplier?: InputMaybe<Order_By>;
+  vehicle_year?: InputMaybe<Order_By>;
+};
+
 /** Table of fare data sourced from rideshare providers organized by market */
 export type Ridesharefares = {
   __typename?: 'ridesharefares';
@@ -67434,7 +71703,7 @@ export type Ridesharefares_Bool_Exp = {
 export enum Ridesharefares_Constraint {
   /** unique or primary key constraint on columns "id" */
   RidesharefaresPkey = 'ridesharefares_pkey',
-  /** unique or primary key constraint on columns "effective_date", "provider", "market" */
+  /** unique or primary key constraint on columns "provider", "market", "effective_date" */
   RidesharefaresProviderMarketEffectiveDateKey = 'ridesharefares_provider_market_effective_date_key'
 }
 
@@ -72520,6 +76789,8 @@ export type Smsmedia_Bool_Exp = {
 /** unique or primary key constraints on table "smsmedia" */
 export enum Smsmedia_Constraint {
   /** unique or primary key constraint on columns "id" */
+  SmsmediaIdKey = 'smsmedia_id_key',
+  /** unique or primary key constraint on columns "id" */
   SmsmediaPkey = 'smsmedia_pkey'
 }
 
@@ -72738,7 +77009,7 @@ export type Smsmedia_Variance_Order_By = {
   sms_message_id?: InputMaybe<Order_By>;
 };
 
-/** Stores the content, status, and data required for sending SMS messages */
+/** Stores the content, status, and any data required for sending SMS messages */
 export type Smsmessages = {
   __typename?: 'smsmessages';
   /** An object relationship */
@@ -72754,6 +77025,8 @@ export type Smsmessages = {
   message_body?: Maybe<Scalars['String']['output']>;
   /** For storing any audit related detail */
   metadata?: Maybe<Scalars['jsonb']['output']>;
+  /** An object relationship */
+  move?: Maybe<Moves>;
   move_id?: Maybe<Scalars['bigint']['output']>;
   recipient_phone?: Maybe<Scalars['String']['output']>;
   sender_phone?: Maybe<Scalars['String']['output']>;
@@ -72772,13 +77045,13 @@ export type Smsmessages = {
 };
 
 
-/** Stores the content, status, and data required for sending SMS messages */
+/** Stores the content, status, and any data required for sending SMS messages */
 export type SmsmessagesMetadataArgs = {
   path?: InputMaybe<Scalars['String']['input']>;
 };
 
 
-/** Stores the content, status, and data required for sending SMS messages */
+/** Stores the content, status, and any data required for sending SMS messages */
 export type SmsmessagesSmsmediaArgs = {
   distinct_on?: InputMaybe<Array<Smsmedia_Select_Column>>;
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -72788,7 +77061,7 @@ export type SmsmessagesSmsmediaArgs = {
 };
 
 
-/** Stores the content, status, and data required for sending SMS messages */
+/** Stores the content, status, and any data required for sending SMS messages */
 export type SmsmessagesSmsmedia_AggregateArgs = {
   distinct_on?: InputMaybe<Array<Smsmedia_Select_Column>>;
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -72899,6 +77172,7 @@ export type Smsmessages_Bool_Exp = {
   id?: InputMaybe<Bigint_Comparison_Exp>;
   message_body?: InputMaybe<String_Comparison_Exp>;
   metadata?: InputMaybe<Jsonb_Comparison_Exp>;
+  move?: InputMaybe<Moves_Bool_Exp>;
   move_id?: InputMaybe<Bigint_Comparison_Exp>;
   recipient_phone?: InputMaybe<String_Comparison_Exp>;
   sender_phone?: InputMaybe<String_Comparison_Exp>;
@@ -72913,6 +77187,8 @@ export type Smsmessages_Bool_Exp = {
 
 /** unique or primary key constraints on table "smsmessages" */
 export enum Smsmessages_Constraint {
+  /** unique or primary key constraint on columns "id" */
+  SmsmessagesIdKey = 'smsmessages_id_key',
   /** unique or primary key constraint on columns "id" */
   SmsmessagesPkey = 'smsmessages_pkey'
 }
@@ -72958,6 +77234,7 @@ export type Smsmessages_Insert_Input = {
   message_body?: InputMaybe<Scalars['String']['input']>;
   /** For storing any audit related detail */
   metadata?: InputMaybe<Scalars['jsonb']['input']>;
+  move?: InputMaybe<Moves_Obj_Rel_Insert_Input>;
   move_id?: InputMaybe<Scalars['bigint']['input']>;
   recipient_phone?: InputMaybe<Scalars['String']['input']>;
   sender_phone?: InputMaybe<Scalars['String']['input']>;
@@ -73104,6 +77381,7 @@ export type Smsmessages_Order_By = {
   id?: InputMaybe<Order_By>;
   message_body?: InputMaybe<Order_By>;
   metadata?: InputMaybe<Order_By>;
+  move?: InputMaybe<Moves_Order_By>;
   move_id?: InputMaybe<Order_By>;
   recipient_phone?: InputMaybe<Order_By>;
   sender_phone?: InputMaybe<Order_By>;
@@ -73410,11 +77688,11 @@ export type Smsmessages_Variance_Order_By = {
   template_id?: InputMaybe<Order_By>;
 };
 
-/** Stores templates for SMS messages by type, customer, organization, and region */
+/** Stores SMS templates by type and region, customer, and organization */
 export type Smstemplates = {
   __typename?: 'smstemplates';
-  createdat?: Maybe<Scalars['timestamptz']['output']>;
-  createdby?: Maybe<Scalars['String']['output']>;
+  created_at?: Maybe<Scalars['timestamptz']['output']>;
+  created_by?: Maybe<Scalars['String']['output']>;
   customer_id?: Maybe<Scalars['bigint']['output']>;
   /** Describes the scenario to which the template applies (e.g. "House account override for pickup starting on a concierge move with the consumer at the pickup location" */
   description?: Maybe<Scalars['String']['output']>;
@@ -73429,12 +77707,12 @@ export type Smstemplates = {
   template: Scalars['String']['output'];
   /** Designates the scenario for sending the SMS (e.g., concierge.consumer.at.pickup.pickup.started) */
   type: Scalars['String']['output'];
-  updatedat?: Maybe<Scalars['timestamptz']['output']>;
-  updatedby?: Maybe<Scalars['String']['output']>;
+  updated_at?: Maybe<Scalars['timestamptz']['output']>;
+  updated_by?: Maybe<Scalars['String']['output']>;
 };
 
 
-/** Stores templates for SMS messages by type, customer, organization, and region */
+/** Stores SMS templates by type and region, customer, and organization */
 export type SmstemplatesMedia_AttachmentsArgs = {
   path?: InputMaybe<Scalars['String']['input']>;
 };
@@ -73489,8 +77767,8 @@ export type Smstemplates_Bool_Exp = {
   _and?: InputMaybe<Array<Smstemplates_Bool_Exp>>;
   _not?: InputMaybe<Smstemplates_Bool_Exp>;
   _or?: InputMaybe<Array<Smstemplates_Bool_Exp>>;
-  createdat?: InputMaybe<Timestamptz_Comparison_Exp>;
-  createdby?: InputMaybe<String_Comparison_Exp>;
+  created_at?: InputMaybe<Timestamptz_Comparison_Exp>;
+  created_by?: InputMaybe<String_Comparison_Exp>;
   customer_id?: InputMaybe<Bigint_Comparison_Exp>;
   description?: InputMaybe<String_Comparison_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
@@ -73500,8 +77778,8 @@ export type Smstemplates_Bool_Exp = {
   region_id?: InputMaybe<Bigint_Comparison_Exp>;
   template?: InputMaybe<String_Comparison_Exp>;
   type?: InputMaybe<String_Comparison_Exp>;
-  updatedat?: InputMaybe<Timestamptz_Comparison_Exp>;
-  updatedby?: InputMaybe<String_Comparison_Exp>;
+  updated_at?: InputMaybe<Timestamptz_Comparison_Exp>;
+  updated_by?: InputMaybe<String_Comparison_Exp>;
 };
 
 /** unique or primary key constraints on table "smstemplates" */
@@ -73540,8 +77818,8 @@ export type Smstemplates_Inc_Input = {
 
 /** input type for inserting data into table "smstemplates" */
 export type Smstemplates_Insert_Input = {
-  createdat?: InputMaybe<Scalars['timestamptz']['input']>;
-  createdby?: InputMaybe<Scalars['String']['input']>;
+  created_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  created_by?: InputMaybe<Scalars['String']['input']>;
   customer_id?: InputMaybe<Scalars['bigint']['input']>;
   /** Describes the scenario to which the template applies (e.g. "House account override for pickup starting on a concierge move with the consumer at the pickup location" */
   description?: InputMaybe<Scalars['String']['input']>;
@@ -73556,15 +77834,15 @@ export type Smstemplates_Insert_Input = {
   template?: InputMaybe<Scalars['String']['input']>;
   /** Designates the scenario for sending the SMS (e.g., concierge.consumer.at.pickup.pickup.started) */
   type?: InputMaybe<Scalars['String']['input']>;
-  updatedat?: InputMaybe<Scalars['timestamptz']['input']>;
-  updatedby?: InputMaybe<Scalars['String']['input']>;
+  updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  updated_by?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** aggregate max on columns */
 export type Smstemplates_Max_Fields = {
   __typename?: 'smstemplates_max_fields';
-  createdat?: Maybe<Scalars['timestamptz']['output']>;
-  createdby?: Maybe<Scalars['String']['output']>;
+  created_at?: Maybe<Scalars['timestamptz']['output']>;
+  created_by?: Maybe<Scalars['String']['output']>;
   customer_id?: Maybe<Scalars['bigint']['output']>;
   /** Describes the scenario to which the template applies (e.g. "House account override for pickup starting on a concierge move with the consumer at the pickup location" */
   description?: Maybe<Scalars['String']['output']>;
@@ -73577,15 +77855,15 @@ export type Smstemplates_Max_Fields = {
   template?: Maybe<Scalars['String']['output']>;
   /** Designates the scenario for sending the SMS (e.g., concierge.consumer.at.pickup.pickup.started) */
   type?: Maybe<Scalars['String']['output']>;
-  updatedat?: Maybe<Scalars['timestamptz']['output']>;
-  updatedby?: Maybe<Scalars['String']['output']>;
+  updated_at?: Maybe<Scalars['timestamptz']['output']>;
+  updated_by?: Maybe<Scalars['String']['output']>;
 };
 
 /** aggregate min on columns */
 export type Smstemplates_Min_Fields = {
   __typename?: 'smstemplates_min_fields';
-  createdat?: Maybe<Scalars['timestamptz']['output']>;
-  createdby?: Maybe<Scalars['String']['output']>;
+  created_at?: Maybe<Scalars['timestamptz']['output']>;
+  created_by?: Maybe<Scalars['String']['output']>;
   customer_id?: Maybe<Scalars['bigint']['output']>;
   /** Describes the scenario to which the template applies (e.g. "House account override for pickup starting on a concierge move with the consumer at the pickup location" */
   description?: Maybe<Scalars['String']['output']>;
@@ -73598,8 +77876,8 @@ export type Smstemplates_Min_Fields = {
   template?: Maybe<Scalars['String']['output']>;
   /** Designates the scenario for sending the SMS (e.g., concierge.consumer.at.pickup.pickup.started) */
   type?: Maybe<Scalars['String']['output']>;
-  updatedat?: Maybe<Scalars['timestamptz']['output']>;
-  updatedby?: Maybe<Scalars['String']['output']>;
+  updated_at?: Maybe<Scalars['timestamptz']['output']>;
+  updated_by?: Maybe<Scalars['String']['output']>;
 };
 
 /** response of any mutation on the table "smstemplates" */
@@ -73620,8 +77898,8 @@ export type Smstemplates_On_Conflict = {
 
 /** Ordering options when selecting data from "smstemplates". */
 export type Smstemplates_Order_By = {
-  createdat?: InputMaybe<Order_By>;
-  createdby?: InputMaybe<Order_By>;
+  created_at?: InputMaybe<Order_By>;
+  created_by?: InputMaybe<Order_By>;
   customer_id?: InputMaybe<Order_By>;
   description?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
@@ -73631,8 +77909,8 @@ export type Smstemplates_Order_By = {
   region_id?: InputMaybe<Order_By>;
   template?: InputMaybe<Order_By>;
   type?: InputMaybe<Order_By>;
-  updatedat?: InputMaybe<Order_By>;
-  updatedby?: InputMaybe<Order_By>;
+  updated_at?: InputMaybe<Order_By>;
+  updated_by?: InputMaybe<Order_By>;
 };
 
 /** primary key columns input for table: smstemplates */
@@ -73649,9 +77927,9 @@ export type Smstemplates_Prepend_Input = {
 /** select columns of table "smstemplates" */
 export enum Smstemplates_Select_Column {
   /** column name */
-  Createdat = 'createdat',
+  CreatedAt = 'created_at',
   /** column name */
-  Createdby = 'createdby',
+  CreatedBy = 'created_by',
   /** column name */
   CustomerId = 'customer_id',
   /** column name */
@@ -73671,15 +77949,15 @@ export enum Smstemplates_Select_Column {
   /** column name */
   Type = 'type',
   /** column name */
-  Updatedat = 'updatedat',
+  UpdatedAt = 'updated_at',
   /** column name */
-  Updatedby = 'updatedby'
+  UpdatedBy = 'updated_by'
 }
 
 /** input type for updating data in table "smstemplates" */
 export type Smstemplates_Set_Input = {
-  createdat?: InputMaybe<Scalars['timestamptz']['input']>;
-  createdby?: InputMaybe<Scalars['String']['input']>;
+  created_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  created_by?: InputMaybe<Scalars['String']['input']>;
   customer_id?: InputMaybe<Scalars['bigint']['input']>;
   /** Describes the scenario to which the template applies (e.g. "House account override for pickup starting on a concierge move with the consumer at the pickup location" */
   description?: InputMaybe<Scalars['String']['input']>;
@@ -73694,8 +77972,8 @@ export type Smstemplates_Set_Input = {
   template?: InputMaybe<Scalars['String']['input']>;
   /** Designates the scenario for sending the SMS (e.g., concierge.consumer.at.pickup.pickup.started) */
   type?: InputMaybe<Scalars['String']['input']>;
-  updatedat?: InputMaybe<Scalars['timestamptz']['input']>;
-  updatedby?: InputMaybe<Scalars['String']['input']>;
+  updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  updated_by?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** aggregate stddev on columns */
@@ -73735,8 +78013,8 @@ export type Smstemplates_Stream_Cursor_Input = {
 
 /** Initial value of the column from where the streaming should start */
 export type Smstemplates_Stream_Cursor_Value_Input = {
-  createdat?: InputMaybe<Scalars['timestamptz']['input']>;
-  createdby?: InputMaybe<Scalars['String']['input']>;
+  created_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  created_by?: InputMaybe<Scalars['String']['input']>;
   customer_id?: InputMaybe<Scalars['bigint']['input']>;
   /** Describes the scenario to which the template applies (e.g. "House account override for pickup starting on a concierge move with the consumer at the pickup location" */
   description?: InputMaybe<Scalars['String']['input']>;
@@ -73751,8 +78029,8 @@ export type Smstemplates_Stream_Cursor_Value_Input = {
   template?: InputMaybe<Scalars['String']['input']>;
   /** Designates the scenario for sending the SMS (e.g., concierge.consumer.at.pickup.pickup.started) */
   type?: InputMaybe<Scalars['String']['input']>;
-  updatedat?: InputMaybe<Scalars['timestamptz']['input']>;
-  updatedby?: InputMaybe<Scalars['String']['input']>;
+  updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  updated_by?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** aggregate sum on columns */
@@ -73767,9 +78045,9 @@ export type Smstemplates_Sum_Fields = {
 /** update columns of table "smstemplates" */
 export enum Smstemplates_Update_Column {
   /** column name */
-  Createdat = 'createdat',
+  CreatedAt = 'created_at',
   /** column name */
-  Createdby = 'createdby',
+  CreatedBy = 'created_by',
   /** column name */
   CustomerId = 'customer_id',
   /** column name */
@@ -73789,9 +78067,9 @@ export enum Smstemplates_Update_Column {
   /** column name */
   Type = 'type',
   /** column name */
-  Updatedat = 'updatedat',
+  UpdatedAt = 'updated_at',
   /** column name */
-  Updatedby = 'updatedby'
+  UpdatedBy = 'updated_by'
 }
 
 export type Smstemplates_Updates = {
@@ -74107,6 +78385,12 @@ export type Subscription_Root = {
   chasevehiclesassigned_by_pk?: Maybe<Chasevehiclesassigned>;
   /** fetch data from the table in a streaming manner: "chasevehiclesassigned" */
   chasevehiclesassigned_stream: Array<Chasevehiclesassigned>;
+  /** fetch data from the table: "connection_info" */
+  connection_info: Array<Connection_Info>;
+  /** fetch aggregated fields from the table: "connection_info" */
+  connection_info_aggregate: Connection_Info_Aggregate;
+  /** fetch data from the table in a streaming manner: "connection_info" */
+  connection_info_stream: Array<Connection_Info>;
   /** fetch data from the table: "consumer_numbers" */
   consumer_numbers: Array<Consumer_Numbers>;
   /** fetch aggregated fields from the table: "consumer_numbers" */
@@ -74115,6 +78399,22 @@ export type Subscription_Root = {
   consumer_numbers_by_pk?: Maybe<Consumer_Numbers>;
   /** fetch data from the table in a streaming manner: "consumer_numbers" */
   consumer_numbers_stream: Array<Consumer_Numbers>;
+  /** fetch data from the table: "contacts" */
+  contacts: Array<Contacts>;
+  /** fetch aggregated fields from the table: "contacts" */
+  contacts_aggregate: Contacts_Aggregate;
+  /** fetch data from the table: "contacts" using primary key columns */
+  contacts_by_pk?: Maybe<Contacts>;
+  /** fetch data from the table in a streaming manner: "contacts" */
+  contacts_stream: Array<Contacts>;
+  /** fetch data from the table: "contactstomoves" */
+  contactstomoves: Array<Contactstomoves>;
+  /** fetch aggregated fields from the table: "contactstomoves" */
+  contactstomoves_aggregate: Contactstomoves_Aggregate;
+  /** fetch data from the table: "contactstomoves" using primary key columns */
+  contactstomoves_by_pk?: Maybe<Contactstomoves>;
+  /** fetch data from the table in a streaming manner: "contactstomoves" */
+  contactstomoves_stream: Array<Contactstomoves>;
   /** fetch data from the table: "coordinatedplans" */
   coordinatedplans: Array<Coordinatedplans>;
   /** fetch aggregated fields from the table: "coordinatedplans" */
@@ -74147,6 +78447,12 @@ export type Subscription_Root = {
   customerstocertifications_by_pk?: Maybe<Customerstocertifications>;
   /** fetch data from the table in a streaming manner: "customerstocertifications" */
   customerstocertifications_stream: Array<Customerstocertifications>;
+  /** fetch data from the table: "dashboard_stats" */
+  dashboard_stats: Array<Dashboard_Stats>;
+  /** fetch aggregated fields from the table: "dashboard_stats" */
+  dashboard_stats_aggregate: Dashboard_Stats_Aggregate;
+  /** fetch data from the table in a streaming manner: "dashboard_stats" */
+  dashboard_stats_stream: Array<Dashboard_Stats>;
   /** fetch data from the table: "dealer_viewable_admin_info" */
   dealer_viewable_admin_info: Array<Dealer_Viewable_Admin_Info>;
   /** fetch aggregated fields from the table: "dealer_viewable_admin_info" */
@@ -74439,6 +78745,14 @@ export type Subscription_Root = {
   lyftrides_by_pk?: Maybe<Lyftrides>;
   /** fetch data from the table in a streaming manner: "lyftrides" */
   lyftrides_stream: Array<Lyftrides>;
+  /** fetch data from the table: "manualrides" */
+  manualrides: Array<Manualrides>;
+  /** fetch aggregated fields from the table: "manualrides" */
+  manualrides_aggregate: Manualrides_Aggregate;
+  /** fetch data from the table: "manualrides" using primary key columns */
+  manualrides_by_pk?: Maybe<Manualrides>;
+  /** fetch data from the table in a streaming manner: "manualrides" */
+  manualrides_stream: Array<Manualrides>;
   /** fetch data from the table: "metrics_hourly" */
   metrics_hourly: Array<Metrics_Hourly>;
   /** fetch aggregated fields from the table: "metrics_hourly" */
@@ -74631,6 +78945,14 @@ export type Subscription_Root = {
   regions_by_pk?: Maybe<Regions>;
   /** fetch data from the table in a streaming manner: "regions" */
   regions_stream: Array<Regions>;
+  /** fetch data from the table: "rideestimates" */
+  rideestimates: Array<Rideestimates>;
+  /** fetch aggregated fields from the table: "rideestimates" */
+  rideestimates_aggregate: Rideestimates_Aggregate;
+  /** fetch data from the table: "rideestimates" using primary key columns */
+  rideestimates_by_pk?: Maybe<Rideestimates>;
+  /** fetch data from the table in a streaming manner: "rideestimates" */
+  rideestimates_stream: Array<Rideestimates>;
   /** fetch data from the table: "ridegroups" */
   ridegroups: Array<Ridegroups>;
   /** fetch aggregated fields from the table: "ridegroups" */
@@ -74639,6 +78961,14 @@ export type Subscription_Root = {
   ridegroups_by_pk?: Maybe<Ridegroups>;
   /** fetch data from the table in a streaming manner: "ridegroups" */
   ridegroups_stream: Array<Ridegroups>;
+  /** An array relationship */
+  ridehails: Array<Ridehails>;
+  /** An aggregate relationship */
+  ridehails_aggregate: Ridehails_Aggregate;
+  /** fetch data from the table: "ridehails" using primary key columns */
+  ridehails_by_pk?: Maybe<Ridehails>;
+  /** fetch data from the table in a streaming manner: "ridehails" */
+  ridehails_stream: Array<Ridehails>;
   /** fetch data from the table: "ridesharefares" */
   ridesharefares: Array<Ridesharefares>;
   /** fetch aggregated fields from the table: "ridesharefares" */
@@ -75053,7 +79383,7 @@ export type Subscription_RootAlgorithms_AggregateArgs = {
 
 
 export type Subscription_RootAlgorithms_By_PkArgs = {
-  id: Scalars['bigint']['input'];
+  key: Scalars['String']['input'];
 };
 
 
@@ -75869,6 +80199,31 @@ export type Subscription_RootChasevehiclesassigned_StreamArgs = {
 };
 
 
+export type Subscription_RootConnection_InfoArgs = {
+  distinct_on?: InputMaybe<Array<Connection_Info_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Connection_Info_Order_By>>;
+  where?: InputMaybe<Connection_Info_Bool_Exp>;
+};
+
+
+export type Subscription_RootConnection_Info_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Connection_Info_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Connection_Info_Order_By>>;
+  where?: InputMaybe<Connection_Info_Bool_Exp>;
+};
+
+
+export type Subscription_RootConnection_Info_StreamArgs = {
+  batch_size: Scalars['Int']['input'];
+  cursor: Array<InputMaybe<Connection_Info_Stream_Cursor_Input>>;
+  where?: InputMaybe<Connection_Info_Bool_Exp>;
+};
+
+
 export type Subscription_RootConsumer_NumbersArgs = {
   distinct_on?: InputMaybe<Array<Consumer_Numbers_Select_Column>>;
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -75896,6 +80251,66 @@ export type Subscription_RootConsumer_Numbers_StreamArgs = {
   batch_size: Scalars['Int']['input'];
   cursor: Array<InputMaybe<Consumer_Numbers_Stream_Cursor_Input>>;
   where?: InputMaybe<Consumer_Numbers_Bool_Exp>;
+};
+
+
+export type Subscription_RootContactsArgs = {
+  distinct_on?: InputMaybe<Array<Contacts_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Contacts_Order_By>>;
+  where?: InputMaybe<Contacts_Bool_Exp>;
+};
+
+
+export type Subscription_RootContacts_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Contacts_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Contacts_Order_By>>;
+  where?: InputMaybe<Contacts_Bool_Exp>;
+};
+
+
+export type Subscription_RootContacts_By_PkArgs = {
+  id: Scalars['bigint']['input'];
+};
+
+
+export type Subscription_RootContacts_StreamArgs = {
+  batch_size: Scalars['Int']['input'];
+  cursor: Array<InputMaybe<Contacts_Stream_Cursor_Input>>;
+  where?: InputMaybe<Contacts_Bool_Exp>;
+};
+
+
+export type Subscription_RootContactstomovesArgs = {
+  distinct_on?: InputMaybe<Array<Contactstomoves_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Contactstomoves_Order_By>>;
+  where?: InputMaybe<Contactstomoves_Bool_Exp>;
+};
+
+
+export type Subscription_RootContactstomoves_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Contactstomoves_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Contactstomoves_Order_By>>;
+  where?: InputMaybe<Contactstomoves_Bool_Exp>;
+};
+
+
+export type Subscription_RootContactstomoves_By_PkArgs = {
+  id: Scalars['bigint']['input'];
+};
+
+
+export type Subscription_RootContactstomoves_StreamArgs = {
+  batch_size: Scalars['Int']['input'];
+  cursor: Array<InputMaybe<Contactstomoves_Stream_Cursor_Input>>;
+  where?: InputMaybe<Contactstomoves_Bool_Exp>;
 };
 
 
@@ -76018,6 +80433,31 @@ export type Subscription_RootCustomerstocertifications_StreamArgs = {
   batch_size: Scalars['Int']['input'];
   cursor: Array<InputMaybe<Customerstocertifications_Stream_Cursor_Input>>;
   where?: InputMaybe<Customerstocertifications_Bool_Exp>;
+};
+
+
+export type Subscription_RootDashboard_StatsArgs = {
+  distinct_on?: InputMaybe<Array<Dashboard_Stats_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Dashboard_Stats_Order_By>>;
+  where?: InputMaybe<Dashboard_Stats_Bool_Exp>;
+};
+
+
+export type Subscription_RootDashboard_Stats_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Dashboard_Stats_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Dashboard_Stats_Order_By>>;
+  where?: InputMaybe<Dashboard_Stats_Bool_Exp>;
+};
+
+
+export type Subscription_RootDashboard_Stats_StreamArgs = {
+  batch_size: Scalars['Int']['input'];
+  cursor: Array<InputMaybe<Dashboard_Stats_Stream_Cursor_Input>>;
+  where?: InputMaybe<Dashboard_Stats_Bool_Exp>;
 };
 
 
@@ -77135,6 +81575,36 @@ export type Subscription_RootLyftrides_StreamArgs = {
 };
 
 
+export type Subscription_RootManualridesArgs = {
+  distinct_on?: InputMaybe<Array<Manualrides_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Manualrides_Order_By>>;
+  where?: InputMaybe<Manualrides_Bool_Exp>;
+};
+
+
+export type Subscription_RootManualrides_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Manualrides_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Manualrides_Order_By>>;
+  where?: InputMaybe<Manualrides_Bool_Exp>;
+};
+
+
+export type Subscription_RootManualrides_By_PkArgs = {
+  id: Scalars['bigint']['input'];
+};
+
+
+export type Subscription_RootManualrides_StreamArgs = {
+  batch_size: Scalars['Int']['input'];
+  cursor: Array<InputMaybe<Manualrides_Stream_Cursor_Input>>;
+  where?: InputMaybe<Manualrides_Bool_Exp>;
+};
+
+
 export type Subscription_RootMetrics_HourlyArgs = {
   distinct_on?: InputMaybe<Array<Metrics_Hourly_Select_Column>>;
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -77866,6 +82336,36 @@ export type Subscription_RootRegions_StreamArgs = {
 };
 
 
+export type Subscription_RootRideestimatesArgs = {
+  distinct_on?: InputMaybe<Array<Rideestimates_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Rideestimates_Order_By>>;
+  where?: InputMaybe<Rideestimates_Bool_Exp>;
+};
+
+
+export type Subscription_RootRideestimates_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Rideestimates_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Rideestimates_Order_By>>;
+  where?: InputMaybe<Rideestimates_Bool_Exp>;
+};
+
+
+export type Subscription_RootRideestimates_By_PkArgs = {
+  id: Scalars['uuid']['input'];
+};
+
+
+export type Subscription_RootRideestimates_StreamArgs = {
+  batch_size: Scalars['Int']['input'];
+  cursor: Array<InputMaybe<Rideestimates_Stream_Cursor_Input>>;
+  where?: InputMaybe<Rideestimates_Bool_Exp>;
+};
+
+
 export type Subscription_RootRidegroupsArgs = {
   distinct_on?: InputMaybe<Array<Ridegroups_Select_Column>>;
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -77894,6 +82394,36 @@ export type Subscription_RootRidegroups_StreamArgs = {
   batch_size: Scalars['Int']['input'];
   cursor: Array<InputMaybe<Ridegroups_Stream_Cursor_Input>>;
   where?: InputMaybe<Ridegroups_Bool_Exp>;
+};
+
+
+export type Subscription_RootRidehailsArgs = {
+  distinct_on?: InputMaybe<Array<Ridehails_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Ridehails_Order_By>>;
+  where?: InputMaybe<Ridehails_Bool_Exp>;
+};
+
+
+export type Subscription_RootRidehails_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Ridehails_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Ridehails_Order_By>>;
+  where?: InputMaybe<Ridehails_Bool_Exp>;
+};
+
+
+export type Subscription_RootRidehails_By_PkArgs = {
+  id: Scalars['bigint']['input'];
+};
+
+
+export type Subscription_RootRidehails_StreamArgs = {
+  batch_size: Scalars['Int']['input'];
+  cursor: Array<InputMaybe<Ridehails_Stream_Cursor_Input>>;
+  where?: InputMaybe<Ridehails_Bool_Exp>;
 };
 
 
@@ -82363,7 +86893,7 @@ export type Usertofeatures_Bool_Exp = {
 
 /** unique or primary key constraints on table "usertofeatures" */
 export enum Usertofeatures_Constraint {
-  /** unique or primary key constraint on columns "feature_id", "user_id" */
+  /** unique or primary key constraint on columns "user_id", "feature_id" */
   UsertofeaturesFeatureIdUserIdKey = 'usertofeatures_feature_id_user_id_key',
   /** unique or primary key constraint on columns "id" */
   UsertofeaturesPkey = 'usertofeatures_pkey'
@@ -82763,7 +87293,7 @@ export type Usertoregions_Bool_Exp = {
 export enum Usertoregions_Constraint {
   /** unique or primary key constraint on columns "id" */
   UsertoregionsPkey = 'usertoregions_pkey',
-  /** unique or primary key constraint on columns "region_id", "user_id" */
+  /** unique or primary key constraint on columns "user_id", "region_id" */
   UsertoregionsUserIdRegionIdKey = 'usertoregions_user_id_region_id_key'
 }
 
@@ -83161,7 +87691,7 @@ export type Usertoroles_Bool_Exp = {
 export enum Usertoroles_Constraint {
   /** unique or primary key constraint on columns "id" */
   UsertorolesPkey = 'usertoroles_pkey',
-  /** unique or primary key constraint on columns "role_id", "user_id" */
+  /** unique or primary key constraint on columns "user_id", "role_id" */
   UsertorolesUserIdRoleIdKey = 'usertoroles_user_id_role_id_key'
 }
 
@@ -84176,7 +88706,7 @@ export type Vehiclephotos_Bool_Exp = {
 
 /** unique or primary key constraints on table "vehiclephotos" */
 export enum Vehiclephotos_Constraint {
-  /** unique or primary key constraint on columns "name", "workflow_id", "move_id" */
+  /** unique or primary key constraint on columns "move_id", "name", "workflow_id" */
   VehiclephotosNameMoveIdWorkflowIdKey = 'vehiclephotos_name_move_id_workflow_id_key',
   /** unique or primary key constraint on columns "id" */
   VehiclephotosPkey = 'vehiclephotos_pkey'
@@ -84566,7 +89096,7 @@ export type Vehicles = {
   doe_modified_on: Scalars['timestamptz']['output'];
   drive_axle_type?: Maybe<Scalars['String']['output']>;
   electric_motor?: Maybe<Scalars['String']['output']>;
-  /** Engine descriptor code e.g. DI for Direct Injeection, HEV for Hybrid Electric Vehicle, etc. See http://www.fueleconomy.gov/feg/findacarhelp.shtml#engine for all descriptors */
+  /** Engine descriptor code e.g. DI for Direct Injection, HEV for Hybrid Electric Vehicle, etc. See http://www.fueleconomy.gov/feg/findacarhelp.shtml#engine for all descriptors */
   engine_descriptor?: Maybe<Scalars['String']['output']>;
   engine_displacement_liters?: Maybe<Scalars['numeric']['output']>;
   /** EPA model type index */
@@ -85004,7 +89534,7 @@ export type Vehicles_Insert_Input = {
   doe_modified_on?: InputMaybe<Scalars['timestamptz']['input']>;
   drive_axle_type?: InputMaybe<Scalars['String']['input']>;
   electric_motor?: InputMaybe<Scalars['String']['input']>;
-  /** Engine descriptor code e.g. DI for Direct Injeection, HEV for Hybrid Electric Vehicle, etc. See http://www.fueleconomy.gov/feg/findacarhelp.shtml#engine for all descriptors */
+  /** Engine descriptor code e.g. DI for Direct Injection, HEV for Hybrid Electric Vehicle, etc. See http://www.fueleconomy.gov/feg/findacarhelp.shtml#engine for all descriptors */
   engine_descriptor?: InputMaybe<Scalars['String']['input']>;
   engine_displacement_liters?: InputMaybe<Scalars['numeric']['input']>;
   /** EPA model type index */
@@ -85136,7 +89666,7 @@ export type Vehicles_Max_Fields = {
   doe_modified_on?: Maybe<Scalars['timestamptz']['output']>;
   drive_axle_type?: Maybe<Scalars['String']['output']>;
   electric_motor?: Maybe<Scalars['String']['output']>;
-  /** Engine descriptor code e.g. DI for Direct Injeection, HEV for Hybrid Electric Vehicle, etc. See http://www.fueleconomy.gov/feg/findacarhelp.shtml#engine for all descriptors */
+  /** Engine descriptor code e.g. DI for Direct Injection, HEV for Hybrid Electric Vehicle, etc. See http://www.fueleconomy.gov/feg/findacarhelp.shtml#engine for all descriptors */
   engine_descriptor?: Maybe<Scalars['String']['output']>;
   engine_displacement_liters?: Maybe<Scalars['numeric']['output']>;
   /** EPA model type index */
@@ -85261,7 +89791,7 @@ export type Vehicles_Min_Fields = {
   doe_modified_on?: Maybe<Scalars['timestamptz']['output']>;
   drive_axle_type?: Maybe<Scalars['String']['output']>;
   electric_motor?: Maybe<Scalars['String']['output']>;
-  /** Engine descriptor code e.g. DI for Direct Injeection, HEV for Hybrid Electric Vehicle, etc. See http://www.fueleconomy.gov/feg/findacarhelp.shtml#engine for all descriptors */
+  /** Engine descriptor code e.g. DI for Direct Injection, HEV for Hybrid Electric Vehicle, etc. See http://www.fueleconomy.gov/feg/findacarhelp.shtml#engine for all descriptors */
   engine_descriptor?: Maybe<Scalars['String']['output']>;
   engine_displacement_liters?: Maybe<Scalars['numeric']['output']>;
   /** EPA model type index */
@@ -85627,7 +90157,7 @@ export type Vehicles_Set_Input = {
   doe_modified_on?: InputMaybe<Scalars['timestamptz']['input']>;
   drive_axle_type?: InputMaybe<Scalars['String']['input']>;
   electric_motor?: InputMaybe<Scalars['String']['input']>;
-  /** Engine descriptor code e.g. DI for Direct Injeection, HEV for Hybrid Electric Vehicle, etc. See http://www.fueleconomy.gov/feg/findacarhelp.shtml#engine for all descriptors */
+  /** Engine descriptor code e.g. DI for Direct Injection, HEV for Hybrid Electric Vehicle, etc. See http://www.fueleconomy.gov/feg/findacarhelp.shtml#engine for all descriptors */
   engine_descriptor?: InputMaybe<Scalars['String']['input']>;
   engine_displacement_liters?: InputMaybe<Scalars['numeric']['input']>;
   /** EPA model type index */
@@ -86023,7 +90553,7 @@ export type Vehicles_Stream_Cursor_Value_Input = {
   doe_modified_on?: InputMaybe<Scalars['timestamptz']['input']>;
   drive_axle_type?: InputMaybe<Scalars['String']['input']>;
   electric_motor?: InputMaybe<Scalars['String']['input']>;
-  /** Engine descriptor code e.g. DI for Direct Injeection, HEV for Hybrid Electric Vehicle, etc. See http://www.fueleconomy.gov/feg/findacarhelp.shtml#engine for all descriptors */
+  /** Engine descriptor code e.g. DI for Direct Injection, HEV for Hybrid Electric Vehicle, etc. See http://www.fueleconomy.gov/feg/findacarhelp.shtml#engine for all descriptors */
   engine_descriptor?: InputMaybe<Scalars['String']['input']>;
   engine_displacement_liters?: InputMaybe<Scalars['numeric']['input']>;
   /** EPA model type index */
@@ -89150,7 +93680,7 @@ export type InvocationsListQueryVariables = Exact<{
 }>;
 
 
-export type InvocationsListQuery = { __typename?: 'query_root', invocations: Array<{ __typename?: 'invocations', id: string, created_at: string, updated_at: string, source_function: string, source_table?: string | null, source_operation?: string | null, source_system?: string | null, correlation_id?: string | null, source_user_email?: string | null, source_user_role?: string | null, total_duration_ms?: number | null, events_detected_count?: number | null, total_jobs_run?: number | null, total_jobs_succeeded?: number | null, total_jobs_failed?: number | null, status: string, error_message?: string | null }>, invocations_aggregate: { __typename?: 'invocations_aggregate', aggregate?: { __typename?: 'invocations_aggregate_fields', count: number } | null } };
+export type InvocationsListQuery = { __typename?: 'query_root', invocations: Array<{ __typename?: 'invocations', id: string, created_at: string, updated_at: string, source_function: string, source_table?: string | null, source_operation?: string | null, source_system?: string | null, correlation_id?: string | null, source_user_email?: string | null, source_user_role?: string | null, total_duration_ms?: number | null, events_detected_count?: number | null, total_jobs_run?: number | null, total_jobs_succeeded?: number | null, total_jobs_failed?: number | null, status: string, error_message?: string | null, source_event_payload: object }>, invocations_aggregate: { __typename?: 'invocations_aggregate', aggregate?: { __typename?: 'invocations_aggregate_fields', count: number } | null } };
 
 export type InvocationDetailQueryVariables = Exact<{
   id: Scalars['uuid']['input'];
@@ -89161,10 +93691,13 @@ export type InvocationDetailQuery = { __typename?: 'query_root', invocations_by_
 
 export type CorrelationSearchQueryVariables = Exact<{
   searchTerm: Scalars['String']['input'];
+  hasColon?: InputMaybe<Scalars['Boolean']['input']>;
+  tablePart?: InputMaybe<Scalars['String']['input']>;
+  idPart?: InputMaybe<Scalars['String']['input']>;
 }>;
 
 
-export type CorrelationSearchQuery = { __typename?: 'query_root', invocations: Array<{ __typename?: 'invocations', id: string, correlation_id?: string | null, source_function: string, source_user_email?: string | null, created_at: string, status: string, total_duration_ms?: number | null, events_detected_count?: number | null, total_jobs_run?: number | null }> };
+export type CorrelationSearchQuery = { __typename?: 'query_root', invocations: Array<{ __typename?: 'invocations', id: string, correlation_id?: string | null, source_function: string, source_table?: string | null, source_user_email?: string | null, source_event_payload: object, created_at: string, status: string, total_duration_ms?: number | null, events_detected_count?: number | null, total_jobs_run?: number | null }> };
 
 export const InvocationTreeFragmentDoc = gql`
     fragment invocationTree on invocations {
@@ -89535,6 +94068,7 @@ export const InvocationsListDocument = gql`
     total_jobs_failed
     status
     error_message
+    source_event_payload
   }
   invocations_aggregate(where: $where) {
     aggregate {
@@ -89676,16 +94210,18 @@ export type InvocationDetailLazyQueryHookResult = ReturnType<typeof useInvocatio
 export type InvocationDetailSuspenseQueryHookResult = ReturnType<typeof useInvocationDetailSuspenseQuery>;
 export type InvocationDetailQueryResult = Apollo.QueryResult<InvocationDetailQuery, InvocationDetailQueryVariables>;
 export const CorrelationSearchDocument = gql`
-    query CorrelationSearch($searchTerm: String!) {
+    query CorrelationSearch($searchTerm: String!, $hasColon: Boolean = false, $tablePart: String = "", $idPart: String = "") {
   invocations(
-    where: {_or: [{correlation_id: {_ilike: $searchTerm}}, {source_function: {_ilike: $searchTerm}}, {source_user_email: {_ilike: $searchTerm}}]}
+    where: {_or: [{correlation_id: {_ilike: $searchTerm}}, {source_function: {_ilike: $searchTerm}}, {source_user_email: {_ilike: $searchTerm}}, {source_event_payload: {_cast: {String: {_ilike: $searchTerm}}}}, {_and: [{source_table: {_ilike: $tablePart}}, {source_event_payload: {_cast: {String: {_ilike: $idPart}}}}]}]}
     order_by: {created_at: desc}
     limit: 20
   ) {
     id
     correlation_id
     source_function
+    source_table
     source_user_email
+    source_event_payload
     created_at
     status
     total_duration_ms
@@ -89708,6 +94244,9 @@ export const CorrelationSearchDocument = gql`
  * const { data, loading, error } = useCorrelationSearchQuery({
  *   variables: {
  *      searchTerm: // value for 'searchTerm'
+ *      hasColon: // value for 'hasColon'
+ *      tablePart: // value for 'tablePart'
+ *      idPart: // value for 'idPart'
  *   },
  * });
  */

@@ -55,7 +55,11 @@ const KPICard = ({ title, value, change, trend, icon: Icon, color }: any) => {
   );
 };
 
-const OverviewDashboard = () => {
+interface OverviewDashboardProps {
+  correlationSearch?: string;
+}
+
+const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ correlationSearch = '' }) => {
   // Get data for the last 24 hours - memoize to prevent infinite re-renders
   const timeRange = useMemo(() => sub(new Date(), { days: 1 }).toISOString(), []);
 
