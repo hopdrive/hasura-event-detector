@@ -482,21 +482,7 @@ const detect = async (
   hasuraEvent: HasuraEventPayload,
   eventModulesDirectory: string
 ): Promise<HandlerFunction | null> => {
-  // TODO: We could implement specific functions for each type of hasura
-  // event (insert, update, delete, or manual). We would run the correct
-  // event module function based on the event. If the event is update and
-  // there is a "checkUpdate" function exported from the event module
-  // then it would be called here.
-  //
-  // It could look like this on the client side:
-  //
-  //    module.exports.checkUpdate = async (event, hasuraEvent) => {
-  //      const { dbEvent } = parseHasuraEvent(hasuraEvent);
-  //      const wasJustActivated = dbEvent?.old?.active != dbEvent?.new?.active && dbEvent?.new?.active;
-  //      return wasJustActivated;
-  //    }
-  //
-  const { detector, handler } = loadEventModule(eventName, eventModulesDirectory);
+  const { detector, handler } = await loadEventModule(eventName, eventModulesDirectory);
 
   //log(event, 'Detector and handler loaded: ', detector, handler);
 
@@ -576,11 +562,17 @@ const consoleLogResponse = (response: ListenToResponse): void => {
  * @param eventModulesDirectory - Path to the events directory
  * @returns The loaded event module if it exists, else an empty object
  */
-const loadEventModule = (eventName: EventName, eventModulesDirectory: string): Partial<EventModule> => {
+const loadEventModule = async (eventName: EventName, eventModulesDirectory: string): Promise<Partial<EventModule>> => {
   const modulePath = path.join(eventModulesDirectory, `${eventName}.js`);
   try {
-    // Using dynamic import for ES modules
-    const module = require(modulePath) as EventModule;
+    // Using dynamic import for ES modules compatibility (works in both CJS and ESM)
+    const importedModule = await import(modulePath);
+
+    // Handle both CommonJS (module.exports) and ES modules (export default/named exports)
+    // CommonJS modules imported via import() have exports on the module object directly
+    // or sometimes on .default depending on the transpilation
+    const module = (importedModule.default || importedModule) as EventModule;
+
     //log('loadEventModule', `🧩 Loaded ${event} module from ${modulePath}`, module);
     return module;
   } catch (error) {
