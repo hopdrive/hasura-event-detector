@@ -115,8 +115,10 @@ export class ConsoleInterceptorPlugin extends BasePlugin<ConsoleInterceptorConfi
         // Call original console method first
         this.originalConsole[method]?.(...args);
 
-        // Forward to plugin system for other plugins to handle
-        this.forwardLogEvent(level, args);
+        // Forward to plugin system for other plugins to handle (only if actively intercepting)
+        if (this.isIntercepting) {
+          this.forwardLogEvent(level, args);
+        }
       };
     });
 
@@ -148,7 +150,16 @@ export class ConsoleInterceptorPlugin extends BasePlugin<ConsoleInterceptorConfi
 
     // Use custom forwardLog function if provided
     if (this.config.forwardLog) {
-      this.config.forwardLog(level, args, this.currentJobContext);
+      // Temporarily disable interception to prevent infinite recursion
+      // if the custom forwardLog function calls console methods
+      const wasIntercepting = this.isIntercepting;
+      this.isIntercepting = false;
+
+      try {
+        this.config.forwardLog(level, args, this.currentJobContext);
+      } finally {
+        this.isIntercepting = wasIntercepting;
+      }
       return;
     }
 
