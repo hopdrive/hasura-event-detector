@@ -14,6 +14,7 @@ export interface ConsoleInterceptorConfig extends PluginConfig {
   levels: string[];
   includeTimestamp: boolean;
   includeJobContext: boolean;
+  forwardLog?: (level: string, args: any[], jobContext: JobContext | null) => void;
 }
 
 interface JobContext {
@@ -140,11 +141,18 @@ export class ConsoleInterceptorPlugin extends BasePlugin<ConsoleInterceptorConfi
   }
 
   /**
-   * Forward intercepted log to other plugins via the plugin manager
+   * Forward intercepted log to other plugins via the plugin manager or custom handler
    */
   forwardLogEvent(level: string, args: any[]) {
     if (!this.currentJobContext) return;
 
+    // Use custom forwardLog function if provided
+    if (this.config.forwardLog) {
+      this.config.forwardLog(level, args, this.currentJobContext);
+      return;
+    }
+
+    // Default implementation: forward to plugin manager's onLog hook
     const logData = {
       level: level === 'log' ? 'info' : level, // Normalize 'log' to 'info'
       message: args.join(' '),

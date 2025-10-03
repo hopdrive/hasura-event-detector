@@ -24,7 +24,11 @@ const consoleInterceptor = new ConsoleInterceptorPlugin({
   enabled: true,
   levels: ['log', 'error', 'warn', 'info'],  // Which console methods to intercept
   includeTimestamp: true,                     // Add timestamps to logs
-  includeJobContext: true                     // Include job execution context
+  includeJobContext: true,                    // Include job execution context
+  forwardLog: (level, args, jobContext) => { // Optional custom log forwarding
+    // Custom handling of intercepted logs
+    console.log(`Custom: [${level}]`, ...args);
+  }
 });
 ```
 
@@ -49,7 +53,9 @@ await pluginManager.initialize();
 1. **Initialization**: The plugin saves original console methods and replaces them with intercepted versions
 2. **Job Context Tracking**: During job execution, the plugin maintains context about the current job
 3. **Log Interception**: All console calls are captured and enriched with job context
-4. **Plugin Integration**: Captured logs are forwarded to other plugins via the `onLog` hook
+4. **Log Forwarding**: Captured logs are forwarded either:
+   - To a custom `forwardLog` function if provided in config, or
+   - To other plugins via the plugin system's `onLog` hook (default behavior)
 5. **Cleanup**: Original console methods are restored when the plugin shuts down
 
 ## Use Cases
@@ -67,6 +73,7 @@ await pluginManager.initialize();
 | `levels` | `string[]` | `['log', 'error', 'warn', 'info']` | Console methods to intercept |
 | `includeTimestamp` | `boolean` | `true` | Add timestamps to intercepted logs |
 | `includeJobContext` | `boolean` | `true` | Include job execution context in logs |
+| `forwardLog` | `function` | `undefined` | Optional custom function to handle intercepted logs. Receives `(level, args, jobContext)` |
 
 ## Integration
 
