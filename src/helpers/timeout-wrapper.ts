@@ -17,7 +17,9 @@ export class TimeoutError extends Error {
   constructor(message: string, remainingTime?: number) {
     super(message);
     this.name = 'TimeoutError';
-    this.remainingTime = remainingTime;
+    if (remainingTime !== undefined) {
+      this.remainingTime = remainingTime;
+    }
   }
 }
 
@@ -144,7 +146,7 @@ export class TimeoutManager {
   public stopMonitoring(): void {
     if (this.timeoutCheckInterval) {
       clearInterval(this.timeoutCheckInterval);
-      this.timeoutCheckInterval = undefined;
+      delete this.timeoutCheckInterval;
       this.config.logger('TimeoutManager: Stopped timeout monitoring');
     }
   }
