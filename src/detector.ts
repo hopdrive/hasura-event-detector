@@ -555,7 +555,7 @@ const consoleLogResponse = (response: ListenToResponse): void => {
 };
 
 /**
- * Load a JavaScript event module from the /events directory
+ * Load a JavaScript/TypeScript event module from the /events directory
  * based on the name of the event.
  *
  * @param eventName - Name of the event to load the module for
@@ -563,20 +563,30 @@ const consoleLogResponse = (response: ListenToResponse): void => {
  * @returns The loaded event module if it exists, else an empty object
  */
 const loadEventModule = async (eventName: EventName, eventModulesDirectory: string): Promise<Partial<EventModule>> => {
-  const modulePath = path.join(eventModulesDirectory, `${eventName}.js`);
-  try {
-    // Using dynamic import for ES modules compatibility (works in both CJS and ESM)
-    const importedModule = await import(modulePath);
+  // Try both .js and .ts extensions
+  const extensions = ['.js', '.ts'];
 
-    // Handle both CommonJS (module.exports) and ES modules (export default/named exports)
-    // CommonJS modules imported via import() have exports on the module object directly
-    // or sometimes on .default depending on the transpilation
-    const module = (importedModule.default || importedModule) as EventModule;
+  for (const ext of extensions) {
+    const modulePath = path.join(eventModulesDirectory, `${eventName}${ext}`);
+    try {
+      // Using dynamic import for ES modules compatibility (works in both CJS and ESM)
+      const importedModule = await import(modulePath);
 
-    //log('loadEventModule', `🧩 Loaded ${event} module from ${modulePath}`, module);
-    return module;
-  } catch (error) {
-    logError('loadEventModule', `Failed to load module from ${modulePath}`, error as Error);
-    return {};
+      // Handle both CommonJS (module.exports) and ES modules (export default/named exports)
+      // CommonJS modules imported via import() have exports on the module object directly
+      // or sometimes on .default depending on the transpilation
+      const module = (importedModule.default || importedModule) as EventModule;
+
+      //log('loadEventModule', `🧩 Loaded ${event} module from ${modulePath}`, module);
+      return module;
+    } catch (error) {
+      // Continue to next extension if this one fails
+      if (ext === extensions[extensions.length - 1]) {
+        // Only log error on the last attempt
+        logError('loadEventModule', `Failed to load module ${eventName} from ${eventModulesDirectory}`, error as Error);
+      }
+    }
   }
+
+  return {};
 };
