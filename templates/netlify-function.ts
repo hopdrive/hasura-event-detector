@@ -28,7 +28,9 @@ const eventDetectorConfig: Partial<ListenToOptions> = {
     schema: process.env.OBSERVABILITY_SCHEMA || 'event_detector',
     batchSize: 10,
     flushInterval: 5000
-  }
+  },
+
+  // Note: timeout configuration will be added dynamically with runtime context
 };
 
 /**
@@ -62,8 +64,8 @@ export const handler: Handler = async (
       return handleFailure(new Error('Invalid JSON in request body'));
     }
 
-    // Add Netlify context to the event processing
-    const netlifyContext = {
+    // Create user context data (separate from runtime context)
+    const userContext = {
       functionName: context.functionName,
       functionVersion: context.functionVersion,
       requestId: context.awsRequestId,
@@ -76,17 +78,38 @@ export const handler: Handler = async (
       operation: hasuraEvent.event?.op,
       table: hasuraEvent.table?.name,
       requestId: context.awsRequestId,
+      remainingTime: context.getRemainingTimeInMillis ?
+        `${Math.round(context.getRemainingTimeInMillis() / 1000)}s` : 'unknown',
     });
 
-    // Process the event using the detector system
-    const result = await listenTo(hasuraEvent, eventDetectorConfig, netlifyContext);
+    // Process the event using the detector system with proper separation of contexts
+    const result = await listenTo(hasuraEvent, {
+      ...eventDetectorConfig,
+      context: userContext, // User-provided context data
+      timeoutConfig: {
+        enabled: true,
+        getRemainingTimeInMillis: context.getRemainingTimeInMillis, // Runtime function
+        safetyMargin: 2000, // 2 seconds before Netlify's 10s timeout
+        maxExecutionTime: 10000, // Netlify functions have a 10-second limit
+        serverlessMode: true, // Optimize for serverless execution
+        maxJobExecutionTime: 3000, // Max 3 seconds per individual job
+      },
+    });
 
     console.log('✅ Event processing completed:', {
       eventsDetected: result.events.length,
       totalJobs: result.events.reduce((sum, e) => sum + e.jobs.length, 0),
-      duration: result.duration,
+      duration: result.durationMs,
+      timedOut: result.timedOut || false,
       requestId: context.awsRequestId,
     });
+
+    // Check if processing was interrupted by timeout
+    if (result.timedOut) {
+      console.warn('⚠️ Processing was interrupted due to approaching timeout');
+      // Still return success with partial results
+      return handleSuccess(result);
+    }
 
     // Return success response
     return handleSuccess(result);

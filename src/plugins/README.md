@@ -40,8 +40,11 @@ Plugins enable:
    - `onLog()` - for log messages
    - `onError()` - when errors occur
 
-6. **System Shutdown**
-   - `shutdown()` - cleanup
+6. **Timeout Handling**
+   - `flush()` - save buffered data without full shutdown
+
+7. **System Shutdown**
+   - `shutdown()` - cleanup resources
 
 ## Available Example Plugins
 
@@ -347,6 +350,7 @@ export class MetricsPlugin extends BasePlugin<MyPluginConfig> {
 | `onLog(level, message, data, jobName, correlationId)` | level, message, data, job, id | Handle log messages |
 | `onError(error, context, correlationId)` | error, context, id | Handle errors |
 | `onInvocationEnd(hasuraEvent, result, correlationId)` | event, result, id | React to processing end |
+| `flush()` | none | Save buffered data (for timeouts) |
 | `shutdown()` | none | Cleanup resources |
 
 ## Plugin Development Best Practices
@@ -416,15 +420,36 @@ override async onPreConfigure(hasuraEvent, options) {
 }
 ```
 
-### 6. Clean Up Resources
+### 6. Implement Flush for Timeout Scenarios
+For plugins that buffer data, implement `flush()` to save data during timeouts:
+
+```typescript
+override async flush() {
+  // Save any buffered data immediately
+  if (this.buffer.length > 0) {
+    await this.saveToDatabase(this.buffer);
+    this.buffer = [];
+  }
+}
+```
+
+The `flush()` method is called when:
+- Function timeout is approaching in serverless environments
+- System needs to save data quickly without full shutdown
+- Different from `shutdown()` - doesn't close connections
+
+### 7. Clean Up Resources
 Always implement `shutdown()` for proper cleanup:
 
 ```typescript
 override async shutdown() {
+  // First flush any remaining data
+  await this.flush();
+
+  // Then clean up resources
   if (this.connection) {
     await this.connection.close();
   }
-}
 ```
 
 ## Real-World Plugin Examples

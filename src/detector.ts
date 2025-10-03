@@ -5,6 +5,7 @@ import { pluginManager, CorrelationIdUtils } from '@/plugin';
 import { v4 as uuidv4 } from 'uuid';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { TimeoutManager, TimeoutError, isTimeoutError, type TimeoutConfig } from '@/helpers/timeout-wrapper';
 import type {
   HasuraEventPayload,
   ListenToOptions,
@@ -76,6 +77,33 @@ export const listenTo = async (
       events: [],
       durationMs: Date.now() - start,
     };
+  }
+
+  // Initialize timeout manager if enabled
+  let timeoutManager: TimeoutManager | null = null;
+  let isTimedOut = false;
+
+  // Set up timeout configuration
+  const timeoutConfig = options.timeoutConfig || {};
+  const isTimeoutEnabled =
+    timeoutConfig.enabled !== false && (timeoutConfig.getRemainingTimeInMillis || timeoutConfig.serverlessMode);
+
+  if (isTimeoutEnabled) {
+    const timeoutManagerConfig: TimeoutConfig = {
+      safetyMargin: timeoutConfig.safetyMargin || 2000,
+      maxExecutionTime: timeoutConfig.maxExecutionTime || 10000,
+      isUsingFallbackTimer: !timeoutConfig.getRemainingTimeInMillis,
+      logger: log,
+    };
+
+    // Only add getRemainingTimeInMillis if it's defined
+    if (timeoutConfig.getRemainingTimeInMillis) {
+      timeoutManagerConfig.getRemainingTimeInMillis = timeoutConfig.getRemainingTimeInMillis;
+    }
+
+    timeoutManager = new TimeoutManager(timeoutManagerConfig);
+
+    log('listenTo', `Timeout protection enabled (remaining: ${Math.round(timeoutManager.getRemainingTime() / 1000)}s)`);
   }
 
   // Allow plugins to modify options before processing (including correlation ID extraction)
@@ -178,52 +206,142 @@ export const listenTo = async (
     };
   }
 
-  const eventProcessingPromises: Promise<EventProcessingResult>[] = [];
+  // Create timeout handler
+  const handleTimeout = async () => {
+    isTimedOut = true;
+    log('listenTo', 'TIMEOUT: Function approaching timeout, initiating graceful shutdown');
 
-  // Run all event detectors in parallel.
-  for (const eventName of (resolvedOptions.listenedEvents || [])) {
-    const processingPromise = runDetectorWithHooks(
-      eventName,
-      hasuraEvent,
-      resolvedOptions.eventModulesDirectory || './events',
-      finalCorrelationId
-    ).catch(error => {
-      // If there's an error in detection, still return a result indicating not detected
-      pluginManager.callOnError(error as Error, 'event_detection', finalCorrelationId);
-      logError(eventName, 'Error detecting events', error as Error);
-      return {
+    // Flush but don't fully shutdown plugins
+    if (pluginManager.initialized) {
+      try {
+        // Call flush on all plugins to save buffered data
+        for (const plugin of pluginManager.getEnabledPlugins()) {
+          if (plugin.flush) {
+            await plugin.flush();
+          }
+        }
+      } catch (error) {
+        logError('PluginSystem', 'Error flushing plugins on timeout', error as Error);
+      }
+    }
+  };
+
+  // Main execution function
+  const executeEventProcessing = async (): Promise<ListenToResponse> => {
+    const eventProcessingPromises: Promise<EventProcessingResult>[] = [];
+
+    // Add abort signal and job timeout to hasuraEvent for jobs to use
+    if (timeoutManager) {
+      hasuraEvent.__abortSignal = timeoutManager.getAbortSignal();
+      if (timeoutConfig.maxJobExecutionTime) {
+        hasuraEvent.__maxJobExecutionTime = timeoutConfig.maxJobExecutionTime;
+      }
+    }
+
+    // Run all event detectors in parallel.
+    for (const eventName of resolvedOptions.listenedEvents || []) {
+      const processingPromise = runEventDetectorWithHooks(
         eventName,
-        detected: false,
-        jobs: []
-      };
-    });
-    eventProcessingPromises.push(processingPromise);
-  }
+        hasuraEvent,
+        resolvedOptions.eventModulesDirectory || './events',
+        finalCorrelationId
+      ).catch(error => {
+        // If there's an error in detection, still return a result indicating not detected
+        pluginManager.callOnError(error as Error, 'event_detection', finalCorrelationId);
+        logError(eventName, 'Error detecting events', error as Error);
+        return {
+          eventName,
+          detected: false,
+          jobs: [],
+        };
+      });
+      eventProcessingPromises.push(processingPromise);
+    }
 
-  // Run all event processors in parallel.
-  log('EventHandlers', 'Event processors to run', eventProcessingPromises.length);
-  const response = await Promise.allSettled(eventProcessingPromises);
-  const preppedRes = preparedResponse(response);
+    // Run all event processors in parallel.
+    log('EventHandlers', 'Event processors to run', eventProcessingPromises.length);
+    const response = await Promise.allSettled(eventProcessingPromises);
+    const preppedRes = preparedResponse(response);
 
-  preppedRes.durationMs = Date.now() - start;
+    preppedRes.durationMs = Date.now() - start;
 
-  // Call plugin hook for invocation end
-  await pluginManager.callOnInvocationEnd(hasuraEvent, preppedRes, preppedRes.durationMs);
+    // Call plugin hook for invocation end
+    await pluginManager.callOnInvocationEnd(hasuraEvent, preppedRes, preppedRes.durationMs);
 
-  // Shutdown plugin manager to ensure all buffered data is flushed
-  // This is critical in serverless environments where the process may terminate abruptly
+    return preppedRes;
+  };
+
+  // Execute with timeout protection if enabled
+  let result: ListenToResponse;
+
   try {
-    console.error('[Detector] Calling pluginManager.shutdown()');
-    await pluginManager.shutdown();
-    console.error('[Detector] pluginManager.shutdown() completed');
+    if (timeoutManager) {
+      // Execute with timeout protection
+      result = await timeoutManager.executeWithTimeout(
+        executeEventProcessing,
+        handleTimeout,
+        'Event processing exceeded time limit'
+      );
+    } else {
+      // Execute without timeout protection
+      result = await executeEventProcessing();
+    }
+
+    // Only shutdown plugins if this is a normal completion (not timeout)
+    // and we're in a serverless environment
+    if (!isTimedOut && timeoutConfig.serverlessMode) {
+      try {
+        log('listenTo', 'Normal completion - shutting down plugins for serverless environment');
+        await pluginManager.shutdown();
+      } catch (error) {
+        logError('PluginSystem', 'Error during plugin shutdown', error as Error);
+      }
+    } else if (!isTimedOut) {
+      // In non-serverless mode, just flush without full shutdown
+      try {
+        for (const plugin of pluginManager.getEnabledPlugins()) {
+          if (plugin.flush) {
+            await plugin.flush();
+          }
+        }
+      } catch (error) {
+        logError('PluginSystem', 'Error flushing plugins', error as Error);
+      }
+    }
+
+    consoleLogResponse(result);
+    return result;
   } catch (error) {
-    console.log('[Detector] Error during plugin shutdown:', error);
-    logError('PluginSystem', 'Error during plugin shutdown', error as Error);
+    // Handle timeout or other errors
+    if (isTimeoutError(error) || isTimedOut) {
+      log(
+        'listenTo',
+        `Execution timed out: ${isTimeoutError(error) ? (error as TimeoutError).message : 'Function timeout'}`
+      );
+
+      // Create partial response for timeout
+      const timeoutResponse: ListenToResponse = {
+        events: [],
+        durationMs: Date.now() - start,
+        timedOut: true,
+        error: isTimeoutError(error) ? (error as TimeoutError).message : 'Function execution exceeded time limit',
+      };
+
+      // Call plugin hook for timeout
+      await pluginManager.callOnInvocationEnd(hasuraEvent, timeoutResponse, timeoutResponse.durationMs);
+
+      return timeoutResponse;
+    }
+
+    // For other errors, shutdown plugins and rethrow
+    try {
+      await pluginManager.shutdown();
+    } catch (shutdownError) {
+      logError('PluginSystem', 'Error during emergency shutdown', shutdownError as Error);
+    }
+
+    throw error;
   }
-
-  consoleLogResponse(preppedRes);
-
-  return preppedRes;
 };
 
 const preparedResponse = (
@@ -271,7 +389,7 @@ const detectEventModules = async (modulesDir: string): Promise<EventName[]> => {
 /**
  * Enhanced detect function with plugin hooks
  */
-const runDetectorWithHooks = async (
+const runEventDetectorWithHooks = async (
   eventName: EventName,
   hasuraEvent: HasuraEventPayload,
   eventModulesDirectory: string,
@@ -288,19 +406,14 @@ const runDetectorWithHooks = async (
   const detected = eventHandler !== null;
 
   // Call plugin hook for event detection end
-  await pluginManager.callOnEventDetectionEnd(
-    eventName,
-    detected,
-    hasuraEvent,
-    detectionDuration
-  );
+  await pluginManager.callOnEventDetectionEnd(eventName, detected, hasuraEvent, detectionDuration);
 
   // If event was not detected, return empty job list
   if (!eventHandler || typeof eventHandler !== 'function') {
     return {
       eventName,
       detected: false,
-      jobs: []
+      jobs: [],
     };
   }
 
@@ -309,7 +422,7 @@ const runDetectorWithHooks = async (
   return {
     eventName,
     detected: true,
-    jobs
+    jobs,
   };
 };
 

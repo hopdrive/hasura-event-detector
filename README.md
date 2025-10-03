@@ -12,6 +12,7 @@ A powerful TypeScript-first framework for detecting and responding to business e
 - **Plugin Architecture**: Extensible observability and logging system
 - **Observability Console**: React-based dashboard for real-time monitoring and debugging
 - **Parallel Job Execution**: Run multiple jobs concurrently with proper error isolation
+- **Timeout Protection**: Built-in graceful shutdown for serverless environments
 - **CLI Tools**: Command-line interface for development and testing
 - **Correlation Tracking**: Built-in correlation ID system for tracing business processes
 - **Template System**: Ready-to-use templates for common event patterns
@@ -769,11 +770,60 @@ const loggingPlugin = new SimpleLoggingPlugin({
 });
 ```
 
+## ⏱️ Timeout Protection for Serverless
+
+The event detector includes built-in timeout protection for serverless environments like Netlify Functions and AWS Lambda. This prevents function timeouts and ensures data is saved even when execution time limits are approached.
+
+### Configuration
+
+```typescript
+const result = await listenTo(hasuraEvent, {
+  // Your existing configuration
+  context: userContext, // Your custom context data
+
+  // Timeout configuration
+  timeoutConfig: {
+    enabled: true,
+    getRemainingTimeInMillis: context.getRemainingTimeInMillis, // From Lambda/Netlify context
+    safetyMargin: 2000, // Stop 2 seconds before timeout (default)
+    maxExecutionTime: 10000, // Fallback for 10-second limit (Netlify)
+    serverlessMode: true, // Optimize for serverless
+    maxJobExecutionTime: 3000, // Max time per individual job
+  },
+});
+```
+
+### Features
+
+- **Graceful Shutdown**: Detects approaching timeout and saves partial results
+- **Job Cancellation**: Jobs receive abort signals to stop work cleanly
+- **Data Preservation**: Plugins flush buffered data before timeout
+- **Partial Results**: Returns completed work even on timeout
+- **Automatic Detection**: Works with Lambda/Netlify runtime context
+
+### Plugin Support
+
+Plugins that buffer data implement the `flush()` method for timeout scenarios:
+
+```typescript
+class MyObservabilityPlugin extends BasePlugin {
+  override async flush() {
+    // Save buffered data immediately without closing connections
+    await this.saveBufferedData();
+  }
+
+  override async shutdown() {
+    await this.flush(); // Flush first
+    await this.closeConnections(); // Then cleanup
+  }
+}
+```
+
 ## 🚀 Deployment
 
 ### Netlify Functions
 
-Use the provided templates for easy deployment:
+Use the provided templates for easy deployment with timeout protection:
 
 ```typescript
 // netlify/functions/hasura-events.ts

@@ -60,8 +60,9 @@ const safeJobWrapper = async <T = any>(
   // Track execution start time
   const start = Date.now();
 
-  // Get correlation ID from hasuraEvent
+  // Get correlation ID and abort signal from hasuraEvent
   const correlationId = hasuraEvent?.__correlationId;
+  const abortSignal = hasuraEvent?.__abortSignal;
 
   const output: JobResult<T> = {
     name: (func?.name || 'anonymous') as JobName,
@@ -71,6 +72,15 @@ const safeJobWrapper = async <T = any>(
     startTime: new Date(),
   };
 
+  // Check if already aborted before starting
+  if (abortSignal?.aborted) {
+    log(event, `Job ${output.name} aborted before start due to timeout`);
+    output.result = 'Job aborted due to timeout' as any;
+    output.durationMs = Date.now() - start;
+    output.endTime = new Date();
+    return output;
+  }
+
   // Call plugin hook for job start
   await pluginManager.callOnJobStart(output.name, options, event, hasuraEvent);
 
@@ -78,15 +88,58 @@ const safeJobWrapper = async <T = any>(
     if (!func) throw new Error('Job func not defined');
     if (typeof func !== 'function') throw new Error('Job func not a function');
 
-    // Add correlation ID and job name to options for job functions to use
+    // Add correlation ID, job name, and abort signal to options for job functions to use
     const enhancedOptions: JobOptions = {
       ...options,
       jobName: output.name,
       ...(correlationId && { correlationId }),
+      ...(abortSignal && { abortSignal }),
     };
 
-    // Call the job function with enhanced options
-    const funcRes = await func(event, hasuraEvent, enhancedOptions);
+    // Set up timeout for individual job if configured
+    const maxJobTime = options.timeout || hasuraEvent?.__maxJobExecutionTime;
+    let jobTimeoutId: NodeJS.Timeout | undefined;
+    let jobTimedOut = false;
+
+    if (maxJobTime && maxJobTime > 0) {
+      jobTimeoutId = setTimeout(() => {
+        jobTimedOut = true;
+        log(event, `Job ${output.name} exceeded max execution time of ${maxJobTime}ms`);
+      }, maxJobTime);
+    }
+
+    // Execute job with potential timeout race
+    const jobPromise = func(event, hasuraEvent, enhancedOptions);
+
+    // Handle abort signal if provided
+    let abortHandler: (() => void) | undefined;
+    const abortPromise = new Promise<never>((_, reject) => {
+      if (abortSignal) {
+        abortHandler = () => reject(new Error('Job aborted due to function timeout'));
+        abortSignal.addEventListener('abort', abortHandler);
+      }
+    });
+
+    // Race between job completion, abort, and job timeout
+    let funcRes: T;
+    try {
+      if (abortSignal) {
+        funcRes = await Promise.race([jobPromise, abortPromise]);
+      } else {
+        funcRes = await jobPromise;
+      }
+
+      // Check if job timed out while running
+      if (jobTimedOut) {
+        throw new Error(`Job exceeded max execution time of ${maxJobTime}ms`);
+      }
+    } finally {
+      // Clean up timeout and abort handler
+      if (jobTimeoutId) clearTimeout(jobTimeoutId);
+      if (abortHandler && abortSignal) {
+        abortSignal.removeEventListener('abort', abortHandler);
+      }
+    }
 
     output.durationMs = Date.now() - start;
     output.result = funcRes;

@@ -39,8 +39,11 @@ export interface HasuraEventPayload<T = Record<string, any>> {
   trigger: HasuraTrigger;
   table: HasuraTable;
   // Context and correlation tracking (added by our system)
-  __context?: Record<string, any>;
+  __context?: Record<string, any>; // User-provided context data
   __correlationId?: CorrelationId;
+  // Internal fields for timeout handling (not part of user context)
+  __abortSignal?: AbortSignal;
+  __maxJobExecutionTime?: number;
 }
 
 // Nested event structure (matches JSDoc HasuraEvent)
@@ -91,6 +94,7 @@ export interface JobOptions {
   jobName?: JobName;
   timeout?: number;
   retries?: number;
+  abortSignal?: AbortSignal;
   [key: string]: any;
 }
 
@@ -220,6 +224,13 @@ export interface PluginLifecycleHooks<TConfig extends PluginConfig = PluginConfi
 
   onError?(error: Error, context: string, correlationId: CorrelationId): Promise<void>;
 
+  /**
+   * Flush any buffered data without full shutdown.
+   * Used for timeout scenarios where we need to save data quickly.
+   * Not all plugins need to implement this - only those that buffer data.
+   */
+  flush?(): Promise<void>;
+
   shutdown?(): Promise<void>;
 }
 
@@ -292,8 +303,17 @@ export interface ListenToOptions {
   eventModulesDirectory?: string;
   listenedEvents?: EventName[];
   sourceFunction?: string;
-  context?: Record<string, any>;
+  context?: Record<string, any>; // User-provided context data
   correlationId?: string;
+  // Timeout configuration for serverless environments
+  timeoutConfig?: {
+    enabled?: boolean;
+    getRemainingTimeInMillis?: () => number; // Lambda/Netlify runtime function
+    safetyMargin?: number; // ms before timeout to start shutdown (default: 2000)
+    maxExecutionTime?: number; // max execution time when no runtime context available (default: 10000)
+    serverlessMode?: boolean; // optimize for serverless execution
+    maxJobExecutionTime?: number; // max time for individual jobs
+  };
 }
 
 // =============================================================================
@@ -315,6 +335,8 @@ export interface EventProcessingResult {
 export interface ListenToResponse {
   events: EventResponse[];
   durationMs: number;
+  timedOut?: boolean;
+  error?: string;
 }
 
 // =============================================================================

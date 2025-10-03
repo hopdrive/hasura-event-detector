@@ -146,6 +146,14 @@ export class BasePlugin<TConfig extends PluginConfig = PluginConfig> implements 
   }
 
   /**
+   * Flush any buffered data without full shutdown
+   */
+  async flush(): Promise<void> {
+    // Default no-op implementation
+    // Override in plugins that buffer data (e.g., ObservabilityPlugin)
+  }
+
+  /**
    * Called during plugin shutdown
    */
   async shutdown(): Promise<void> {

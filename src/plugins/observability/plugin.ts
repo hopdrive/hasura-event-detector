@@ -409,7 +409,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   /**
    * Flush buffered data to storage backend via transport
    */
-  async flush() {
+  override async flush() {
     if (!this.config.enabled || !this.transport || !this.isInitialized) return;
 
     const hasData =
@@ -418,12 +418,16 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     if (!hasData) return;
 
     try {
+      log('ObservabilityPlugin', `Flushing ${this.buffer.invocations.size} invocations, ${this.buffer.eventExecutions.size} events, ${this.buffer.jobExecutions.size} jobs`);
+
       // Use transport to flush data
       await this.transport.flush(this.buffer);
+
+      log('ObservabilityPlugin', 'Flush completed successfully');
     } catch (error) {
       logError('ObservabilityPlugin', 'Flush failed', error as Error);
-      // Retry logic could be added here
-      throw error;
+      // Don't throw on flush errors to avoid breaking execution
+      // Data will remain in buffer for next attempt
     }
   }
 
@@ -507,14 +511,22 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       }
     });
 
+    // Determine final status based on timeout and failures
+    let status = 'completed';
+    if (result.timedOut) {
+      status = 'timeout';
+    } else if (totalJobsFailed > 0) {
+      status = 'failed';
+    }
+
     const endData = {
       durationMs: result.durationMs || durationMs,
       eventsDetectedCount: result.events.filter(e => e.detected).length, // Only count events where detected = true
       totalJobsRun,
       totalJobsSucceeded,
       totalJobsFailed,
-      status: totalJobsFailed > 0 ? 'failed' : 'completed',
-      errorMessage: null,
+      status,
+      errorMessage: result.timedOut ? 'Function execution timed out' : null,
       errorStack: null,
     };
 
