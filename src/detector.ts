@@ -1,6 +1,7 @@
 import { log, logError, logWarn, setPluginManager } from '@/helpers/log';
 import { getObjectSafely } from '@/helpers/object';
 import { parseHasuraEvent } from '@/helpers/hasura';
+import { resolveFromCaller } from '@/helpers/caller-path';
 import { pluginManager, CorrelationIdUtils } from '@/plugin';
 import { v4 as uuidv4 } from 'uuid';
 import { promises as fs } from 'fs';
@@ -140,9 +141,17 @@ export const listenTo = async (
   const context = modifiedOptions.context || {};
   hasuraEvent.__context = context;
 
+  // Resolve eventModulesDirectory relative to caller if it's a relative path
+  let eventModulesDir = modifiedOptions.eventModulesDirectory || './events';
+  if (!path.isAbsolute(eventModulesDir)) {
+    // Resolve relative paths from the caller's directory
+    // Stack depth: listenTo() -> getCallerDirectory() needs to go 2 levels up
+    eventModulesDir = resolveFromCaller(eventModulesDir, 2);
+  }
+
   const resolvedOptions: ListenToOptions = {
     autoLoadEventModules: true,
-    eventModulesDirectory: './events',
+    eventModulesDirectory: eventModulesDir,
     listenedEvents: [],
     ...modifiedOptions,
   };
