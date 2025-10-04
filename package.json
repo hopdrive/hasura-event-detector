@@ -28,7 +28,6 @@
     },
     "./netlify-plugin": "./netlify-plugin/index.js"
   },
-  "netlify-plugin": "./netlify-plugin/index.js",
   "bin": {
     "hasura-event-detector": "./bin/hasura-event-detector"
   },
@@ -39,6 +38,7 @@
     "templates",
     "netlify-plugin",
     "manifest.yml",
+    "index.js",
     "README.md",
     "LICENSE"
   ],
