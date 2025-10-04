@@ -6,6 +6,7 @@ import { pluginManager, CorrelationIdUtils } from '@/plugin';
 import { v4 as uuidv4 } from 'uuid';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { pathToFileURL } from 'url';
 import { TimeoutManager, TimeoutError, isTimeoutError, type TimeoutConfig } from '@/helpers/timeout-wrapper';
 import type {
   HasuraEventPayload,
@@ -585,8 +586,13 @@ const loadEventModule = async (eventName: EventName, eventModulesDirectory: stri
   for (const ext of extensions) {
     const modulePath = path.join(eventModulesDirectory, `${eventName}${ext}`);
     try {
+      // Convert absolute path to file URL for ESM compatibility
+      // In ESM environments, import() requires file URLs for absolute paths
+      // In CommonJS, it accepts both paths and URLs
+      const moduleUrl = path.isAbsolute(modulePath) ? pathToFileURL(modulePath).href : modulePath;
+
       // Using dynamic import for ES modules compatibility (works in both CJS and ESM)
-      const importedModule = await import(modulePath);
+      const importedModule = await import(moduleUrl);
 
       // Handle both CommonJS (module.exports) and ES modules (export default/named exports)
       // CommonJS modules imported via import() have exports on the module object directly
