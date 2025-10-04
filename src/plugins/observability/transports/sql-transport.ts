@@ -56,7 +56,7 @@ export class SQLTransport extends BaseTransport implements ObservabilityTranspor
       // Insert/update invocations
       if (buffer.invocations.size > 0) {
         await this.bulkUpsertInvocations(client, Array.from(buffer.invocations.values()));
-        buffer.invocations.clear();
+        // Note: Don't clear invocations here - plugin manages clearing based on completion status
       }
 
       // Insert event executions

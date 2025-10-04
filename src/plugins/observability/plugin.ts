@@ -137,6 +137,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   private flushTimer: NodeJS.Timeout | null = null;
   private isInitialized: boolean = false;
   private activeInvocations: Map<CorrelationId, string> = new Map(); // Track correlation ID -> invocation ID mapping
+  private completedInvocations: Set<string> = new Set(); // Track which invocations have completed
   private activeEventExecutions: Map<string, string> = new Map(); // Track "${correlationId}:${eventName}" -> event execution ID
   private activeJobExecutions: Map<string, string> = new Map(); // Track "${correlationId}:${eventName}:${jobName}" -> job execution ID
 
@@ -273,6 +274,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
 
     // Clean up tracking maps
     this.activeInvocations.clear();
+    this.completedInvocations.clear();
     this.activeEventExecutions.clear();
     this.activeJobExecutions.clear();
 
@@ -324,62 +326,32 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   async recordInvocationEnd(invocationId: string | null, data: any): Promise<void> {
     if (!this.config.enabled || !invocationId) return;
 
-    let record = this.buffer.invocations.get(invocationId);
-
-    // If record was already flushed and cleared from buffer (e.g., in background functions),
-    // create a partial record with just the ID and updated fields.
-    // The upsert will update the existing DB record.
+    const record = this.buffer.invocations.get(invocationId);
     if (!record) {
       log(
         'ObservabilityPlugin.recordInvocationEnd',
-        `[FLUSH TIMING] Invocation record ${invocationId} not found in buffer (already flushed). Creating partial record for upsert with job counts: run=${data.totalJobsRun}, succeeded=${data.totalJobsSucceeded}, failed=${data.totalJobsFailed}`
+        `[FLUSH TIMING] Invocation record ${invocationId} not found in buffer - this should not happen`
       );
-
-      record = {
-        id: invocationId,
-        // These fields are required for upsert but will be ignored since record exists in DB
-        // Using placeholder values to satisfy TypeScript type requirements
-        correlation_id: '' as CorrelationId,
-        source_function: '',
-        source_table: '',
-        source_operation: '',
-        source_system: '',
-        source_event_id: null,
-        source_event_payload: {}, // Empty object for jsonb column (doesn't allow null)
-        source_event_time: new Date(0), // Epoch placeholder
-        source_user_email: null,
-        source_user_role: null,
-        auto_load_modules: false,
-        event_modules_directory: '',
-        context_data: {}, // Empty object for jsonb column
-        created_at: new Date(0), // Will be ignored by upsert
-        // These are the fields we actually want to update
-        total_duration_ms: data.durationMs,
-        events_detected_count: data.eventsDetectedCount || 0,
-        total_jobs_run: data.totalJobsRun || 0,
-        total_jobs_succeeded: data.totalJobsSucceeded || 0,
-        total_jobs_failed: data.totalJobsFailed || 0,
-        status: data.status || 'completed',
-        error_message: data.errorMessage,
-        error_stack: this.config.captureErrorStacks ? data.errorStack : null,
-        updated_at: new Date(),
-      };
-    } else {
-      // Record still in buffer, update it normally
-      Object.assign(record, {
-        total_duration_ms: data.durationMs,
-        events_detected_count: data.eventsDetectedCount || 0,
-        total_jobs_run: data.totalJobsRun || 0,
-        total_jobs_succeeded: data.totalJobsSucceeded || 0,
-        total_jobs_failed: data.totalJobsFailed || 0,
-        status: data.status || 'completed',
-        error_message: data.errorMessage,
-        error_stack: this.config.captureErrorStacks ? data.errorStack : null,
-        updated_at: new Date(),
-      });
+      return;
     }
 
+    // Update the record with completion data
+    Object.assign(record, {
+      total_duration_ms: data.durationMs,
+      events_detected_count: data.eventsDetectedCount || 0,
+      total_jobs_run: data.totalJobsRun || 0,
+      total_jobs_succeeded: data.totalJobsSucceeded || 0,
+      total_jobs_failed: data.totalJobsFailed || 0,
+      status: data.status || 'completed',
+      error_message: data.errorMessage,
+      error_stack: this.config.captureErrorStacks ? data.errorStack : null,
+      updated_at: new Date(),
+    });
+
     this.buffer.invocations.set(invocationId, record);
+
+    // Mark this invocation as completed so it can be cleared on next flush
+    this.completedInvocations.add(invocationId);
   }
 
   /**
@@ -468,6 +440,20 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
 
       // Use transport to flush data
       await this.transport.flush(this.buffer);
+
+      // After successful flush, clean up completed invocations from buffer
+      // This allows us to keep incomplete invocations in buffer until they complete
+      let clearedCount = 0;
+      for (const invocationId of this.completedInvocations) {
+        if (this.buffer.invocations.delete(invocationId)) {
+          clearedCount++;
+        }
+      }
+      this.completedInvocations.clear();
+
+      if (clearedCount > 0) {
+        log('ObservabilityPlugin.flush', `[FLUSH TIMING] Cleared ${clearedCount} completed invocations from buffer`);
+      }
 
       log('ObservabilityPlugin.flush', '[FLUSH TIMING] Flush completed successfully - data written to database');
     } catch (error) {

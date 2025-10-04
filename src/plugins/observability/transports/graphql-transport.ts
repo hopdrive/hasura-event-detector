@@ -117,9 +117,11 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
 
   /**
    * Flush invocations to Hasura
+   * Note: We don't clear the records map here anymore - the plugin will handle cleanup
    */
   private async flushInvocations(records: Map<string, BufferedInvocation>): Promise<void> {
     if (!this.client) throw new Error('Client not initialized');
+    if (records.size === 0) return;
 
     const objects = Array.from(records.values()).map(record =>
       this.transformForGraphQL(record)
@@ -134,7 +136,7 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
       });
 
       log('GraphQLTransport', `Upserted ${result.insert_invocations.affected_rows} invocations`);
-      records.clear();
+      // Note: Don't clear records here - plugin manages clearing based on completion status
     } catch (error) {
       this.handleGraphQLError(error, 'invocations', objects);
       throw error;
