@@ -300,7 +300,7 @@ export const listenTo = async (
     // and we're in a serverless environment
     if (!isTimedOut && timeoutConfig.serverlessMode) {
       try {
-        log('listenTo', 'Normal completion - shutting down plugins for serverless environment');
+        log('listenTo', '[FLUSH TIMING] Normal completion - shutting down plugins for serverless environment (serverlessMode=true)');
         await pluginManager.shutdown();
       } catch (error) {
         logError('PluginSystem', 'Error during plugin shutdown', error as Error);
@@ -308,6 +308,7 @@ export const listenTo = async (
     } else if (!isTimedOut) {
       // In non-serverless mode, just flush without full shutdown
       try {
+        log('listenTo', '[FLUSH TIMING] Normal completion - flushing plugins in non-serverless mode (serverlessMode=false or undefined)');
         for (const plugin of pluginManager.getEnabledPlugins()) {
           if (plugin.flush) {
             await plugin.flush();

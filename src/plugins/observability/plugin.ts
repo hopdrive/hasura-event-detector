@@ -415,15 +415,21 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     const hasData =
       this.buffer.invocations.size > 0 || this.buffer.eventExecutions.size > 0 || this.buffer.jobExecutions.size > 0;
 
-    if (!hasData) return;
+    if (!hasData) {
+      log('ObservabilityPlugin.flush', '[FLUSH TIMING] No data to flush - buffer is empty');
+      return;
+    }
 
     try {
-      log('ObservabilityPlugin', `Flushing ${this.buffer.invocations.size} invocations, ${this.buffer.eventExecutions.size} events, ${this.buffer.jobExecutions.size} jobs`);
+      log(
+        'ObservabilityPlugin.flush',
+        `[FLUSH TIMING] Starting flush - invocations: ${this.buffer.invocations.size}, eventExecutions: ${this.buffer.eventExecutions.size}, jobExecutions: ${this.buffer.jobExecutions.size}`
+      );
 
       // Use transport to flush data
       await this.transport.flush(this.buffer);
 
-      log('ObservabilityPlugin', 'Flush completed successfully');
+      log('ObservabilityPlugin.flush', '[FLUSH TIMING] Flush completed successfully - data written to database');
     } catch (error) {
       logError('ObservabilityPlugin', 'Flush failed', error as Error);
       // Don't throw on flush errors to avoid breaking execution
@@ -530,6 +536,11 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       errorStack: null,
     };
 
+    log(
+      'ObservabilityPlugin.onInvocationEnd',
+      `[FLUSH TIMING] About to record invocation end for invocationId: ${invocationId}, status: ${status}, jobs: ${totalJobsRun}, succeeded: ${totalJobsSucceeded}, failed: ${totalJobsFailed}. Current buffer sizes - invocations: ${this.buffer.invocations.size}, eventExecutions: ${this.buffer.eventExecutions.size}, jobExecutions: ${this.buffer.jobExecutions.size}`
+    );
+
     await this.recordInvocationEnd(invocationId, endData);
     this.activeInvocations.delete(hasuraEvent?.__correlationId as CorrelationId);
 
@@ -622,6 +633,11 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     // Update the event execution record with handler results
     const eventRecord = this.buffer.eventExecutions.get(eventExecutionId);
     if (eventRecord) {
+      log(
+        'ObservabilityPlugin.onEventHandlerEnd',
+        `[FLUSH TIMING] About to update event execution buffer for event: ${eventName}, eventExecutionId: ${eventExecutionId}, jobs: ${jobResults.length}, succeeded: ${jobsSucceeded}, failed: ${jobsFailed}`
+      );
+
       Object.assign(eventRecord, {
         handler_duration_ms: durationMs,
         jobs_count: jobResults.length,
@@ -632,6 +648,11 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       });
 
       this.buffer.eventExecutions.set(eventExecutionId, eventRecord);
+
+      log(
+        'ObservabilityPlugin.onEventHandlerEnd',
+        `[FLUSH TIMING] Updated event execution buffer. Current buffer sizes - invocations: ${this.buffer.invocations.size}, eventExecutions: ${this.buffer.eventExecutions.size}, jobExecutions: ${this.buffer.jobExecutions.size}`
+      );
     }
 
     // Clean up the event execution tracking
