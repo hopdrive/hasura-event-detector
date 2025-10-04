@@ -345,13 +345,13 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
         source_operation: '',
         source_system: '',
         source_event_id: null,
-        source_event_payload: null,
+        source_event_payload: {}, // Empty object for jsonb column (doesn't allow null)
         source_event_time: new Date(0), // Epoch placeholder
         source_user_email: null,
         source_user_role: null,
         auto_load_modules: false,
         event_modules_directory: '',
-        context_data: null,
+        context_data: {}, // Empty object for jsonb column
         created_at: new Date(0), // Will be ignored by upsert
         // These are the fields we actually want to update
         total_duration_ms: data.durationMs,
