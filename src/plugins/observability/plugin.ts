@@ -137,7 +137,6 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   private flushTimer: NodeJS.Timeout | null = null;
   private isInitialized: boolean = false;
   private activeInvocations: Map<CorrelationId, string> = new Map(); // Track correlation ID -> invocation ID mapping
-  private completedInvocations: Set<string> = new Set(); // Track which invocations have completed
   private activeEventExecutions: Map<string, string> = new Map(); // Track "${correlationId}:${eventName}" -> event execution ID
   private activeJobExecutions: Map<string, string> = new Map(); // Track "${correlationId}:${eventName}:${jobName}" -> job execution ID
 
@@ -274,7 +273,6 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
 
     // Clean up tracking maps
     this.activeInvocations.clear();
-    this.completedInvocations.clear();
     this.activeEventExecutions.clear();
     this.activeJobExecutions.clear();
 
@@ -327,15 +325,41 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     if (!this.config.enabled || !invocationId) return;
 
     const record = this.buffer.invocations.get(invocationId);
+
     if (!record) {
+      // Record not in buffer - this happens for background functions running in separate processes
+      // Update the database directly
       log(
         'ObservabilityPlugin.recordInvocationEnd',
-        `[FLUSH TIMING] Invocation record ${invocationId} not found in buffer - this should not happen`
+        `[FLUSH TIMING] Invocation record ${invocationId} not found in buffer. Updating database directly (background function). Jobs: ${data.totalJobsRun}, succeeded: ${data.totalJobsSucceeded}, failed: ${data.totalJobsFailed}`
       );
+
+      if (!this.transport) {
+        logError('ObservabilityPlugin', 'Cannot update invocation - transport not initialized', new Error('Transport not available'));
+        return;
+      }
+
+      const completionData = {
+        total_duration_ms: data.durationMs,
+        events_detected_count: data.eventsDetectedCount || 0,
+        total_jobs_run: data.totalJobsRun || 0,
+        total_jobs_succeeded: data.totalJobsSucceeded || 0,
+        total_jobs_failed: data.totalJobsFailed || 0,
+        status: data.status || 'completed',
+        error_message: data.errorMessage,
+        error_stack: this.config.captureErrorStacks ? data.errorStack : null,
+        updated_at: new Date(),
+      };
+
+      try {
+        await this.transport.updateInvocationCompletion(invocationId, completionData);
+      } catch (error) {
+        logError('ObservabilityPlugin', 'Failed to update invocation completion', error as Error);
+      }
       return;
     }
 
-    // Update the record with completion data
+    // Record in buffer - update it normally
     Object.assign(record, {
       total_duration_ms: data.durationMs,
       events_detected_count: data.eventsDetectedCount || 0,
@@ -349,9 +373,6 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     });
 
     this.buffer.invocations.set(invocationId, record);
-
-    // Mark this invocation as completed so it can be cleared on next flush
-    this.completedInvocations.add(invocationId);
   }
 
   /**
@@ -440,20 +461,6 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
 
       // Use transport to flush data
       await this.transport.flush(this.buffer);
-
-      // After successful flush, clean up completed invocations from buffer
-      // This allows us to keep incomplete invocations in buffer until they complete
-      let clearedCount = 0;
-      for (const invocationId of this.completedInvocations) {
-        if (this.buffer.invocations.delete(invocationId)) {
-          clearedCount++;
-        }
-      }
-      this.completedInvocations.clear();
-
-      if (clearedCount > 0) {
-        log('ObservabilityPlugin.flush', `[FLUSH TIMING] Cleared ${clearedCount} completed invocations from buffer`);
-      }
 
       log('ObservabilityPlugin.flush', '[FLUSH TIMING] Flush completed successfully - data written to database');
     } catch (error) {

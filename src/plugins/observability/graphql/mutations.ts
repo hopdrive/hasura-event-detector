@@ -107,6 +107,42 @@ export const BULK_INSERT_JOB_EXECUTIONS = `
 `;
 
 /**
+ * Update invocation completion fields only
+ * Used for background functions where buffer may not be available
+ */
+export const UPDATE_INVOCATION_COMPLETION = `
+  mutation UpdateInvocationCompletion(
+    $id: uuid!
+    $total_duration_ms: Int
+    $events_detected_count: Int!
+    $total_jobs_run: Int!
+    $total_jobs_succeeded: Int!
+    $total_jobs_failed: Int!
+    $status: String!
+    $error_message: String
+    $error_stack: String
+    $updated_at: timestamptz!
+  ) {
+    update_invocations_by_pk(
+      pk_columns: { id: $id }
+      _set: {
+        total_duration_ms: $total_duration_ms
+        events_detected_count: $events_detected_count
+        total_jobs_run: $total_jobs_run
+        total_jobs_succeeded: $total_jobs_succeeded
+        total_jobs_failed: $total_jobs_failed
+        status: $status
+        error_message: $error_message
+        error_stack: $error_stack
+        updated_at: $updated_at
+      }
+    ) {
+      id
+    }
+  }
+`;
+
+/**
  * Health check query
  */
 export const HEALTH_CHECK_QUERY = `

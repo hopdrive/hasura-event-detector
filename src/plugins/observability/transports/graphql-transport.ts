@@ -6,6 +6,7 @@ import {
   BULK_UPSERT_INVOCATIONS,
   BULK_INSERT_EVENT_EXECUTIONS,
   BULK_INSERT_JOB_EXECUTIONS,
+  UPDATE_INVOCATION_COMPLETION,
   HEALTH_CHECK_QUERY,
 } from '../graphql/mutations';
 import { loadGraphQLClient } from './graphql-loader';
@@ -116,8 +117,53 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
   }
 
   /**
+   * Update invocation completion fields directly in the database
+   * Used for background functions where the buffer may not be available
+   */
+  async updateInvocationCompletion(invocationId: string, data: {
+    total_duration_ms: number | null;
+    events_detected_count: number;
+    total_jobs_run: number;
+    total_jobs_succeeded: number;
+    total_jobs_failed: number;
+    status: string;
+    error_message: string | null;
+    error_stack: string | null;
+    updated_at: Date;
+  }): Promise<void> {
+    if (!this.client) throw new Error('GraphQL transport not initialized');
+
+    try {
+      const variables = {
+        id: invocationId,
+        total_duration_ms: data.total_duration_ms,
+        events_detected_count: data.events_detected_count,
+        total_jobs_run: data.total_jobs_run,
+        total_jobs_succeeded: data.total_jobs_succeeded,
+        total_jobs_failed: data.total_jobs_failed,
+        status: data.status,
+        error_message: data.error_message,
+        error_stack: data.error_stack,
+        updated_at: data.updated_at.toISOString(),
+      };
+
+      const result = await this.retryWithBackoff(async () => {
+        return await this.client!.request(UPDATE_INVOCATION_COMPLETION, variables);
+      });
+
+      if (result.update_invocations_by_pk) {
+        log('GraphQLTransport', `Updated invocation completion for ${invocationId}`);
+      } else {
+        logError('GraphQLTransport', `Failed to update invocation ${invocationId} - record may not exist`, new Error('Update returned null'));
+      }
+    } catch (error) {
+      logError('GraphQLTransport', `Failed to update invocation completion for ${invocationId}`, error as Error);
+      throw error;
+    }
+  }
+
+  /**
    * Flush invocations to Hasura
-   * Note: We don't clear the records map here anymore - the plugin will handle cleanup
    */
   private async flushInvocations(records: Map<string, BufferedInvocation>): Promise<void> {
     if (!this.client) throw new Error('Client not initialized');
@@ -136,7 +182,7 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
       });
 
       log('GraphQLTransport', `Upserted ${result.insert_invocations.affected_rows} invocations`);
-      // Note: Don't clear records here - plugin manages clearing based on completion status
+      records.clear();
     } catch (error) {
       this.handleGraphQLError(error, 'invocations', objects);
       throw error;

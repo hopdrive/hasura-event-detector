@@ -98,6 +98,22 @@ export interface ObservabilityTransport {
   flush(buffer: BufferData): Promise<void>;
 
   /**
+   * Update invocation completion fields directly in the database
+   * Used for background functions where the buffer may not be available
+   */
+  updateInvocationCompletion(invocationId: string, data: {
+    total_duration_ms: number | null;
+    events_detected_count: number;
+    total_jobs_run: number;
+    total_jobs_succeeded: number;
+    total_jobs_failed: number;
+    status: string;
+    error_message: string | null;
+    error_stack: string | null;
+    updated_at: Date;
+  }): Promise<void>;
+
+  /**
    * Shutdown the transport and cleanup resources
    */
   shutdown(): Promise<void>;

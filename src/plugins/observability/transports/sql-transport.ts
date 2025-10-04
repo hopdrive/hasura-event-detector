@@ -56,7 +56,7 @@ export class SQLTransport extends BaseTransport implements ObservabilityTranspor
       // Insert/update invocations
       if (buffer.invocations.size > 0) {
         await this.bulkUpsertInvocations(client, Array.from(buffer.invocations.values()));
-        // Note: Don't clear invocations here - plugin manages clearing based on completion status
+        buffer.invocations.clear();
       }
 
       // Insert event executions
@@ -98,6 +98,68 @@ export class SQLTransport extends BaseTransport implements ObservabilityTranspor
       return true;
     } catch {
       return false;
+    }
+  }
+
+  /**
+   * Update invocation completion fields directly in the database
+   * Used for background functions where the buffer may not be available
+   */
+  async updateInvocationCompletion(invocationId: string, data: {
+    total_duration_ms: number | null;
+    events_detected_count: number;
+    total_jobs_run: number;
+    total_jobs_succeeded: number;
+    total_jobs_failed: number;
+    status: string;
+    error_message: string | null;
+    error_stack: string | null;
+    updated_at: Date;
+  }): Promise<void> {
+    if (!this.pool) throw new Error('SQL transport not initialized');
+
+    const client = await this.pool.connect();
+    try {
+      const query = `
+        UPDATE invocations
+        SET
+          total_duration_ms = $2,
+          events_detected_count = $3,
+          total_jobs_run = $4,
+          total_jobs_succeeded = $5,
+          total_jobs_failed = $6,
+          status = $7,
+          error_message = $8,
+          error_stack = $9,
+          updated_at = $10
+        WHERE id = $1
+      `;
+
+      const values = [
+        invocationId,
+        data.total_duration_ms,
+        data.events_detected_count,
+        data.total_jobs_run,
+        data.total_jobs_succeeded,
+        data.total_jobs_failed,
+        data.status,
+        data.error_message,
+        data.error_stack,
+        data.updated_at,
+      ];
+
+      const result = await client.query(query, values);
+
+      if (result.rowCount === 0) {
+        logError('SQLTransport', `Failed to update invocation ${invocationId} - record may not exist`, new Error('No rows updated'));
+      } else {
+        log('SQLTransport', `Updated invocation completion for ${invocationId}`);
+      }
+    } catch (error) {
+      logError('SQLTransport', `Failed to update invocation completion for ${invocationId}`, error as Error);
+      throw error;
+    } finally {
+      client.release();
     }
   }
 
