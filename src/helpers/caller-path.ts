@@ -6,6 +6,28 @@
  */
 
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+/**
+ * Convert a file URL to a file path, or return the path unchanged if it's already a path.
+ * Handles both ESM file URLs (file:///) and regular file paths.
+ *
+ * @param fileNameOrUrl - File path or file URL
+ * @returns Normalized file path
+ */
+function normalizeFilePath(fileNameOrUrl: string): string {
+  // Check if it's a file URL (starts with file://)
+  if (fileNameOrUrl.startsWith('file://')) {
+    try {
+      return fileURLToPath(fileNameOrUrl);
+    } catch (error) {
+      // If conversion fails, return as-is
+      return fileNameOrUrl;
+    }
+  }
+  // Already a regular file path
+  return fileNameOrUrl;
+}
 
 /**
  * Get the directory path of the file that called into this library.
@@ -53,8 +75,9 @@ export function getCallerDirectory(depth: number = 3): string {
         continue;
       }
 
-      // Found an external caller - return its directory
-      return path.dirname(fileName);
+      // Found an external caller - normalize file URL to path and return its directory
+      const normalizedPath = normalizeFilePath(fileName);
+      return path.dirname(normalizedPath);
     }
   } catch (error) {
     // If stack trace inspection fails, restore and fall through to fallback
