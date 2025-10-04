@@ -26,16 +26,28 @@ export const log = (prefix: string, message: string, ...args: any[]): void => {
       ? `${message} ${args.map(arg => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' ')}`
       : message;
 
+  // TEST
+  console.log(`[DEBUG] [${prefix}] ${formattedMessage}`);
+  // TEST
+
   // If plugin system is available, use it for consistent logging
   if (pluginManager && pluginManager.initialized) {
-    pluginManager.callOnLog('info', `[${prefix}] ${formattedMessage}`, {
-      source: 'internal_logger',
-      prefix,
-      originalArgs: args
-    }, 'system' as JobName, '' as CorrelationId).catch(() => {
-      // Fallback to console if plugin system fails
-      console.log(`[${prefix}] ${formattedMessage}`);
-    });
+    pluginManager
+      .callOnLog(
+        'info',
+        `[${prefix}] ${formattedMessage}`,
+        {
+          source: 'internal_logger',
+          prefix,
+          originalArgs: args,
+        },
+        'system' as JobName,
+        '' as CorrelationId
+      )
+      .catch(() => {
+        // Fallback to console if plugin system fails
+        console.log(`[${prefix}] ${formattedMessage}`);
+      });
   } else {
     // Fallback to console when plugin system not available
     console.log(`[${prefix}] ${formattedMessage}`);
