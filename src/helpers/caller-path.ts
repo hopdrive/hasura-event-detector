@@ -104,6 +104,22 @@ export function resolveFromCaller(relativePath: string, depth: number = 3): stri
   }
 
   // Resolve relative to caller's directory
-  const callerDir = getCallerDirectory(depth + 1); // Add 1 for this function's frame
+  let callerDir = getCallerDirectory(depth + 1); // Add 1 for this function's frame
+
+  // Handle Netlify dev server environment
+  // Netlify dev runs code from .netlify/functions-serve/[function-name]/[nested-path]
+  // But source files are in functions/[function-name]/[files]
+  // Transform: .netlify/functions-serve/db-ridehails-background/functions/db-ridehails-background
+  //         -> functions/db-ridehails-background
+  if (callerDir.includes('/.netlify/functions-serve/')) {
+    const match = callerDir.match(/^(.+?)\/\.netlify\/functions-serve\/([^/]+)\/functions\/\2(.*)$/);
+    if (match && match[1] && match[2]) {
+      const projectRoot = match[1];
+      const functionName = match[2];
+      const subPath = match[3] || '';
+      callerDir = path.join(projectRoot, 'functions', functionName, subPath);
+    }
+  }
+
   return path.resolve(callerDir, relativePath);
 }
