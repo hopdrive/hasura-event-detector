@@ -43,6 +43,25 @@ function buildPackage() {
     console.log('Copying templates...');
     execSync('cp -r templates dist/', { stdio: 'inherit' });
 
+    // Create package.json marker files for explicit module type declaration
+    console.log('Creating module type marker files...');
+    const fs = require('fs');
+    const path = require('path');
+
+    // ESM marker
+    const esmPackageJson = { type: 'module' };
+    fs.writeFileSync(
+      path.join(__dirname, '../dist/esm/package.json'),
+      JSON.stringify(esmPackageJson, null, 2) + '\n'
+    );
+
+    // CJS marker
+    const cjsPackageJson = { type: 'commonjs' };
+    fs.writeFileSync(
+      path.join(__dirname, '../dist/cjs/package.json'),
+      JSON.stringify(cjsPackageJson, null, 2) + '\n'
+    );
+
     console.log('TypeScript build completed successfully!');
     return true;
   } catch (error) {
