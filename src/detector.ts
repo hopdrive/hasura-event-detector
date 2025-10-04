@@ -387,7 +387,15 @@ const detectEventModules = async (modulesDir: string): Promise<EventName[]> => {
     const filenames = await fs.readdir(modulesDir);
     log('DetectEventModules', `Auto-detected event modules found in: ${modulesDir}`, filenames);
     return filenames
-      .filter(file => file.endsWith('.js') || file.endsWith('.ts'))
+      .filter(file => {
+        // Only include .js and .ts files
+        if (!file.endsWith('.js') && !file.endsWith('.ts')) return false;
+
+        // Exclude index files (index.js, index.ts)
+        if (file === 'index.js' || file === 'index.ts') return false;
+
+        return true;
+      })
       .map(file => file.replace(/\.(js|ts)$/, '') as EventName);
   } catch (error) {
     logError('DetectEventModules', 'Failed to list modules', error as Error);
