@@ -337,21 +337,22 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
 
       record = {
         id: invocationId,
-        // These fields are required for upsert but will be ignored since record exists
-        correlation_id: null,
-        source_function: null,
-        source_table: null,
-        source_operation: null,
-        source_system: null,
+        // These fields are required for upsert but will be ignored since record exists in DB
+        // Using placeholder values to satisfy TypeScript type requirements
+        correlation_id: '' as CorrelationId,
+        source_function: '',
+        source_table: '',
+        source_operation: '',
+        source_system: '',
         source_event_id: null,
         source_event_payload: null,
-        source_event_time: null,
+        source_event_time: new Date(0), // Epoch placeholder
         source_user_email: null,
         source_user_role: null,
-        auto_load_modules: null,
-        event_modules_directory: null,
+        auto_load_modules: false,
+        event_modules_directory: '',
         context_data: null,
-        created_at: new Date(), // Will be ignored by upsert
+        created_at: new Date(0), // Will be ignored by upsert
         // These are the fields we actually want to update
         total_duration_ms: data.durationMs,
         events_detected_count: data.eventsDetectedCount || 0,
