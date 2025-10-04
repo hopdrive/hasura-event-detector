@@ -65,7 +65,7 @@ const safeJobWrapper = async <T = any>(
   const abortSignal = hasuraEvent?.__abortSignal;
 
   const output: JobResult<T> = {
-    name: (func?.name || 'anonymous') as JobName,
+    name: (options.jobName || func?.name || 'anonymous') as JobName,
     durationMs: 0,
     result: null as any,
     completed: false,
@@ -91,7 +91,7 @@ const safeJobWrapper = async <T = any>(
     // Add correlation ID, job name, and abort signal to options for job functions to use
     const enhancedOptions: JobOptions = {
       ...options,
-      jobName: output.name,
+      jobName: options.jobName || output.name, // Preserve user-provided jobName if set
       ...(correlationId && { correlationId }),
       ...(abortSignal && { abortSignal }),
     };
