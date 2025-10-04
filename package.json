@@ -38,6 +38,7 @@
     "scripts",
     "templates",
     "netlify-plugin",
+    "manifest.yml",
     "README.md",
     "LICENSE"
   ],
