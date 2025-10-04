@@ -542,13 +542,11 @@ const consoleLogResponse = (response: ListenToResponse): void => {
   if (!Array.isArray(response?.events) || response?.events.length < 1) return;
 
   for (const event of response.events) {
-    const statusIcon = event.detected ? '⭐️' : '⏭️';
-    const statusText = event.detected ? '' : ' (not detected)';
-    log('EventDetection', `   ${statusIcon} ${event.name}${statusText}`);
-
     if (!event.detected) {
       continue;
     }
+
+    log('EventDetection', `   ⭐️ ${event.name}`);
 
     if (!Array.isArray(event?.jobs) || event?.jobs?.length < 1) {
       log('EventDetection', '      No jobs');
