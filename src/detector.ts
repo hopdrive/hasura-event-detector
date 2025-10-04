@@ -580,8 +580,12 @@ const consoleLogResponse = (response: ListenToResponse): void => {
  * @returns The loaded event module if it exists, else an empty object
  */
 const loadEventModule = async (eventName: EventName, eventModulesDirectory: string): Promise<Partial<EventModule>> => {
-  // Try both .js and .ts extensions
-  const extensions = ['.js', '.ts'];
+  // Try multiple extensions in priority order:
+  // 1. .js (user-written JavaScript)
+  // 2. .generated.js (compiled from TypeScript by build-events)
+  // 3. .mjs (ESM modules)
+  // 4. .ts (TypeScript source, requires loader in dev)
+  const extensions = ['.js', '.generated.js', '.mjs', '.ts'];
 
   for (const ext of extensions) {
     const modulePath = path.join(eventModulesDirectory, `${eventName}${ext}`);

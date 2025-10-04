@@ -33,7 +33,9 @@
   "files": [
     "dist",
     "bin",
+    "scripts",
     "templates",
+    "netlify-plugin",
     "README.md",
     "LICENSE"
   ],

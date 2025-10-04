@@ -120,6 +120,31 @@ consoleCommand
   .action(checkConsoleCommand);
 
 program
+  .command('build-events')
+  .description('Compile TypeScript event modules to .generated.js files')
+  .option('--functions-dir <dir>', 'Functions directory', 'functions')
+  .option('--watch', 'Watch mode for development (not yet implemented)')
+  .option('--clean', 'Remove all .generated.js files')
+  .option('--verbose', 'Show detailed output')
+  .action((options) => {
+    const { EventModuleBuilder } = require('../scripts/build-events.js');
+    const builder = new EventModuleBuilder(options);
+
+    if (options.clean) {
+      builder.cleanGeneratedFiles();
+      process.exit(0);
+    }
+
+    if (options.watch) {
+      builder.watchMode();
+      return;
+    }
+
+    const results = builder.build();
+    process.exit(results.success ? 0 : 1);
+  });
+
+program
   .command('init')
   .description('Initialize a new Hasura Event Detector project')
   .option('--typescript', 'Initialize with TypeScript support')
