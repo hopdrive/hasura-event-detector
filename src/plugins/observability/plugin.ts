@@ -334,6 +334,17 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
         `[FLUSH TIMING] Invocation record ${invocationId} not found in buffer. Updating database directly (background function). Jobs: ${data.totalJobsRun}, succeeded: ${data.totalJobsSucceeded}, failed: ${data.totalJobsFailed}`
       );
 
+      // Ensure transport is initialized before attempting direct update
+      if (!this.isInitialized) {
+        log('ObservabilityPlugin.recordInvocationEnd', 'Waiting for transport initialization...');
+        try {
+          await this.initialize();
+        } catch (error) {
+          logError('ObservabilityPlugin', 'Failed to initialize transport for direct update', error as Error);
+          return;
+        }
+      }
+
       if (!this.transport) {
         logError('ObservabilityPlugin', 'Cannot update invocation - transport not initialized', new Error('Transport not available'));
         return;
