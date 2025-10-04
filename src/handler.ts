@@ -157,6 +157,9 @@ const safeJobWrapper = async <T = any>(
     output.error = error as Error;
     output.endTime = new Date();
 
+    // Call plugin hook for job completion (even for failures, so observability can record final status)
+    await pluginManager.callOnJobEnd(output.name, output, event, hasuraEvent, output.durationMs);
+
     // Call plugin hook for error
     await pluginManager.callOnError(error as Error, 'job', (correlationId || '') as CorrelationId);
 
