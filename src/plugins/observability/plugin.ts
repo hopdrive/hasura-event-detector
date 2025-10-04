@@ -324,20 +324,59 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   async recordInvocationEnd(invocationId: string | null, data: any): Promise<void> {
     if (!this.config.enabled || !invocationId) return;
 
-    const record = this.buffer.invocations.get(invocationId);
-    if (!record) return;
+    let record = this.buffer.invocations.get(invocationId);
 
-    Object.assign(record, {
-      total_duration_ms: data.durationMs,
-      events_detected_count: data.eventsDetectedCount || 0,
-      total_jobs_run: data.totalJobsRun || 0,
-      total_jobs_succeeded: data.totalJobsSucceeded || 0,
-      total_jobs_failed: data.totalJobsFailed || 0,
-      status: data.status || 'completed',
-      error_message: data.errorMessage,
-      error_stack: this.config.captureErrorStacks ? data.errorStack : null,
-      updated_at: new Date(),
-    });
+    // If record was already flushed and cleared from buffer (e.g., in background functions),
+    // create a partial record with just the ID and updated fields.
+    // The upsert will update the existing DB record.
+    if (!record) {
+      log(
+        'ObservabilityPlugin.recordInvocationEnd',
+        `[FLUSH TIMING] Invocation record ${invocationId} not found in buffer (already flushed). Creating partial record for upsert with job counts: run=${data.totalJobsRun}, succeeded=${data.totalJobsSucceeded}, failed=${data.totalJobsFailed}`
+      );
+
+      record = {
+        id: invocationId,
+        // These fields are required for upsert but will be ignored since record exists
+        correlation_id: null,
+        source_function: null,
+        source_table: null,
+        source_operation: null,
+        source_system: null,
+        source_event_id: null,
+        source_event_payload: null,
+        source_event_time: null,
+        source_user_email: null,
+        source_user_role: null,
+        auto_load_modules: null,
+        event_modules_directory: null,
+        context_data: null,
+        created_at: new Date(), // Will be ignored by upsert
+        // These are the fields we actually want to update
+        total_duration_ms: data.durationMs,
+        events_detected_count: data.eventsDetectedCount || 0,
+        total_jobs_run: data.totalJobsRun || 0,
+        total_jobs_succeeded: data.totalJobsSucceeded || 0,
+        total_jobs_failed: data.totalJobsFailed || 0,
+        status: data.status || 'completed',
+        error_message: data.errorMessage,
+        error_stack: this.config.captureErrorStacks ? data.errorStack : null,
+        updated_at: new Date(),
+      };
+    } else {
+      // Record still in buffer, update it normally
+      Object.assign(record, {
+        total_duration_ms: data.durationMs,
+        events_detected_count: data.eventsDetectedCount || 0,
+        total_jobs_run: data.totalJobsRun || 0,
+        total_jobs_succeeded: data.totalJobsSucceeded || 0,
+        total_jobs_failed: data.totalJobsFailed || 0,
+        status: data.status || 'completed',
+        error_message: data.errorMessage,
+        error_stack: this.config.captureErrorStacks ? data.errorStack : null,
+        updated_at: new Date(),
+      });
+    }
 
     this.buffer.invocations.set(invocationId, record);
   }
