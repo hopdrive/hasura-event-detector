@@ -1,0 +1,42 @@
+[build]
+  command = "npm run build"
+  publish = "public"
+
+# Hasura Event Detector Plugin - Auto-compiles event modules
+[[plugins]]
+  package = "@hopdrive/hasura-event-detector"
+
+[plugins.inputs]
+  functionsDir = "functions"
+  verbose = true
+
+[functions]
+  directory = "functions"
+  # Include compiled event modules
+  included_files = ["functions/**/events/*.generated.js", "functions/**/jobs/*.js"]
+
+# CRON Function - Daily Report at 9 AM UTC
+[functions."cron-daily-report"]
+  schedule = "0 9 * * *"
+
+# Background Functions - 15 minute max execution
+# These return 202 immediately and process asynchronously
+[[functions]]
+  name = "db-orders"
+  node_bundler = "esbuild"
+
+[[functions]]
+  name = "db-payments"
+  node_bundler = "esbuild"
+
+# Synchronous Functions - 10-26 second max execution
+# These wait for completion and return result
+[[functions]]
+  name = "db-users"
+  node_bundler = "esbuild"
+
+# Environment Variables (set in Netlify UI or .env)
+# OBSERVABILITY_ENABLED=true
+# DATABASE_URL=postgresql://...
+# HASURA_GRAPHQL_ENDPOINT=https://...
+# HASURA_ADMIN_SECRET=...
