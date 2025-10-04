@@ -286,9 +286,6 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
     const jsonColumns = [
       'source_event_payload',
       'context_data',
-      'error_stack',
-      'detection_error_stack',
-      'handler_error_stack',
       'job_options',
       'result',
     ];
