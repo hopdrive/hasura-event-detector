@@ -99,12 +99,26 @@ exports.handler = async (event, context) => {
 
 ## 🏗️ Architecture
 
+### Core Concept: Separation of Concerns
+
+The framework enforces a clear separation between **detection logic** and **execution logic** to maximize observability and maintainability:
+
+1. **Detector Functions**: Pure detection logic - "Did this specific business event occur?"
+2. **Handler Functions**: Job orchestration - "Which jobs should run for this event?"
+3. **Job Functions**: Execution logic - "What specific action to perform?"
+
+This separation enables the observability plugin to track:
+- Which events were detected
+- Which jobs ran as a result
+- Execution duration and outcomes
+- Dependencies between events
+
 ### Event Modules
 
 Each event module consists of two functions:
 
-- **Detector**: Determines if a business event occurred
-- **Handler**: Executes jobs when the event is detected
+- **Detector**: Determines if a specific business event occurred
+- **Handler**: Declares which jobs to execute (no conditional logic)
 
 #### Basic Structure
 ```typescript
@@ -116,20 +130,105 @@ import type {
 } from '@hopdrive/hasura-event-detector';
 import { parseHasuraEvent, columnHasChanged, job, run } from '@hopdrive/hasura-event-detector';
 
+// Detector: Pure detection logic
 export const detector: DetectorFunction = async (event, hasuraEvent) => {
-  // Detection logic here
+  // ALL conditional logic belongs here
+  // Returns boolean: does this event match?
   return true; // or false
 };
 
+// Handler: Job orchestration ONLY
 export const handler: HandlerFunction = async (event, hasuraEvent) => {
+  // Declare jobs - NO conditional logic here
   const jobs = [
-    // Define your jobs here
+    job(sendEmail),
+    job(updateRecord),
+    job(notifyService),
   ];
   return await run(event, hasuraEvent, jobs) || [];
 };
 
 export default { detector, handler };
 ```
+
+### ⚠️ Anti-Pattern: Conditional Job Logic
+
+**❌ BAD - Hides complexity and breaks observability:**
+```typescript
+// DON'T DO THIS - conditional logic in handler
+export const handler: HandlerFunction = async (event, hasuraEvent) => {
+  const { dbEvent } = parseHasuraEvent(hasuraEvent);
+  const jobs = [];
+
+  // ❌ Conditional job addition hides business logic
+  if (dbEvent?.new?.amount > 1000) {
+    jobs.push(job(sendManagerApproval));
+  }
+
+  if (dbEvent?.new?.country === 'US') {
+    jobs.push(job(sendTaxNotification));
+  }
+
+  return await run(event, hasuraEvent, jobs);
+};
+```
+
+**Why This Is Bad:**
+- 🚫 **Hidden Logic**: Business rules buried in handler instead of detector
+- 🚫 **Lost Observability**: Console can't show which events trigger which jobs
+- 🚫 **Poor Maintainability**: Hard to understand what events exist in the system
+- 🚫 **Reduced Clarity**: Can't see the full job list for an event at a glance
+
+**✅ GOOD - Create separate named events:**
+```typescript
+// events/orders.large.approval.ts
+export const detector: DetectorFunction = async (event, hasuraEvent) => {
+  const { dbEvent, operation } = parseHasuraEvent(hasuraEvent);
+
+  const isOrdersTable = hasuraEvent.table?.name === 'orders';
+  const isInsert = operation === 'INSERT';
+  const isLargeOrder = dbEvent?.new?.amount > 1000;
+
+  // Clear, named business rule
+  return isOrdersTable && isInsert && isLargeOrder;
+};
+
+export const handler: HandlerFunction = async (event, hasuraEvent) => {
+  const jobs = [
+    job(sendManagerApproval),
+    job(createAuditLog),
+  ];
+  return await run(event, hasuraEvent, jobs);
+};
+
+// events/orders.us.tax.notification.ts
+export const detector: DetectorFunction = async (event, hasuraEvent) => {
+  const { dbEvent, operation } = parseHasuraEvent(hasuraEvent);
+
+  const isOrdersTable = hasuraEvent.table?.name === 'orders';
+  const isInsert = operation === 'INSERT';
+  const isUSOrder = dbEvent?.new?.country === 'US';
+
+  return isOrdersTable && isInsert && isUSOrder;
+};
+
+export const handler: HandlerFunction = async (event, hasuraEvent) => {
+  const jobs = [
+    job(sendTaxNotification),
+    job(recordTaxObligation),
+  ];
+  return await run(event, hasuraEvent, jobs);
+};
+```
+
+**Why This Is Better:**
+- ✅ **Named Events**: Business rules have clear names (`orders.large.approval`, `orders.us.tax.notification`)
+- ✅ **Full Observability**: Console shows exactly which events fired and why
+- ✅ **Maintainable**: Easy to find and modify business rules
+- ✅ **Testable**: Each event module can be tested independently
+- ✅ **Self-Documenting**: Event file names describe business logic
+
+**Rule of Thumb**: If you're tempted to add `if` statements in a handler, create a new named event module instead.
 
 #### Detection Patterns
 
@@ -221,19 +320,59 @@ job(async (event, hasuraEvent, options) => {
 
 #### File Naming Convention
 
-Event modules should be placed in the `events/` directory with descriptive names:
-- `events/user-activation.js` - User becomes active
-- `events/order-completed.js` - Order status changes to completed
-- `events/subscription-renewed.js` - Subscription renewal
-- `events/payment-failed.js` - Payment processing failure
+Event modules should be placed in the `events/` directory using **dot notation** that relates to the database table:
+
+**Pattern**: `table.action.ts` (or `.js`)
+
+**Examples for `db-orders` function:**
+- `events/orders.created.ts` - Order INSERT operations
+- `events/orders.shipped.ts` - Order status changed to 'shipped'
+- `events/orders.cancelled.ts` - Order status changed to 'cancelled'
+- `events/orders.delivered.ts` - Order status changed to 'delivered'
+
+**Examples for `db-moves` function:**
+- `events/moves.created.ts` - New move record created
+- `events/moves.pickup.started.ts` - Pickup phase started
+- `events/moves.pickup.completed.ts` - Pickup phase completed
+- `events/moves.delivery.started.ts` - Delivery phase started
+- `events/moves.delivery.completed.ts` - Delivery phase completed
+- `events/moves.cancelled.ts` - Move cancelled
+
+**Examples for `db-users` function:**
+- `events/users.registered.ts` - User INSERT operations
+- `events/users.activated.ts` - User status changed to 'active'
+- `events/users.deactivated.ts` - User status changed to 'inactive'
+- `events/users.email.verified.ts` - Email verification completed
+
+**Examples for `db-payments` function:**
+- `events/payments.initiated.ts` - Payment INSERT operations
+- `events/payments.completed.ts` - Payment status changed to 'completed'
+- `events/payments.failed.ts` - Payment status changed to 'failed'
+- `events/payments.refunded.ts` - Payment refund processed
+
+**Why This Pattern?**
+- **Table-Centric**: Immediately clear which table the event monitors
+- **Semantic**: Reads naturally as "orders created", "moves pickup started"
+- **Scalable**: Easy to add new events without creating new functions
+- **Organized**: All events for a table are in one function's events directory
 
 #### Best Practices
 
-1. **Keep Detectors Simple and Fast** - Use early returns for quick filtering
-2. **Make Jobs Idempotent** - Jobs may be retried, ensure they can run multiple times safely
-3. **Use Correlation IDs** - Always pass correlation IDs to track related operations
-4. **Handle Failures Gracefully** - Set appropriate timeouts and retry counts
-5. **Monitor and Observe** - Return meaningful results from jobs
+1. **No Conditional Logic in Handlers** - Create separate named event modules instead of using `if` statements in handlers. This preserves observability and makes business logic explicit.
+
+2. **Keep Detectors Simple and Fast** - Use early returns and descriptive variable names. The detector should read like a sentence describing the business event.
+
+3. **Make Jobs Idempotent** - Jobs may be retried, ensure they can run multiple times safely without side effects.
+
+4. **Use Descriptive Event Names** - Event file names should clearly describe the business logic: `orders.large.approval.ts`, `moves.pickup.started.ts`, not generic names like `order-handler.ts`.
+
+5. **Static Job Declaration** - Always declare the full job list in the handler. If you need conditional behavior, create separate event modules for each condition.
+
+6. **Use Correlation IDs** - Always pass correlation IDs to track related operations across event chains.
+
+7. **Handle Failures Gracefully** - Set appropriate timeouts and retry counts for each job based on its operation type.
+
+8. **Return Meaningful Results** - Jobs should return structured data about what they accomplished for observability tracking.
 
 ### Built-in Job Functions
 
@@ -289,6 +428,7 @@ const result = await listenTo(hasuraEvent, config, {
 ### Accessing Context in Event Modules
 
 ```typescript
+// ✅ GOOD - Use context in detector for environment-specific detection
 export const detector = async (event, hasuraEvent) => {
   const context = hasuraEvent.__context;
 
@@ -297,26 +437,33 @@ export const detector = async (event, hasuraEvent) => {
     return false;
   }
 
-  // Environment-specific logic
+  // Environment-specific validation
   if (context?.environment === 'production') {
     // Stricter validation in production
+    return hasuraEvent.table?.name === 'orders'
+      && hasuraEvent.event?.op === 'INSERT'
+      && hasuraEvent.event.data.new?.validated === true;
   }
 
-  return true;
+  // More lenient in development
+  return hasuraEvent.table?.name === 'orders'
+    && hasuraEvent.event?.op === 'INSERT';
 };
 
+// ✅ GOOD - Handler declares jobs statically
 export const handler = async (event, hasuraEvent) => {
-  const context = hasuraEvent.__context;
-
-  const jobs = [];
-
-  // Conditionally add jobs based on context
-  if (context?.featureFlags?.enableNotifications) {
-    jobs.push(job(sendEmailJob));
-  }
+  const jobs = [
+    job(sendEmailJob),
+    job(processOrderJob),
+  ];
 
   return await run(event, hasuraEvent, jobs);
 };
+
+// ❌ BAD - Don't use context to conditionally add jobs
+// Instead, create separate event modules:
+// - events/orders.notifications.enabled.ts (when feature flag is on)
+// - events/orders.notifications.disabled.ts (when feature flag is off)
 ```
 
 ### Common Context Patterns
