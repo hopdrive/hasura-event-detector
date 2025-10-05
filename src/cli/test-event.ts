@@ -7,7 +7,8 @@
 import fs from 'fs';
 import path from 'path';
 import { listenTo } from '../detector';
-import type { HasuraEventPayload, EventName } from "../types";
+import type { HasuraEventPayload, EventName, CorrelationId } from '../types';
+import { randomUUID } from 'crypto';
 
 interface TestEventOptions {
   file?: string;
@@ -123,6 +124,7 @@ function generateSampleEvent(eventName: string): HasuraEventPayload {
   const baseEvent: HasuraEventPayload = {
     id: `test_${Date.now()}`,
     created_at: new Date().toISOString(),
+    __correlationId: randomUUID() as CorrelationId,
     table: {
       name: 'users',
       schema: 'public',

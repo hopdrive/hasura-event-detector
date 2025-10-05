@@ -1,10 +1,16 @@
 /**
  * TrackingToken - A hierarchical tracking identifier for execution chain tracing
  *
- * Format: source.correlationId.jobId
+ * Format: source|correlationId|jobExecutionId
  *
  * This provides a standardized way to track execution lineage through the system,
  * commonly used in database updated_by columns or other transport mechanisms.
+ *
+ * The source can be a system name, user ID, or user email (e.g., "user@example.com")
+ * The jobExecutionId is a UUID that references the job_executions.id in the observability
+ * database, enabling parent-child relationship tracking between job executions and invocations.
+ *
+ * Uses pipe (|) as separator to avoid conflicts with email addresses containing dots.
  */
 
 import type { CorrelationId, JobName } from '../types';
@@ -25,31 +31,31 @@ export type TrackingTokenSource = string;
 export interface TrackingTokenComponents {
   source: TrackingTokenSource;
   correlationId: string;
-  jobId?: string;
+  jobExecutionId?: string;
 }
 
 /**
  * Utilities for working with tracking tokens (TrackingTokenUtils class aliased as TrackingToken)
  *
  * Tracking tokens provide a hierarchical identifier that captures:
- * - The source/origin of an action
+ * - The source/origin of an action (system name, user ID, or email)
  * - The correlation ID linking related operations
- * - Optionally, a specific job ID for granular tracking
+ * - Optionally, a job execution UUID for tracking job-to-job chains
  *
  * @example
  * ```typescript
  * // Create a tracking token
- * const token = TrackingToken.create('api-handler', correlationId, 'job-123');
- * // Result: "api-handler.550e8400-e29b-41d4-a716-446655440000.job-123"
+ * const token = TrackingToken.create('user@example.com', correlationId, jobExecutionId);
+ * // Result: "user@example.com|550e8400-e29b-41d4-a716-446655440000|abc-def-12345"
  *
  * // Parse a token back to components
  * const components = TrackingToken.parse(token);
- * // Result: { source: 'api-handler', correlationId: '550e8400-...', jobId: 'job-123' }
+ * // Result: { source: 'user@example.com', correlationId: '550e8400-...', jobExecutionId: 'abc-def-12345' }
  *
  * // Use in database operations
  * await db.update({
  *   ...data,
- *   updated_by: token // Transport mechanism
+ *   updated_by: token // Transport mechanism for tracking job chains
  * });
  * ```
  */
@@ -57,27 +63,27 @@ export class TrackingTokenUtils {
   /**
    * Create a tracking token from components
    *
-   * @param source - The source/origin identifier (e.g., 'api', 'webhook', 'scheduler')
+   * @param source - The source/origin identifier (e.g., 'system', 'user@example.com', 'user-id-123')
    * @param correlationId - The correlation ID linking related operations
-   * @param jobId - Optional job identifier for specific job tracking
-   * @returns A formatted tracking token
+   * @param jobExecutionId - Optional job execution UUID for tracking job-to-job chains
+   * @returns A formatted tracking token with pipe separators
    */
   static create(
     source: TrackingTokenSource,
     correlationId: CorrelationId | string,
-    jobId?: JobName | string
+    jobExecutionId?: string
   ): TrackingToken {
     if (!source || !correlationId) {
       throw new Error('TrackingToken requires both source and correlationId');
     }
 
-    // Sanitize inputs to prevent delimiter conflicts
-    const sanitizedSource = source.replace(/\./g, '_');
-    const sanitizedJobId = jobId?.replace(/\./g, '_');
+    // Sanitize inputs to prevent delimiter conflicts (replace pipe characters)
+    const sanitizedSource = source.replace(/\|/g, '_');
+    const sanitizedJobExecutionId = jobExecutionId?.replace(/\|/g, '_');
 
-    const token = sanitizedJobId
-      ? `${sanitizedSource}.${correlationId}.${sanitizedJobId}`
-      : `${sanitizedSource}.${correlationId}`;
+    const token = sanitizedJobExecutionId
+      ? `${sanitizedSource}|${correlationId}|${sanitizedJobExecutionId}`
+      : `${sanitizedSource}|${correlationId}`;
 
     return token as TrackingToken;
   }
@@ -91,12 +97,12 @@ export class TrackingTokenUtils {
   static parse(token: TrackingToken | string): TrackingTokenComponents | null {
     if (!this.isValid(token)) return null;
 
-    const parts = token.split('.');
+    const parts = token.split('|');
 
     return {
       source: parts[0]!,
       correlationId: parts[1]!,
-      ...(parts[2] ? { jobId: parts[2] } : {}),
+      ...(parts[2] ? { jobExecutionId: parts[2] } : {}),
     };
   }
 
@@ -109,8 +115,8 @@ export class TrackingTokenUtils {
   static isValid(value: unknown): value is TrackingToken {
     if (!value || typeof value !== 'string') return false;
 
-    // Format: source.correlationId or source.correlationId.jobId
-    const parts = value.split('.');
+    // Format: source|correlationId or source|correlationId|jobExecutionId
+    const parts = value.split('|');
 
     // Must have 2 or 3 parts
     if (parts.length < 2 || parts.length > 3) return false;
@@ -137,14 +143,14 @@ export class TrackingTokenUtils {
   }
 
   /**
-   * Extract just the job ID from a tracking token
+   * Extract just the job execution ID from a tracking token
    *
    * @param token - The tracking token
-   * @returns The job ID or null if not present/invalid
+   * @returns The job execution ID (UUID) or null if not present/invalid
    */
-  static getJobId(token: TrackingToken | string): string | null {
+  static getJobExecutionId(token: TrackingToken | string): string | null {
     const parsed = this.parse(token);
-    return parsed?.jobId || null;
+    return parsed?.jobExecutionId || null;
   }
 
   /**
@@ -159,23 +165,23 @@ export class TrackingTokenUtils {
   }
 
   /**
-   * Create a new token with a different job ID but same source and correlation
+   * Create a new token with a different job execution ID but same source and correlation
    *
    * @param token - The original tracking token
-   * @param newJobId - The new job ID to use
-   * @returns A new tracking token with the updated job ID
+   * @param newJobExecutionId - The new job execution ID (UUID) to use
+   * @returns A new tracking token with the updated job execution ID
    */
-  static withJobId(token: TrackingToken | string, newJobId: string): TrackingToken {
+  static withJobExecutionId(token: TrackingToken | string, newJobExecutionId: string): TrackingToken {
     const parsed = this.parse(token);
     if (!parsed) {
       throw new Error('Invalid tracking token provided');
     }
 
-    return this.create(parsed.source, parsed.correlationId, newJobId);
+    return this.create(parsed.source, parsed.correlationId, newJobExecutionId);
   }
 
   /**
-   * Create a new token with a different source but same correlation and job
+   * Create a new token with a different source but same correlation and job execution ID
    *
    * @param token - The original tracking token
    * @param newSource - The new source to use
@@ -187,7 +193,7 @@ export class TrackingTokenUtils {
       throw new Error('Invalid tracking token provided');
     }
 
-    return this.create(newSource, parsed.correlationId, parsed.jobId);
+    return this.create(newSource, parsed.correlationId, parsed.jobExecutionId);
   }
 }
 

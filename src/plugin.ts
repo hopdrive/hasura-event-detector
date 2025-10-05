@@ -102,6 +102,7 @@ export class BasePlugin<TConfig extends PluginConfig = PluginConfig> implements 
 
   /**
    * Called before a job starts executing
+   * Plugins can modify jobOptions to inject values
    */
   async onJobStart(
     jobName: JobName,

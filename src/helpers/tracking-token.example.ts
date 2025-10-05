@@ -16,14 +16,18 @@ export const exampleDatabaseUpdateJob: JobFunction = async (
   hasuraEvent: HasuraEventPayload,
   options
 ) => {
-  const correlationId = hasuraEvent.__correlationId || 'default-correlation-id';
-  const jobName = options?.jobName || 'example-job';
+  const correlationId = hasuraEvent.__correlationId;
+
+  // The jobExecutionId is automatically injected by the observability plugin
+  // It's a UUID that references job_executions.id in the observability database
+  const jobExecutionId = options?.jobExecutionId;
 
   // Create a tracking token for this job execution
+  // The jobExecutionId enables tracking parent-child relationships between job executions
   const trackingToken = TrackingToken.create(
-    'job-system',      // Source identifier
+    'system',          // Source identifier
     correlationId,     // Correlation ID from the event
-    jobName           // This specific job's identifier
+    jobExecutionId     // UUID of this job execution (for tracking job-to-job chains)
   );
 
   // Example: Update a database record with the tracking token
@@ -44,7 +48,7 @@ export const exampleDatabaseUpdateJob: JobFunction = async (
   // await db.query(updateQuery);
 
   console.log('Created tracking token:', trackingToken);
-  // Output: "job-system.550e8400-e29b-41d4-a716-446655440000.example-job"
+  // Output: "system|550e8400-e29b-41d4-a716-446655440000|abc-def-12345"
 
   return {
     success: true,
@@ -69,13 +73,13 @@ export const chainedJob: JobFunction = async (
     console.log('Previous execution chain:', {
       source: components?.source,
       correlationId: components?.correlationId,
-      previousJob: components?.jobId
+      previousJobExecution: components?.jobExecutionId
     });
 
     // Create a new token for this job, maintaining the correlation
-    const newToken = TrackingToken.withJobId(
+    const newToken = TrackingToken.withJobExecutionId(
       previousToken,
-      options?.jobName || 'chained-job'
+      options?.jobExecutionId || 'new-job-execution-uuid'
     );
 
     // Or create with a different source but same correlation
@@ -96,7 +100,7 @@ export const chainedJob: JobFunction = async (
   const freshToken = TrackingToken.create(
     'chained-job',
     hasuraEvent.__correlationId || 'new-correlation',
-    options?.jobName
+    options?.jobExecutionId
   );
 
   return {

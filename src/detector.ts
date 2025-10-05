@@ -253,11 +253,10 @@ export const listenTo = async (
       const processingPromise = runEventDetectorWithHooks(
         eventName,
         hasuraEvent,
-        resolvedOptions.eventModulesDirectory || './events',
-        finalCorrelationId
+        resolvedOptions.eventModulesDirectory || './events'
       ).catch(error => {
         // If there's an error in detection, still return a result indicating not detected
-        pluginManager.callOnError(error as Error, 'event_detection', finalCorrelationId);
+        pluginManager.callOnError(error as Error, 'event_detection', hasuraEvent.__correlationId);
         logError(eventName, 'Error detecting events', error as Error);
         return {
           eventName,
@@ -435,8 +434,7 @@ export const detectEventModules = async (modulesDir: string): Promise<EventName[
 const runEventDetectorWithHooks = async (
   eventName: EventName,
   hasuraEvent: HasuraEventPayload,
-  eventModulesDirectory: string,
-  correlationId: CorrelationId
+  eventModulesDirectory: string
 ): Promise<EventProcessingResult> => {
   const detectionStart = Date.now();
 
@@ -461,7 +459,7 @@ const runEventDetectorWithHooks = async (
   }
 
   // Event was detected, run the handler
-  const jobs = await runEventHandlerWithHooks(eventHandler, eventName, hasuraEvent, correlationId);
+  const jobs = await runEventHandlerWithHooks(eventHandler, eventName, hasuraEvent);
   return {
     eventName,
     detected: true,
@@ -475,14 +473,12 @@ const runEventDetectorWithHooks = async (
  * @param eventName - Name of the event to run the handler for
  * @param hasuraEvent - Hasura event trigger payload
  * @param eventHandler - Handler function to run
- * @param correlationId - Correlation ID to use
  * @returns Promise resolving to job execution results
  */
 const runEventHandlerWithHooks = async (
   eventHandler: HandlerFunction,
   eventName: EventName,
-  hasuraEvent: HasuraEventPayload,
-  correlationId: CorrelationId
+  hasuraEvent: HasuraEventPayload
 ): Promise<JobResult[]> => {
   const handlerStart = Date.now();
   try {
@@ -503,7 +499,7 @@ const runEventHandlerWithHooks = async (
     const handlerDuration = Date.now() - handlerStart;
 
     // Call plugin hook for error
-    await pluginManager.callOnError(error as Error, 'event_handler', correlationId);
+    await pluginManager.callOnError(error as Error, 'event_handler', hasuraEvent.__correlationId);
 
     log(eventName, `Handler crashed: ${(error as Error).stack}`);
     throw new Error(`Handler crashed: ${(error as Error).stack}`);

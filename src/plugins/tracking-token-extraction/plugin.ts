@@ -34,9 +34,9 @@ export class TrackingTokenExtractionPlugin extends BasePlugin<TrackingTokenExtra
       extractFromUpdatedBy: true,
       extractFromMetadata: true,
       extractFromSession: true,
-      // Default pattern: extract correlation ID from "something.correlation_id.source_job_id" format (2nd position)
-      // Also supports "something.correlation_id" format
-      updatedByPattern: /^[^.]+\.([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:\.[^.]+)?$/i,
+      // Default pattern: extract correlation ID from "something|correlation_id|source_job_id" format (2nd position)
+      // Also supports "something|correlation_id" format
+      updatedByPattern: /^[^|]+\|([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:\|[^|]+)?$/i,
       sessionVariables: ['x-correlation-id', 'x-request-id', 'x-trace-id'],
       metadataKeys: ['correlation_id', 'trace_id', 'request_id', 'workflow_id'],
       ...config,
@@ -67,7 +67,10 @@ export class TrackingTokenExtractionPlugin extends BasePlugin<TrackingTokenExtra
       if (trackingResult) {
         correlationId = trackingResult.correlationId;
         sourceJobId = trackingResult.sourceJobId || null;
-        log('TrackingTokenExtraction', `Extracted from updated_by - correlationId: ${correlationId}, sourceJobId: ${sourceJobId}`);
+        log(
+          'TrackingTokenExtraction',
+          `Extracted from updated_by - correlationId: ${correlationId}, sourceJobId: ${sourceJobId}`
+        );
       }
     }
 
@@ -100,6 +103,7 @@ export class TrackingTokenExtractionPlugin extends BasePlugin<TrackingTokenExtra
       // Store source job ID in hasuraEvent for observability plugin
       if (sourceJobId) {
         (hasuraEvent as any).__sourceJobId = sourceJobId;
+        log('TrackingTokenExtraction', `Set hasuraEvent.__sourceJobId = ${sourceJobId}`);
       }
 
       // Return updated options with correlationId
@@ -115,12 +119,10 @@ export class TrackingTokenExtractionPlugin extends BasePlugin<TrackingTokenExtra
   /**
    * Extract tracking token components from updated_by field
    * Supports formats like:
-   * - "something.correlation_id.source_job_id" (full tracking token)
-   * - "something.correlation_id" (without source job)
+   * - "user@example.com|correlation_id|source_job_id" (full tracking token)
+   * - "system|correlation_id" (without source job)
    */
   private extractFromUpdatedBy(parsedEvent: ParsedHasuraEvent): { correlationId: string; sourceJobId?: string } | null {
-    if (parsedEvent.operation !== 'UPDATE') return null;
-
     const updatedBy = parsedEvent.dbEvent?.new?.updatedby || parsedEvent.dbEvent?.new?.updated_by;
     if (!updatedBy || typeof updatedBy !== 'string') return null;
 
@@ -129,7 +131,7 @@ export class TrackingTokenExtractionPlugin extends BasePlugin<TrackingTokenExtra
     if (components) {
       return {
         correlationId: components.correlationId,
-        ...(components.jobId ? { sourceJobId: components.jobId } : {})
+        ...(components.jobExecutionId ? { sourceJobId: components.jobExecutionId } : {}),
       };
     }
 
@@ -236,8 +238,8 @@ export const updatedByOnlyPlugin = new TrackingTokenExtractionPlugin({
   extractFromUpdatedBy: true,
   extractFromMetadata: false,
   extractFromSession: false,
-  // Extract correlation ID from "user:12345.correlation-id.source-job-id" format (2nd position)
-  updatedByPattern: /^user:\d+\.([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:\.[^.]+)?$/i,
+  // Extract correlation ID from "user:12345|correlation-id|source-job-id" format (2nd position)
+  updatedByPattern: /^user:\d+\|([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:\|[^|]+)?$/i,
 });
 
 /**

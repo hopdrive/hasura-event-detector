@@ -19,6 +19,7 @@ export const BULK_UPSERT_INVOCATIONS = `
           source_event_time,
           source_user_email,
           source_user_role,
+          source_job_id,
           total_duration_ms,
           events_detected_count,
           total_jobs_run,

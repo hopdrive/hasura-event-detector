@@ -298,6 +298,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       source_event_time: data.hasuraEventTime,
       source_user_email: data.hasuraUserEmail,
       source_user_role: data.hasuraUserRole,
+      source_job_id: data.sourceJobId,
       auto_load_modules: data.autoLoadModules,
       event_modules_directory: data.eventModulesDirectory,
       context_data: data.contextData,
@@ -514,6 +515,11 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       eventModulesDirectory: options.eventModulesDirectory || './events',
       contextData: hasuraEvent?.__context || null,
     };
+
+    // Debug: Log sourceJobId being recorded
+    if (invocationData.sourceJobId) {
+      log('ObservabilityPlugin', `Recording invocation with sourceJobId: ${invocationData.sourceJobId}`);
+    }
 
     const invocationId = await this.recordInvocationStart(invocationData);
     if (invocationId) {
@@ -756,6 +762,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
 
   /**
    * Called when individual job starts
+   * Injects jobExecutionId into jobOptions for the job function to use
    */
   override async onJobStart(
     jobName: JobName,
@@ -808,6 +815,9 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       // Store job execution ID for completion tracking
       const jobExecutionKey = `${hasuraEvent?.__correlationId as CorrelationId}:${eventName}:${jobName}`;
       this.activeJobExecutions.set(jobExecutionKey, jobExecutionId);
+
+      // Inject jobExecutionId into options so job functions can use it
+      jobOptions.jobExecutionId = jobExecutionId;
     }
 
     log('ObservabilityPlugin', `Job started: ${jobName} for event ${eventName}`);

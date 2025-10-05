@@ -40,7 +40,7 @@ export interface HasuraEventPayload<T = Record<string, any>> {
   table: HasuraTable;
   // Context and correlation tracking (added by our system)
   __context?: Record<string, any>; // User-provided context data
-  __correlationId?: CorrelationId;
+  __correlationId: CorrelationId;
   // Internal fields for timeout handling (not part of user context)
   __abortSignal?: AbortSignal;
   __maxJobExecutionTime?: number;
@@ -92,6 +92,7 @@ export type TrackingToken = string & { readonly __trackingToken: unique symbol }
 export interface JobOptions {
   correlationId?: CorrelationId;
   jobName?: JobName;
+  jobExecutionId?: string;
   timeout?: number;
   retries?: number;
   abortSignal?: AbortSignal;

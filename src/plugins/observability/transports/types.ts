@@ -15,6 +15,7 @@ export interface BufferedInvocation {
   source_event_time: Date;
   source_user_email: string | null;
   source_user_role: string | null;
+  source_job_id: string | null;
   auto_load_modules: boolean;
   event_modules_directory: string;
   context_data: Record<string, any> | null;

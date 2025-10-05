@@ -99,20 +99,20 @@ const safeJobWrapper = async <T = any>(
     return output;
   }
 
-  // Call plugin hook for job start
-  await pluginManager.callOnJobStart(output.name, options, event, hasuraEvent);
+  // Create enhanced options with correlation ID, job name, and abort signal
+  const enhancedOptions: JobOptions = {
+    ...options,
+    jobName: options.jobName || output.name, // Preserve user-provided jobName if set
+    ...(correlationId && { correlationId }),
+    ...(abortSignal && { abortSignal }),
+  };
+
+  // Call plugin hook for job start (plugins can inject values into enhancedOptions, like jobExecutionId)
+  await pluginManager.callOnJobStart(output.name, enhancedOptions, event, hasuraEvent);
 
   try {
     if (!func) throw new Error('Job func not defined');
     if (typeof func !== 'function') throw new Error('Job func not a function');
-
-    // Add correlation ID, job name, and abort signal to options for job functions to use
-    const enhancedOptions: JobOptions = {
-      ...options,
-      jobName: options.jobName || output.name, // Preserve user-provided jobName if set
-      ...(correlationId && { correlationId }),
-      ...(abortSignal && { abortSignal }),
-    };
 
     // Set up timeout for individual job if configured
     const maxJobTime = options.timeout || hasuraEvent?.__maxJobExecutionTime;
@@ -179,7 +179,7 @@ const safeJobWrapper = async <T = any>(
     await pluginManager.callOnJobEnd(output.name, output, event, hasuraEvent, output.durationMs);
 
     // Call plugin hook for error
-    await pluginManager.callOnError(error as Error, 'job', (correlationId || '') as CorrelationId);
+    await pluginManager.callOnError(error as Error, 'job', hasuraEvent.__correlationId);
 
     log(event, `Job func crashed: ${(error as Error).message}`);
     const newError = new Error(`Job func crashed: ${(error as Error).message}`);
