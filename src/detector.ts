@@ -525,9 +525,14 @@ const detect = async (
   hasuraEvent: HasuraEventPayload,
   eventModulesDirectory: string
 ): Promise<HandlerFunction | null> => {
-  const { detector, handler } = await loadEventModule(eventName, eventModulesDirectory);
+  const eventModule = await loadEventModule(eventName, eventModulesDirectory);
+  const { detector, handler } = eventModule;
 
-  log(eventName, 'Detector and handler loaded: ', detector, handler);
+  log(eventName, 'Event module loaded: ', {
+    eventModulesDirectory,
+    wasLoaded: eventModule ? true : false,
+    eventModule,
+  });
 
   if (!detector) return null;
   if (typeof detector !== 'function') return null;
@@ -619,17 +624,27 @@ const loadEventModule = async (eventName: EventName, eventModulesDirectory: stri
       // In CommonJS, it accepts both paths and URLs
       const moduleUrl = path.isAbsolute(modulePath) ? pathToFileURL(modulePath).href : modulePath;
 
+      log(eventName, `Importing module from ${moduleUrl}`, {
+        pathIsAbsolute: path.isAbsolute(modulePath),
+        pathToFileURL: pathToFileURL(modulePath),
+        pathToFileURLHref: pathToFileURL(modulePath).href,
+        modulePath,
+      });
+
       // Using dynamic import for ES modules compatibility (works in both CJS and ESM)
       const importedModule = await import(moduleUrl);
+
+      log(eventName, 'Imported module returned by await import(moduleUrl): ', importedModule);
 
       // Handle both CommonJS (module.exports) and ES modules (export default/named exports)
       // CommonJS modules imported via import() have exports on the module object directly
       // or sometimes on .default depending on the transpilation
       const module = (importedModule.default || importedModule) as EventModule;
 
-      log(eventName, 'loadEventModule', `🧩 Loaded ${eventName} module from ${modulePath}`, module);
+      log(eventName, `🧩 Loaded event module from ${modulePath}`, module);
       return module;
     } catch (error) {
+      log(eventName, `🧩 Error loading event module`);
       // Continue to next extension if this one fails
       if (ext === extensions[extensions.length - 1]) {
         // Only log error on the last attempt
