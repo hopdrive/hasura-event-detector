@@ -388,17 +388,27 @@ const detectEventModules = async (modulesDir: string): Promise<EventName[]> => {
   try {
     const filenames = await fs.readdir(modulesDir);
     log('DetectEventModules', `Auto-detected event modules found in: ${modulesDir}`, filenames);
-    return filenames
-      .filter(file => {
-        // Only include .js and .ts files
-        if (!file.endsWith('.js') && !file.endsWith('.ts')) return false;
 
-        // Exclude index files (index.js, index.ts)
-        if (file === 'index.js' || file === 'index.ts') return false;
+    // Get unique event names, preferring source .ts files over generated artifacts
+    const eventNames = new Set<EventName>();
 
-        return true;
-      })
-      .map(file => file.replace(/\.(js|ts)$/, '') as EventName);
+    for (const file of filenames) {
+      // Skip non-JS/TS files
+      if (!file.endsWith('.js') && !file.endsWith('.ts')) continue;
+
+      // Skip index files
+      if (file === 'index.js' || file === 'index.ts') continue;
+
+      // Skip generated files - they are build artifacts
+      // The .generated.js files are produced from .ts source files
+      if (file.includes('.generated.')) continue;
+
+      // Extract event name (remove extension)
+      const eventName = file.replace(/\.(js|ts)$/, '') as EventName;
+      eventNames.add(eventName);
+    }
+
+    return Array.from(eventNames);
   } catch (error) {
     logError('DetectEventModules', 'Failed to list modules', error as Error);
     return [];
@@ -581,11 +591,11 @@ const consoleLogResponse = (response: ListenToResponse): void => {
  */
 const loadEventModule = async (eventName: EventName, eventModulesDirectory: string): Promise<Partial<EventModule>> => {
   // Try multiple extensions in priority order:
-  // 1. .js (user-written JavaScript)
-  // 2. .generated.js (compiled from TypeScript by build-events)
+  // 1. .generated.js (compiled from TypeScript by build-events - preferred in production)
+  // 2. .js (user-written JavaScript - for backwards compatibility)
   // 3. .mjs (ESM modules)
-  // 4. .ts (TypeScript source, requires loader in dev)
-  const extensions = ['.js', '.generated.js', '.mjs', '.ts'];
+  // 4. .ts (TypeScript source - only in development with ts-node/tsx)
+  const extensions = ['.generated.js', '.js', '.mjs', '.ts'];
 
   for (const ext of extensions) {
     const modulePath = path.join(eventModulesDirectory, `${eventName}${ext}`);
