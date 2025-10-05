@@ -607,11 +607,12 @@ export const loadEventModule = async (
   eventModulesDirectory: string
 ): Promise<Partial<EventModule>> => {
   // Try multiple extensions in priority order:
-  // 1. .generated.cjs (compiled from TypeScript by build-events - preferred in production)
-  // 2. .js (user-written JavaScript - for backwards compatibility)
-  // 3. .mjs (ESM modules)
-  // 4. .ts (TypeScript source - only in development with ts-node/tsx)
-  const extensions = ['.generated.cjs', '.js', '.mjs', '.ts'];
+  // 1. .generated.js (compiled from TypeScript by build-events for ESM projects)
+  // 2. .generated.cjs (compiled from TypeScript by build-events for CommonJS projects)
+  // 3. .js (user-written JavaScript - for backwards compatibility)
+  // 4. .mjs (ESM modules)
+  // 5. .ts (TypeScript source - only in development with ts-node/tsx)
+  const extensions = ['.generated.js', '.generated.cjs', '.js', '.mjs', '.ts'];
 
   for (const ext of extensions) {
     const modulePath = path.join(eventModulesDirectory, `${eventName}${ext}`);
