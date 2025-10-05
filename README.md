@@ -772,6 +772,11 @@ hasura-event-detector list [--detailed]
 # Validate configuration
 hasura-event-detector validate [--config <file>]
 
+# Build commands
+hasura-event-detector build-events [--functions-dir functions]
+hasura-event-detector build-events --fix-imports  # Automatically fix ESM imports
+hasura-event-detector fix-imports [directory]     # Fix imports standalone
+
 # Console commands
 hasura-event-detector console init [--add-script]
 hasura-event-detector console start [--port 3000]
@@ -850,6 +855,37 @@ hasura-event-detector test user-activation --file test-data.json
 # Dry run (detection only)
 hasura-event-detector test user-activation --dry-run
 ```
+
+### TypeScript & ESM Support
+
+When using TypeScript with Node.js ES Modules, you need to fix import paths after compilation because TypeScript doesn't automatically add `.js` extensions.
+
+**Automatic (recommended):**
+```bash
+# Add to your package.json build script
+"build": "tsc && hasura-event-detector build-events --fix-imports"
+```
+
+**Manual:**
+```bash
+# Fix imports in all compiled files
+hasura-event-detector fix-imports
+
+# Fix specific directory
+hasura-event-detector fix-imports path/to/functions
+```
+
+**What it fixes:**
+- `from '../lib/utils'` → `from '../lib/utils.js'`
+- `from '../jobs'` → `from '../jobs/index.js'` (for directories)
+- Preserves `.js`, `.mjs`, `.json` extensions
+- Only affects relative imports (not npm packages)
+
+**Why this is needed:**
+
+Node.js ESM requires explicit file extensions in import statements, but TypeScript outputs the imports exactly as written in your `.ts` files. Without fixing these paths, you'll get `ERR_MODULE_NOT_FOUND` errors at runtime.
+
+This is automatically handled for `.generated.js` files created by `build-events`, but you may need to run `fix-imports` for other compiled TypeScript files in your project.
 
 ## 🖥️ Observability Console (Optional)
 

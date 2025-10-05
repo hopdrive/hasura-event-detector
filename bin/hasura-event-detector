@@ -148,6 +148,7 @@ program
   .option('--functions-dir <dir>', 'Functions directory', 'functions')
   .option('--watch', 'Watch mode for development (not yet implemented)')
   .option('--clean', 'Remove all .generated.js files')
+  .option('--fix-imports', 'Fix ESM imports in compiled JS files (adds .js extensions)')
   .option('--verbose', 'Show detailed output')
   .action((options) => {
     const { EventModuleBuilder } = require('../scripts/build-events.js');
@@ -164,7 +165,27 @@ program
     }
 
     const results = builder.build();
+
+    // Fix ESM imports if requested
+    if (options.fixImports && results.success) {
+      const { fixEsmImports } = require('../scripts/fix-esm-imports.cjs');
+      const functionsDir = path.resolve(options.functionsDir || 'functions');
+      console.log('\nFixing ESM imports...');
+      fixEsmImports(functionsDir, { verbose: options.verbose });
+    }
+
     process.exit(results.success ? 0 : 1);
+  });
+
+program
+  .command('fix-imports')
+  .description('Fix ESM import paths in compiled JavaScript files')
+  .argument('[directory]', 'Directory to process', 'functions')
+  .option('--verbose', 'Show detailed output', true)
+  .action((directory, options) => {
+    const { fixEsmImports } = require('../scripts/fix-esm-imports.cjs');
+    const result = fixEsmImports(directory, options);
+    process.exit(result.success ? 0 : 1);
   });
 
 program
