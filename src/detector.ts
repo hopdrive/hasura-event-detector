@@ -644,7 +644,7 @@ const loadEventModule = async (eventName: EventName, eventModulesDirectory: stri
       log(eventName, `🧩 Loaded event module from ${modulePath}`, module);
       return module;
     } catch (error) {
-      log(eventName, `🧩 Error loading event module`);
+      log(eventName, `🧩 Error loading event module`, error.message, error);
       // Continue to next extension if this one fails
       if (ext === extensions[extensions.length - 1]) {
         // Only log error on the last attempt
