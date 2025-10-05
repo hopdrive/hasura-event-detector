@@ -460,7 +460,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       this.buffer.invocations.size > 0 || this.buffer.eventExecutions.size > 0 || this.buffer.jobExecutions.size > 0;
 
     if (!hasData) {
-      log('ObservabilityPlugin.flush', '[FLUSH TIMING] No data to flush - buffer is empty');
+      //log('ObservabilityPlugin.flush', '[FLUSH TIMING] No data to flush - buffer is empty');
       return;
     }
 
