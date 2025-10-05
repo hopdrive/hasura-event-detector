@@ -1,6 +1,6 @@
 {
   "name": "@hopdrive/hasura-event-detector-console",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Observability console UI for Hasura Event Detector",
   "type": "module",
   "files": [
@@ -55,7 +55,7 @@
     "codegen:watch": "graphql-codegen --config codegen.ts --watch"
   },
   "peerDependencies": {
-    "@hopdrive/hasura-event-detector": "^2.0.0"
+    "@hopdrive/hasura-event-detector": ">=2.0.0 <3.0.0"
   },
   "publishConfig": {
     "cache": "~/.npm",

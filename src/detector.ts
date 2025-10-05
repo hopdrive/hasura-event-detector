@@ -528,11 +528,11 @@ const detect = async (
   const eventModule = await loadEventModule(eventName, eventModulesDirectory);
   const { detector, handler } = eventModule;
 
-  log(eventName, 'Event module loaded: ', {
-    eventModulesDirectory,
-    wasLoaded: eventModule ? true : false,
-    eventModule,
-  });
+  // log(eventName, 'Event module loaded: ', {
+  //   eventModulesDirectory,
+  //   wasLoaded: eventModule ? true : false,
+  //   eventModule,
+  // });
 
   if (!detector) return null;
   if (typeof detector !== 'function') return null;
@@ -608,7 +608,10 @@ const consoleLogResponse = (response: ListenToResponse): void => {
  * @param eventModulesDirectory - Path to the events directory
  * @returns The loaded event module if it exists, else an empty object
  */
-export const loadEventModule = async (eventName: EventName, eventModulesDirectory: string): Promise<Partial<EventModule>> => {
+export const loadEventModule = async (
+  eventName: EventName,
+  eventModulesDirectory: string
+): Promise<Partial<EventModule>> => {
   // Try multiple extensions in priority order:
   // 1. .generated.js (compiled from TypeScript by build-events - preferred in production)
   // 2. .js (user-written JavaScript - for backwards compatibility)
@@ -624,27 +627,27 @@ export const loadEventModule = async (eventName: EventName, eventModulesDirector
       // In CommonJS, it accepts both paths and URLs
       const moduleUrl = path.isAbsolute(modulePath) ? pathToFileURL(modulePath).href : modulePath;
 
-      log(eventName, `Importing module from ${moduleUrl}`, {
-        pathIsAbsolute: path.isAbsolute(modulePath),
-        pathToFileURL: pathToFileURL(modulePath),
-        pathToFileURLHref: pathToFileURL(modulePath).href,
-        modulePath,
-      });
+      // log(eventName, `Importing module from ${moduleUrl}`, {
+      //   pathIsAbsolute: path.isAbsolute(modulePath),
+      //   pathToFileURL: pathToFileURL(modulePath),
+      //   pathToFileURLHref: pathToFileURL(modulePath).href,
+      //   modulePath,
+      // });
 
       // Using dynamic import for ES modules compatibility (works in both CJS and ESM)
       const importedModule = await import(moduleUrl);
 
-      log(eventName, 'Imported module returned by await import(moduleUrl): ', importedModule);
+      //log(eventName, 'Imported module returned by await import(moduleUrl): ', importedModule);
 
       // Handle both CommonJS (module.exports) and ES modules (export default/named exports)
       // CommonJS modules imported via import() have exports on the module object directly
       // or sometimes on .default depending on the transpilation
       const module = (importedModule.default || importedModule) as EventModule;
 
-      log(eventName, `🧩 Loaded event module from ${modulePath}`, module);
+      //log(eventName, `🧩 Loaded event module from ${modulePath}`, module);
       return module;
     } catch (error) {
-      log(eventName, `🧩 Error loading event module`, (error as any).message, error);
+      //log(eventName, `🧩 Error loading event module`, (error as any).message, error);
       // Continue to next extension if this one fails
       if (ext === extensions[extensions.length - 1]) {
         // Only log error on the last attempt
