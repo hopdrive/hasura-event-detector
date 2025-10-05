@@ -143,6 +143,66 @@ export const UPDATE_INVOCATION_COMPLETION = `
 `;
 
 /**
+ * Update event execution completion fields only
+ * Used when periodic flush clears buffer before handler completes
+ */
+export const UPDATE_EVENT_EXECUTION_COMPLETION = `
+  mutation UpdateEventExecutionCompletion(
+    $id: uuid!
+    $handler_duration_ms: Int!
+    $jobs_count: Int!
+    $jobs_succeeded: Int!
+    $jobs_failed: Int!
+    $status: String!
+    $updated_at: timestamptz!
+  ) {
+    update_event_executions_by_pk(
+      pk_columns: { id: $id }
+      _set: {
+        handler_duration_ms: $handler_duration_ms
+        jobs_count: $jobs_count
+        jobs_succeeded: $jobs_succeeded
+        jobs_failed: $jobs_failed
+        status: $status
+        updated_at: $updated_at
+      }
+    ) {
+      id
+    }
+  }
+`;
+
+/**
+ * Update job execution completion fields only
+ * Used when periodic flush clears buffer before job completes
+ */
+export const UPDATE_JOB_EXECUTION_COMPLETION = `
+  mutation UpdateJobExecutionCompletion(
+    $id: uuid!
+    $duration_ms: Int!
+    $status: String!
+    $result: jsonb
+    $error_message: String
+    $error_stack: String
+    $updated_at: timestamptz!
+  ) {
+    update_job_executions_by_pk(
+      pk_columns: { id: $id }
+      _set: {
+        duration_ms: $duration_ms
+        status: $status
+        result: $result
+        error_message: $error_message
+        error_stack: $error_stack
+        updated_at: $updated_at
+      }
+    ) {
+      id
+    }
+  }
+`;
+
+/**
  * Health check query
  */
 export const HEALTH_CHECK_QUERY = `

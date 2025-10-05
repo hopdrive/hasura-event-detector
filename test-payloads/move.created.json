@@ -1,0 +1,558 @@
+{
+	"created_at": "2025-10-03T20:07:47.553105",
+	"delivery_info": {
+		"current_retry": 0,
+		"max_retries": 0
+	},
+	"event": {
+		"data": {
+			"new": {
+				"actual_price": 9.19,
+				"algorithm_used": "ride-provider-cheapest-unless-difference-v1",
+				"all_api_calls": {
+					"lyft_webhook_event": {
+						"event_data": {
+							"billing_intent": {
+								"charge_account_id": "a960e2429cfee782c622ec9cc0be19f7",
+								"use_stored_balance": false
+							},
+							"destination": {
+								"address": "Test Destination Location",
+								"eta_seconds": null,
+								"lat": 33.99751,
+								"lng": -118.30131
+							},
+							"distance_miles": 1.12,
+							"driver": {
+								"first_name": "Edgar",
+								"id": "1519880716043883256",
+								"image_url": "https://lyftapi.s3.amazonaws.com/staging/photos/320x200/1519880716043883256_driver.jpg",
+								"phone_number": "+19799772476",
+								"rating": "5.0"
+							},
+							"driver_arrived": {
+								"address": null,
+								"lat": 33.987907,
+								"lng": -118.311321,
+								"time": "2025-10-03T20:05:49+00:00",
+								"time_ms": 1759521949000
+							},
+							"dropoff": {
+								"address": "5012 Brighton Ave, Los Angeles, CA 90062, United States",
+								"lat": 33.997774,
+								"lng": -118.301267,
+								"time": "2025-10-03T20:07:42+00:00",
+								"time_ms": 1759522062000
+							},
+							"duration_seconds": 107,
+							"generated_at": "2025-10-03T20:07:46.109000+00:00",
+							"generated_at_ms": 1759522066109,
+							"line_items": [
+								{
+									"amount": 610,
+									"currency": "USD",
+									"type": "XL fare"
+								},
+								{
+									"amount": 300,
+									"currency": "USD",
+									"type": "Service fee"
+								},
+								{
+									"amount": 9,
+									"currency": "USD",
+									"type": "Clean Miles Standard Regulatory Fee"
+								}
+							],
+							"origin": {
+								"address": "Downtown Los Angeles, CA",
+								"eta_seconds": null,
+								"lat": 33.98751,
+								"lng": -118.31131
+							},
+							"passenger": {
+								"first_name": "Brandon",
+								"image_url": null,
+								"last_name": "W2",
+								"phone_number": "+19075550128",
+								"rating": "5.0",
+								"user_id": "2135534570667879362"
+							},
+							"pickup": {
+								"address": "1890 W Slauson Ave, Los Angeles, CA 90047, United States",
+								"lat": 33.98791,
+								"lng": -118.31132,
+								"time": "2025-10-03T20:05:55+00:00",
+								"time_ms": 1759521955000
+							},
+							"price": {
+								"amount": 919,
+								"currency": "USD",
+								"description": "Total ride price"
+							},
+							"pricing_details_url": "https://www.lyft.com/pricing/LAX",
+							"rating": 5,
+							"reason_for_ride_cancellation": "",
+							"region": "LAX",
+							"requested_at": "2025-10-03T20:04:49+00:00",
+							"requested_at_ms": 1759521889000,
+							"requester": {
+								"first_name": "SystemUser",
+								"image_url": null,
+								"last_name": null
+							},
+							"ride_id": "2135534576355991244",
+							"ride_type": "lyft_plus",
+							"ride_verification_pin_unavailability_reason": 0,
+							"route_url": "https://ride-sandbox.lyft.net/csl/2135534576355991244/e1Ye2JkDfq5-YOVyp-98xw==?share_location=true",
+							"status": "droppedOff",
+							"timezone": "America/Los_Angeles",
+							"vehicle": {
+								"color": "Black",
+								"compliance_group_name": "PERSONAL",
+								"image_url": "https://s3.amazonaws.com/lyftapi/staging/photos/2018/gmc/yukonxl/black/whitebg/640x400/0121f051786d7fa9f96c98fd439d5dc9.png",
+								"license_plate": "3LYF123",
+								"license_plate_state": "CA",
+								"make": "GMC",
+								"model": "Yukon XL",
+								"year": 2018
+							}
+						},
+						"timestamp": "2025-10-03T20:07:47.161Z"
+					}
+				},
+				"allocated_cost": null,
+				"attempt_number": 1,
+				"booked_at": "2025-10-03T20:05:03.677",
+				"created_at": "2025-10-03T20:04:39.271041+00:00",
+				"dispute_reason": null,
+				"dispute_resolution": null,
+				"driver_assigned_at": "2025-10-03T20:05:05.181+00:00",
+				"driver_name": "Edgar",
+				"driver_phone": "+19799772476",
+				"driver_photo_url": "https://lyftapi.s3.amazonaws.com/staging/photos/320x200/1519880716043883256_driver.jpg",
+				"driver_rating": 5,
+				"dropoff_address": "Test Destination Location",
+				"dropoff_at": "2025-10-03T20:07:46.109+00:00",
+				"dropoff_lat": 33.99751,
+				"dropoff_lng": -118.30131,
+				"estimated_price": 61.69,
+				"estimates_considered": [
+					{
+						"displayName": "UberXL",
+						"estimatedDistance": 14.93,
+						"estimatedDuration": 1947,
+						"estimatedPickupTime": 1007,
+						"estimatedPrice": {
+							"currency": "USD",
+							"high": 68.01,
+							"low": 68.01
+						},
+						"provider": "uber",
+						"rawEstimateData": {
+							"estimate_info": {
+								"fare": {
+									"currency_code": "USD",
+									"display": "$68.01",
+									"expires_at": 1759522124,
+									"fare_breakdown": [
+										{
+											"name": "Base Fare",
+											"type": "base_fare",
+											"value": 68.01
+										}
+									],
+									"fare_id": "a3a8e53e-ff04-4719-98b0-b35299891628",
+									"value": 68.01
+								},
+								"fare_id": "a3a8e53e-ff04-4719-98b0-b35299891628",
+								"trip": {
+									"distance_estimate": 14.93,
+									"distance_unit": "mile",
+									"duration_estimate": 1947,
+									"travel_distance_estimate": 21.47
+								}
+							},
+							"fulfillment_indicator": "GREEN",
+							"fulfillment_indicators": {
+								"availability_predictor": {
+									"predictor_result": "GREEN"
+								}
+							},
+							"product": {
+								"advance_booking_type": "SCHEDULED",
+								"background_image": "https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImageBackgrounds/v1.1/imageBackground_3x_v1.png",
+								"cancellation": {
+									"cancellation_grace_period_threshold_sec": 120,
+									"min_cancellation_fee": 5
+								},
+								"capacity": 6,
+								"description": "Affordable rides for groups up to 6",
+								"display_name": "UberXL",
+								"image": "https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/IntercityXL.png",
+								"parent_product_type_id": "60b76812-c307-4076-b83b-fcb36e75da07",
+								"product_group": "uberxl",
+								"product_id": "aa8985b3-683f-4797-9fc2-e7eca0d2851c",
+								"reserve_info": {
+									"add_ons": [],
+									"enabled": false,
+									"free_cancellation_threshold_minutes": 60,
+									"scheduled_threshold_minutes": 30,
+									"valid_until_timestamp": 1759529600000
+								},
+								"scheduling_enabled": true,
+								"shared": false,
+								"short_description": "UberXL",
+								"upfront_fare_enabled": true,
+								"vehicle_view_id": 2100
+							}
+						},
+						"rideType": "60b76812-c307-4076-b83b-fcb36e75da07"
+					},
+					{
+						"displayName": "lyft_plus",
+						"estimatedDistance": 21.47,
+						"estimatedDuration": 1918,
+						"estimatedPickupTime": 604.2,
+						"estimatedPrice": {
+							"currency": "USD",
+							"high": 61.69,
+							"low": 61.69
+						},
+						"provider": "lyft",
+						"rawEstimateData": {
+							"arrival_estimate": {
+								"duration": "3060s",
+								"range": "0s",
+								"source_id": "1641304325686985418"
+							},
+							"can_request_ride": true,
+							"cost_token": "gAAAAABo4CxcoHnisk607wei2eLTzzQlpvQZbr6OTJ9pD3rxaFt3c5P1LVChAfF97j-OKmk-bNAEqe4UKppVhQ7tCq8cAh20GsW2gu400iFJ09WWyPwGsIHYyxR3Bt3Mcno57SCAUB0gMSva7hc1bkJRJ1G61i3fIehiPx7r24OYESJ8Xl-bUL3qHLcl1rM3_dU3_2AuBWhsqzi8Te0GK0MgWxI4nDJjaJnNBdkBCK_EoRZ_6JRzzhgM9cJq_7_SMYTEw68lafWckjvnuv3j9HKNBj3HlTy2vI1mjPhsEcqr4cUBPsVbImbjsqeWFrmuj_QHqxQ6QN0mOS2c4SWF9ZPXCBU3g8blo6wuRknGafTrrTbi3X5ILzZyxjTPdhx25FjLqQQnMvZPAYQOhhPXhK07Uu-XxgrbkwYD14bMwZ-0V5PQSlG4Hxf1mY6xAW98KYlkycpEPB6QBKHXs0XJIREIAvW-YlRNSpmrZ8iPDY8yRopHFULTPzQKGn8QAxSuf8Fn6pUOWLLlitbkn5VVItePt39o7j3OiIYON12eB29k58LGQdHRv0mYCbGqzNKIaoUzz72jW-c1y0tjt6pAi3uz3tMdHRTy129Zbzr6BGTnM3-9qHuA8rSGb2QpvdKfccqh1JdTP5r4W70YUdgqLW4dR1uyY18mwnFzGLhrHqZqZkC0zeMMgdpv9wrEDhXFLUVJfMNsFB-UYEnohQHEEK04qvYuhEuOaUq2x1PeNCsCvvYlJmR-hQPqP8CdqJ4E-zTWbZ-r6y5iPJ9lZFqTaNOMpMUkYIexseaDncVW1ChzEmWcOcJKDrgZVGJOIDlK-YxgcB10Sn8RpgbAQXtv2lsbiMwrV-BOVRysTNjNYO4NGg4oqHNVAP_jLtHLC6b_7eAWruW9sjbLi8p3-9yCto37l2FlQzZvSQ==",
+							"currency": "USD",
+							"display_name": "XL",
+							"error_message": null,
+							"estimated_cost_cents_max": 6169,
+							"estimated_cost_cents_min": 6169,
+							"estimated_distance_miles": 21.47,
+							"estimated_duration_seconds": 1918,
+							"is_valid_estimate": true,
+							"pickup_estimate": {},
+							"price_explanation_text": "Fits up to 6",
+							"price_quote_id": "EL7p8+y/q7zRHRoYdXNlcjoxNjQxMzA0MzI1Njg2OTg1NDE4::CgRwbHVzOAhCBHBsdXNSBHBsdXM=#21355345507262762901641304325686985418",
+							"primetime_confirmation_token": "gAAAAABo4CxcWXEU1i6UNh_2DS48d37mJOKZMdH-Hu7IJKQebUI15XBTkAYaB_eaSl1cHg95O5gwLjgZGXklbVdUIyauDj_L23Be09A7vVF6tBExi3VxW7693bAZSBfNZVS0-HzKm0trAucMAX6bAderfy_yXEq_cl-4xgFpw8VjUrdUfX6dQoc9ue3YlM5bUXrMCQ2OHKOnCOaR6DSEg9jf_M0AdEeizmS7cCfLcs_ulmmvzZDyM28PmQv9OAbc4JgBF2r0weWvthbGXpC9D2ZcOMNpah2HlXIq86PGoWHj-t_l6gQRwAgWIGTCf_TQdmXwXy2Y1VsoDapeKzPWDJhPZfMg_cuSbbQV84KmOGA7aXWp6FCbPb4aAV1dZ4DLweBzDTqvabjhUsoHj9BSoeNMsQythhnAhNBDPN_jKCPIl_AZu5TVdKA=",
+							"primetime_multiplier": 1,
+							"primetime_percentage": "0%",
+							"ride_type": "lyft_plus",
+							"upfront_cost_cents": 6169
+						},
+						"rideType": "lyft_plus"
+					}
+				],
+				"external_id": "2135534576355991244",
+				"has_dispute": null,
+				"has_lost_item": null,
+				"id": 333,
+				"move_id": 42101,
+				"original_dropoff_lat": null,
+				"original_dropoff_lng": null,
+				"passenger_count": null,
+				"pickup_address": "Downtown Los Angeles, CA",
+				"pickup_at": "2025-10-03T20:05:58.656+00:00",
+				"pickup_lat": 33.98751,
+				"pickup_lng": -118.31131,
+				"product_type": "lyft_plus",
+				"provider": "lyft",
+				"quality_rejection_reason": null,
+				"reroute_point_lat": null,
+				"reroute_point_lng": null,
+				"selection_reason": {
+					"reason": "Switched to fastest: only $0.00 more expensive and 0s faster"
+				},
+				"status": "completed",
+				"surge_multiplier": null,
+				"updated_at": "2025-10-03T20:07:47.553105+00:00",
+				"vehicle_color": null,
+				"vehicle_license_plate": "3LYF123",
+				"vehicle_make": "GMC",
+				"vehicle_model": "Yukon XL",
+				"vehicle_photo_url": "https://s3.amazonaws.com/lyftapi/staging/photos/2018/gmc/yukonxl/black/whitebg/640x400/0121f051786d7fa9f96c98fd439d5dc9.png",
+				"vehicle_year": 2018
+			},
+			"old": {
+				"actual_price": null,
+				"algorithm_used": "ride-provider-cheapest-unless-difference-v1",
+				"all_api_calls": {
+					"lyft_webhook_event": {
+						"event_data": {
+							"billing_intent": {
+								"charge_account_id": "a960e2429cfee782c622ec9cc0be19f7",
+								"use_stored_balance": false
+							},
+							"can_cancel": [
+								"passenger",
+								"dispatcher",
+								"driver"
+							],
+							"cancellation_price": {
+								"amount": 0,
+								"currency": "USD",
+								"description": "Cancellation penalty",
+								"token": "gAAAAABo4Cymjzv2C2SNt-pVFIpHylXzQscLvClF-DbXMj-6hXb3xKGF7Hpv81ITVmqM-sdUlI5YM39ExkOoy3CkWqiDBW0o3ed-V1PXu3vVnMffYSRV6ZP2uWs7fmBydGfpg9qMAkxGlb19_BcykV7rVrCLHmqW6KrveZE6l9ngVvazZvcUgtYOzs-JqNdQytDH1UnknyEcvHPlURRnCw8sa2mgUr2vO6fqT4qJ26Kqj29mZ010QclD6NCv-glcd9AyDxdlCM8VtE0Px7FXasByu17kHsnixZIuDY_mb7i7Pax-jQ1saDFtZtefhTOl7TgIW4CHLZBH85BfeDOy3XySCNGAoBEDOdi3O7LHq8WO2CorU9j-QUwVNHR-Zj7llWOorBvI22sVxCT7pbfM5jQ13A03INaCB2IMB_nVglrsXOB6r7Aj3UE2XTUUngth70jKIrSyYdV5yUSeJaTqOfWeI-44qB83bW8J_JR4F2o0kbF8wCWwZJYQYvElim8aGGEY6IgGTCvgxzpmUkyt58MpbSVrqavDd0TM6UUoMbnbhOrG3d28ZkQ=",
+								"token_duration": 20
+							},
+							"destination": {
+								"address": "Test Destination Location",
+								"eta_seconds": 360,
+								"lat": 33.99751,
+								"lng": -118.30131
+							},
+							"distance_miles": 0,
+							"driver": {
+								"first_name": "Edgar",
+								"id": "1519880716043883256",
+								"image_url": "https://lyftapi.s3.amazonaws.com/staging/photos/320x200/1519880716043883256_driver.jpg",
+								"phone_number": "+19799772476",
+								"rating": "5.0"
+							},
+							"driver_arrived": {
+								"address": null,
+								"lat": 33.987907,
+								"lng": -118.311321,
+								"time": "2025-10-03T20:05:49+00:00",
+								"time_ms": 1759521949000
+							},
+							"duration_seconds": 0,
+							"generated_at": "2025-10-03T20:05:58.656000+00:00",
+							"generated_at_ms": 1759521958656,
+							"location": {
+								"bearing": 177.9783477783203,
+								"lat": 33.987907,
+								"lng": -118.311321
+							},
+							"origin": {
+								"address": "Downtown Los Angeles, CA",
+								"eta_seconds": null,
+								"lat": 33.98751,
+								"lng": -118.31131
+							},
+							"passenger": {
+								"first_name": "Brandon",
+								"image_url": null,
+								"last_name": "W2",
+								"phone_number": "+19075550128",
+								"rating": "0.0",
+								"user_id": "2135534570667879362"
+							},
+							"pickup": {
+								"address": null,
+								"lat": 33.987907,
+								"lng": -118.311321,
+								"time": "2025-10-03T20:05:55+00:00",
+								"time_ms": 1759521955000
+							},
+							"pricing_details_url": "https://www.lyft.com/pricing/LAX",
+							"reason_for_ride_cancellation": "",
+							"region": "LAX",
+							"requested_at": "2025-10-03T20:04:49+00:00",
+							"requested_at_ms": 1759521889000,
+							"requester": {
+								"first_name": "SystemUser",
+								"image_url": null,
+								"last_name": null
+							},
+							"ride_id": "2135534576355991244",
+							"ride_type": "lyft_plus",
+							"ride_verification_pin_unavailability_reason": 0,
+							"route_url": "https://ride-sandbox.lyft.net/csl/2135534576355991244/e1Ye2JkDfq5-YOVyp-98xw==?share_location=true",
+							"status": "pickedUp",
+							"timezone": "America/Los_Angeles",
+							"vehicle": {
+								"color": "Black",
+								"compliance_group_name": "PERSONAL",
+								"image_url": "https://s3.amazonaws.com/lyftapi/staging/photos/2018/gmc/yukonxl/black/whitebg/640x400/0121f051786d7fa9f96c98fd439d5dc9.png",
+								"license_plate": "3LYF123",
+								"license_plate_state": "CA",
+								"make": "GMC",
+								"model": "Yukon XL",
+								"year": 2018
+							}
+						},
+						"timestamp": "2025-10-03T20:05:59.471Z"
+					}
+				},
+				"allocated_cost": null,
+				"attempt_number": 1,
+				"booked_at": "2025-10-03T20:05:03.677",
+				"created_at": "2025-10-03T20:04:39.271041+00:00",
+				"dispute_reason": null,
+				"dispute_resolution": null,
+				"driver_assigned_at": "2025-10-03T20:05:05.181+00:00",
+				"driver_name": "Edgar",
+				"driver_phone": "+19799772476",
+				"driver_photo_url": "https://lyftapi.s3.amazonaws.com/staging/photos/320x200/1519880716043883256_driver.jpg",
+				"driver_rating": 5,
+				"dropoff_address": "Test Destination Location",
+				"dropoff_at": null,
+				"dropoff_lat": 33.99751,
+				"dropoff_lng": -118.30131,
+				"estimated_price": 61.69,
+				"estimates_considered": [
+					{
+						"displayName": "UberXL",
+						"estimatedDistance": 14.93,
+						"estimatedDuration": 1947,
+						"estimatedPickupTime": 1007,
+						"estimatedPrice": {
+							"currency": "USD",
+							"high": 68.01,
+							"low": 68.01
+						},
+						"provider": "uber",
+						"rawEstimateData": {
+							"estimate_info": {
+								"fare": {
+									"currency_code": "USD",
+									"display": "$68.01",
+									"expires_at": 1759522124,
+									"fare_breakdown": [
+										{
+											"name": "Base Fare",
+											"type": "base_fare",
+											"value": 68.01
+										}
+									],
+									"fare_id": "a3a8e53e-ff04-4719-98b0-b35299891628",
+									"value": 68.01
+								},
+								"fare_id": "a3a8e53e-ff04-4719-98b0-b35299891628",
+								"trip": {
+									"distance_estimate": 14.93,
+									"distance_unit": "mile",
+									"duration_estimate": 1947,
+									"travel_distance_estimate": 21.47
+								}
+							},
+							"fulfillment_indicator": "GREEN",
+							"fulfillment_indicators": {
+								"availability_predictor": {
+									"predictor_result": "GREEN"
+								}
+							},
+							"product": {
+								"advance_booking_type": "SCHEDULED",
+								"background_image": "https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImageBackgrounds/v1.1/imageBackground_3x_v1.png",
+								"cancellation": {
+									"cancellation_grace_period_threshold_sec": 120,
+									"min_cancellation_fee": 5
+								},
+								"capacity": 6,
+								"description": "Affordable rides for groups up to 6",
+								"display_name": "UberXL",
+								"image": "https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/IntercityXL.png",
+								"parent_product_type_id": "60b76812-c307-4076-b83b-fcb36e75da07",
+								"product_group": "uberxl",
+								"product_id": "aa8985b3-683f-4797-9fc2-e7eca0d2851c",
+								"reserve_info": {
+									"add_ons": [],
+									"enabled": false,
+									"free_cancellation_threshold_minutes": 60,
+									"scheduled_threshold_minutes": 30,
+									"valid_until_timestamp": 1759529600000
+								},
+								"scheduling_enabled": true,
+								"shared": false,
+								"short_description": "UberXL",
+								"upfront_fare_enabled": true,
+								"vehicle_view_id": 2100
+							}
+						},
+						"rideType": "60b76812-c307-4076-b83b-fcb36e75da07"
+					},
+					{
+						"displayName": "lyft_plus",
+						"estimatedDistance": 21.47,
+						"estimatedDuration": 1918,
+						"estimatedPickupTime": 604.2,
+						"estimatedPrice": {
+							"currency": "USD",
+							"high": 61.69,
+							"low": 61.69
+						},
+						"provider": "lyft",
+						"rawEstimateData": {
+							"arrival_estimate": {
+								"duration": "3060s",
+								"range": "0s",
+								"source_id": "1641304325686985418"
+							},
+							"can_request_ride": true,
+							"cost_token": "gAAAAABo4CxcoHnisk607wei2eLTzzQlpvQZbr6OTJ9pD3rxaFt3c5P1LVChAfF97j-OKmk-bNAEqe4UKppVhQ7tCq8cAh20GsW2gu400iFJ09WWyPwGsIHYyxR3Bt3Mcno57SCAUB0gMSva7hc1bkJRJ1G61i3fIehiPx7r24OYESJ8Xl-bUL3qHLcl1rM3_dU3_2AuBWhsqzi8Te0GK0MgWxI4nDJjaJnNBdkBCK_EoRZ_6JRzzhgM9cJq_7_SMYTEw68lafWckjvnuv3j9HKNBj3HlTy2vI1mjPhsEcqr4cUBPsVbImbjsqeWFrmuj_QHqxQ6QN0mOS2c4SWF9ZPXCBU3g8blo6wuRknGafTrrTbi3X5ILzZyxjTPdhx25FjLqQQnMvZPAYQOhhPXhK07Uu-XxgrbkwYD14bMwZ-0V5PQSlG4Hxf1mY6xAW98KYlkycpEPB6QBKHXs0XJIREIAvW-YlRNSpmrZ8iPDY8yRopHFULTPzQKGn8QAxSuf8Fn6pUOWLLlitbkn5VVItePt39o7j3OiIYON12eB29k58LGQdHRv0mYCbGqzNKIaoUzz72jW-c1y0tjt6pAi3uz3tMdHRTy129Zbzr6BGTnM3-9qHuA8rSGb2QpvdKfccqh1JdTP5r4W70YUdgqLW4dR1uyY18mwnFzGLhrHqZqZkC0zeMMgdpv9wrEDhXFLUVJfMNsFB-UYEnohQHEEK04qvYuhEuOaUq2x1PeNCsCvvYlJmR-hQPqP8CdqJ4E-zTWbZ-r6y5iPJ9lZFqTaNOMpMUkYIexseaDncVW1ChzEmWcOcJKDrgZVGJOIDlK-YxgcB10Sn8RpgbAQXtv2lsbiMwrV-BOVRysTNjNYO4NGg4oqHNVAP_jLtHLC6b_7eAWruW9sjbLi8p3-9yCto37l2FlQzZvSQ==",
+							"currency": "USD",
+							"display_name": "XL",
+							"error_message": null,
+							"estimated_cost_cents_max": 6169,
+							"estimated_cost_cents_min": 6169,
+							"estimated_distance_miles": 21.47,
+							"estimated_duration_seconds": 1918,
+							"is_valid_estimate": true,
+							"pickup_estimate": {},
+							"price_explanation_text": "Fits up to 6",
+							"price_quote_id": "EL7p8+y/q7zRHRoYdXNlcjoxNjQxMzA0MzI1Njg2OTg1NDE4::CgRwbHVzOAhCBHBsdXNSBHBsdXM=#21355345507262762901641304325686985418",
+							"primetime_confirmation_token": "gAAAAABo4CxcWXEU1i6UNh_2DS48d37mJOKZMdH-Hu7IJKQebUI15XBTkAYaB_eaSl1cHg95O5gwLjgZGXklbVdUIyauDj_L23Be09A7vVF6tBExi3VxW7693bAZSBfNZVS0-HzKm0trAucMAX6bAderfy_yXEq_cl-4xgFpw8VjUrdUfX6dQoc9ue3YlM5bUXrMCQ2OHKOnCOaR6DSEg9jf_M0AdEeizmS7cCfLcs_ulmmvzZDyM28PmQv9OAbc4JgBF2r0weWvthbGXpC9D2ZcOMNpah2HlXIq86PGoWHj-t_l6gQRwAgWIGTCf_TQdmXwXy2Y1VsoDapeKzPWDJhPZfMg_cuSbbQV84KmOGA7aXWp6FCbPb4aAV1dZ4DLweBzDTqvabjhUsoHj9BSoeNMsQythhnAhNBDPN_jKCPIl_AZu5TVdKA=",
+							"primetime_multiplier": 1,
+							"primetime_percentage": "0%",
+							"ride_type": "lyft_plus",
+							"upfront_cost_cents": 6169
+						},
+						"rideType": "lyft_plus"
+					}
+				],
+				"external_id": "2135534576355991244",
+				"has_dispute": null,
+				"has_lost_item": null,
+				"id": 333,
+				"move_id": 42101,
+				"original_dropoff_lat": null,
+				"original_dropoff_lng": null,
+				"passenger_count": null,
+				"pickup_address": "Downtown Los Angeles, CA",
+				"pickup_at": "2025-10-03T20:05:58.656+00:00",
+				"pickup_lat": 33.98751,
+				"pickup_lng": -118.31131,
+				"product_type": "lyft_plus",
+				"provider": "lyft",
+				"quality_rejection_reason": null,
+				"reroute_point_lat": null,
+				"reroute_point_lng": null,
+				"selection_reason": {
+					"reason": "Switched to fastest: only $0.00 more expensive and 0s faster"
+				},
+				"status": "in_progress",
+				"surge_multiplier": null,
+				"updated_at": "2025-10-03T20:05:59.721429+00:00",
+				"vehicle_color": null,
+				"vehicle_license_plate": "3LYF123",
+				"vehicle_make": "GMC",
+				"vehicle_model": "Yukon XL",
+				"vehicle_photo_url": "https://s3.amazonaws.com/lyftapi/staging/photos/2018/gmc/yukonxl/black/whitebg/640x400/0121f051786d7fa9f96c98fd439d5dc9.png",
+				"vehicle_year": 2018
+			}
+		},
+		"op": "UPDATE",
+		"session_variables": {
+			"x-hasura-role": "admin"
+		},
+		"trace_context": {
+			"span_id": "998e22bc02403855",
+			"trace_id": "71f48a710f52d9fba826f5f4f3c2f4a0"
+		}
+	},
+	"id": "d99a9c53-c768-437e-a0af-d116fef41053",
+	"table": {
+		"name": "ridehails",
+		"schema": "public"
+	},
+	"trigger": {
+		"name": "db-ridehails"
+	}
+}

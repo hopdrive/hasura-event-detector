@@ -164,6 +164,112 @@ export class SQLTransport extends BaseTransport implements ObservabilityTranspor
   }
 
   /**
+   * Update event execution completion fields directly in the database
+   * Used when periodic flush clears the buffer before handler completes
+   */
+  async updateEventExecutionCompletion(eventExecutionId: string, data: {
+    handler_duration_ms: number;
+    jobs_count: number;
+    jobs_succeeded: number;
+    jobs_failed: number;
+    status: string;
+    updated_at: Date;
+  }): Promise<void> {
+    if (!this.pool) throw new Error('SQL transport not initialized');
+
+    const client = await this.pool.connect();
+    try {
+      const query = `
+        UPDATE event_executions
+        SET
+          handler_duration_ms = $2,
+          jobs_count = $3,
+          jobs_succeeded = $4,
+          jobs_failed = $5,
+          status = $6,
+          updated_at = $7
+        WHERE id = $1
+      `;
+
+      const values = [
+        eventExecutionId,
+        data.handler_duration_ms,
+        data.jobs_count,
+        data.jobs_succeeded,
+        data.jobs_failed,
+        data.status,
+        data.updated_at,
+      ];
+
+      const result = await client.query(query, values);
+
+      if (result.rowCount === 0) {
+        logError('SQLTransport', `Failed to update event execution ${eventExecutionId} - record may not exist`, new Error('No rows updated'));
+      } else {
+        log('SQLTransport', `Updated event execution completion for ${eventExecutionId}`);
+      }
+    } catch (error) {
+      logError('SQLTransport', `Failed to update event execution completion for ${eventExecutionId}`, error as Error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Update job execution completion fields directly in the database
+   * Used when periodic flush clears the buffer before job completes
+   */
+  async updateJobExecutionCompletion(jobExecutionId: string, data: {
+    duration_ms: number;
+    status: string;
+    result: Record<string, any> | null;
+    error_message: string | null;
+    error_stack: string | null;
+    updated_at: Date;
+  }): Promise<void> {
+    if (!this.pool) throw new Error('SQL transport not initialized');
+
+    const client = await this.pool.connect();
+    try {
+      const query = `
+        UPDATE job_executions
+        SET
+          duration_ms = $2,
+          status = $3,
+          result = $4,
+          error_message = $5,
+          error_stack = $6,
+          updated_at = $7
+        WHERE id = $1
+      `;
+
+      const values = [
+        jobExecutionId,
+        data.duration_ms,
+        data.status,
+        data.result ? JSON.stringify(data.result) : null,
+        data.error_message,
+        data.error_stack,
+        data.updated_at,
+      ];
+
+      const result = await client.query(query, values);
+
+      if (result.rowCount === 0) {
+        logError('SQLTransport', `Failed to update job execution ${jobExecutionId} - record may not exist`, new Error('No rows updated'));
+      } else {
+        log('SQLTransport', `Updated job execution completion for ${jobExecutionId}`);
+      }
+    } catch (error) {
+      logError('SQLTransport', `Failed to update job execution completion for ${jobExecutionId}`, error as Error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
    * Get the pool for console server access
    */
   getPool(): Pool | null {

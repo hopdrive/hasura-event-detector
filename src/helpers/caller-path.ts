@@ -69,9 +69,11 @@ export function getCallerDirectory(depth: number = 3): string {
         continue;
       }
 
-      // Skip this library's files (anything in node_modules/hasura-event-detector)
+      // Skip this library's files (anything in node_modules/hasura-event-detector or the package itself)
+      // This handles both regular npm installs and symlinked packages (npm link)
       if (fileName.includes('node_modules/@hopdrive/hasura-event-detector') ||
-          fileName.includes('node_modules/hasura-event-detector')) {
+          fileName.includes('node_modules/hasura-event-detector') ||
+          fileName.includes('/hasura-event-detector/dist/')) {
         continue;
       }
 

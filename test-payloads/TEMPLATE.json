@@ -1,0 +1,43 @@
+{
+  "_comment": "Copy this template to create new test payloads",
+  "created_at": "2025-10-05T12:00:00.000Z",
+  "delivery_info": {
+    "current_retry": 0,
+    "max_retries": 0
+  },
+  "event": {
+    "data": {
+      "new": {
+        "id": 99997,
+        "_comment_fields": "Add all fields needed for your event",
+        "status": "your-status",
+        "active": 0,
+        "driver_id": null,
+        "updatedat": "2025-10-05T12:00:00+00:00"
+      },
+      "old": {
+        "id": 99997,
+        "_comment_old": "Set to null for INSERT operations",
+        "status": "old-status",
+        "active": 1,
+        "driver_id": null,
+        "updatedat": "2025-10-05T11:55:00+00:00"
+      }
+    },
+    "op": "UPDATE",
+    "_comment_op": "Can be INSERT, UPDATE, DELETE, or MANUAL",
+    "session_variables": {
+      "x-hasura-role": "admin",
+      "x-hasura-user-email": "test@hopdrive.com",
+      "x-hasura-user-id": "test-user-123"
+    }
+  },
+  "id": "test-event-unique-id",
+  "table": {
+    "name": "moves",
+    "schema": "public"
+  },
+  "trigger": {
+    "name": "event_detector_moves"
+  }
+}

@@ -7,6 +7,8 @@ import {
   BULK_INSERT_EVENT_EXECUTIONS,
   BULK_INSERT_JOB_EXECUTIONS,
   UPDATE_INVOCATION_COMPLETION,
+  UPDATE_EVENT_EXECUTION_COMPLETION,
+  UPDATE_JOB_EXECUTION_COMPLETION,
   HEALTH_CHECK_QUERY,
 } from '../graphql/mutations';
 import { loadGraphQLClient } from './graphql-loader';
@@ -158,6 +160,86 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
       }
     } catch (error) {
       logError('GraphQLTransport', `Failed to update invocation completion for ${invocationId}`, error as Error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update event execution completion fields directly in the database
+   * Used when periodic flush clears the buffer before handler completes
+   */
+  async updateEventExecutionCompletion(eventExecutionId: string, data: {
+    handler_duration_ms: number;
+    jobs_count: number;
+    jobs_succeeded: number;
+    jobs_failed: number;
+    status: string;
+    updated_at: Date;
+  }): Promise<void> {
+    if (!this.client) throw new Error('GraphQL transport not initialized');
+
+    try {
+      const variables = {
+        id: eventExecutionId,
+        handler_duration_ms: data.handler_duration_ms,
+        jobs_count: data.jobs_count,
+        jobs_succeeded: data.jobs_succeeded,
+        jobs_failed: data.jobs_failed,
+        status: data.status,
+        updated_at: data.updated_at.toISOString(),
+      };
+
+      const result = await this.retryWithBackoff(async () => {
+        return await this.client!.request(UPDATE_EVENT_EXECUTION_COMPLETION, variables);
+      });
+
+      if (result.update_event_executions_by_pk) {
+        log('GraphQLTransport', `Updated event execution completion for ${eventExecutionId}`);
+      } else {
+        logError('GraphQLTransport', `Failed to update event execution ${eventExecutionId} - record may not exist`, new Error('Update returned null'));
+      }
+    } catch (error) {
+      logError('GraphQLTransport', `Failed to update event execution completion for ${eventExecutionId}`, error as Error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update job execution completion fields directly in the database
+   * Used when periodic flush clears the buffer before job completes
+   */
+  async updateJobExecutionCompletion(jobExecutionId: string, data: {
+    duration_ms: number;
+    status: string;
+    result: Record<string, any> | null;
+    error_message: string | null;
+    error_stack: string | null;
+    updated_at: Date;
+  }): Promise<void> {
+    if (!this.client) throw new Error('GraphQL transport not initialized');
+
+    try {
+      const variables = {
+        id: jobExecutionId,
+        duration_ms: data.duration_ms,
+        status: data.status,
+        result: data.result ? this.prepareJsonForGraphQL(data.result) : null,
+        error_message: data.error_message,
+        error_stack: data.error_stack,
+        updated_at: data.updated_at.toISOString(),
+      };
+
+      const result = await this.retryWithBackoff(async () => {
+        return await this.client!.request(UPDATE_JOB_EXECUTION_COMPLETION, variables);
+      });
+
+      if (result.update_job_executions_by_pk) {
+        log('GraphQLTransport', `Updated job execution completion for ${jobExecutionId}`);
+      } else {
+        logError('GraphQLTransport', `Failed to update job execution ${jobExecutionId} - record may not exist`, new Error('Update returned null'));
+      }
+    } catch (error) {
+      logError('GraphQLTransport', `Failed to update job execution completion for ${jobExecutionId}`, error as Error);
       throw error;
     }
   }

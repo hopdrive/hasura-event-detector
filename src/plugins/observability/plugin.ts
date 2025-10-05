@@ -490,6 +490,8 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   override async onInvocationStart(hasuraEvent: HasuraEventPayload, options: ListenToOptions): Promise<void> {
     if (!this.config.enabled) return;
 
+    log('ObservabilityPlugin', '[VERSION CHECK] Using observability plugin with buffer recovery fix - v2.3.1-rc044-fixed');
+
     const { dbEvent } = parseHasuraEvent(hasuraEvent);
 
     const invocationData = {
@@ -676,28 +678,72 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
 
     // Update the event execution record with handler results
     const eventRecord = this.buffer.eventExecutions.get(eventExecutionId);
-    if (eventRecord) {
+
+    if (!eventRecord) {
+      // Record not in buffer - this happens if periodic flush cleared it
+      // Update the database directly
       log(
         'ObservabilityPlugin.onEventHandlerEnd',
-        `[FLUSH TIMING] About to update event execution buffer for event: ${eventName}, eventExecutionId: ${eventExecutionId}, jobs: ${jobResults.length}, succeeded: ${jobsSucceeded}, failed: ${jobsFailed}`
+        `[FLUSH TIMING] Event execution record ${eventExecutionId} not found in buffer. Updating database directly (periodic flush cleared buffer). Event: ${eventName}, jobs: ${jobResults.length}, succeeded: ${jobsSucceeded}, failed: ${jobsFailed}`
       );
 
-      Object.assign(eventRecord, {
+      // Ensure transport is initialized before attempting direct update
+      if (!this.isInitialized) {
+        log('ObservabilityPlugin.onEventHandlerEnd', 'Waiting for transport initialization...');
+        try {
+          await this.initialize();
+        } catch (error) {
+          logError('ObservabilityPlugin', 'Failed to initialize transport for direct update', error as Error);
+          return;
+        }
+      }
+
+      if (!this.transport) {
+        logError('ObservabilityPlugin', 'Cannot update event execution - transport not initialized', new Error('Transport not available'));
+        return;
+      }
+
+      const completionData = {
         handler_duration_ms: durationMs,
         jobs_count: jobResults.length,
         jobs_succeeded: jobsSucceeded,
         jobs_failed: jobsFailed,
         status: 'completed',
         updated_at: new Date(),
-      });
+      };
 
-      this.buffer.eventExecutions.set(eventExecutionId, eventRecord);
+      try {
+        await this.transport.updateEventExecutionCompletion(eventExecutionId, completionData);
+      } catch (error) {
+        logError('ObservabilityPlugin', 'Failed to update event execution completion', error as Error);
+      }
 
-      log(
-        'ObservabilityPlugin.onEventHandlerEnd',
-        `[FLUSH TIMING] Updated event execution buffer. Current buffer sizes - invocations: ${this.buffer.invocations.size}, eventExecutions: ${this.buffer.eventExecutions.size}, jobExecutions: ${this.buffer.jobExecutions.size}`
-      );
+      // Clean up the event execution tracking
+      this.activeEventExecutions.delete(eventExecutionKey);
+      return;
     }
+
+    // Record in buffer - update it normally
+    log(
+      'ObservabilityPlugin.onEventHandlerEnd',
+      `[FLUSH TIMING] About to update event execution buffer for event: ${eventName}, eventExecutionId: ${eventExecutionId}, jobs: ${jobResults.length}, succeeded: ${jobsSucceeded}, failed: ${jobsFailed}`
+    );
+
+    Object.assign(eventRecord, {
+      handler_duration_ms: durationMs,
+      jobs_count: jobResults.length,
+      jobs_succeeded: jobsSucceeded,
+      jobs_failed: jobsFailed,
+      status: 'completed',
+      updated_at: new Date(),
+    });
+
+    this.buffer.eventExecutions.set(eventExecutionId, eventRecord);
+
+    log(
+      'ObservabilityPlugin.onEventHandlerEnd',
+      `[FLUSH TIMING] Updated event execution buffer. Current buffer sizes - invocations: ${this.buffer.invocations.size}, eventExecutions: ${this.buffer.eventExecutions.size}, jobExecutions: ${this.buffer.jobExecutions.size}`
+    );
 
     // Clean up the event execution tracking
     this.activeEventExecutions.delete(eventExecutionKey);
@@ -792,18 +838,62 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
 
     // Update the job execution record with completion data
     const jobRecord = this.buffer.jobExecutions.get(jobExecutionId);
-    if (jobRecord) {
-      Object.assign(jobRecord, {
+
+    if (!jobRecord) {
+      // Record not in buffer - this happens if periodic flush cleared it
+      // Update the database directly
+      log(
+        'ObservabilityPlugin.onJobEnd',
+        `[FLUSH TIMING] Job execution record ${jobExecutionId} not found in buffer. Updating database directly (periodic flush cleared buffer). Job: ${jobName}, event: ${eventName}`
+      );
+
+      // Ensure transport is initialized before attempting direct update
+      if (!this.isInitialized) {
+        log('ObservabilityPlugin.onJobEnd', 'Waiting for transport initialization...');
+        try {
+          await this.initialize();
+        } catch (error) {
+          logError('ObservabilityPlugin', 'Failed to initialize transport for direct update', error as Error);
+          return;
+        }
+      }
+
+      if (!this.transport) {
+        logError('ObservabilityPlugin', 'Cannot update job execution - transport not initialized', new Error('Transport not available'));
+        return;
+      }
+
+      const completionData = {
         duration_ms: durationMs,
         status: result.completed && !result.error ? 'completed' : 'failed',
         result: result.result,
         error_message: result.error?.message || (!result.completed ? 'Job failed to complete' : null),
         error_stack: this.config.captureErrorStacks ? result.error?.stack : null,
         updated_at: new Date(),
-      });
+      };
 
-      this.buffer.jobExecutions.set(jobExecutionId, jobRecord);
+      try {
+        await this.transport.updateJobExecutionCompletion(jobExecutionId, completionData);
+      } catch (error) {
+        logError('ObservabilityPlugin', 'Failed to update job execution completion', error as Error);
+      }
+
+      // Clean up job tracking
+      this.activeJobExecutions.delete(jobExecutionKey);
+      return;
     }
+
+    // Record in buffer - update it normally
+    Object.assign(jobRecord, {
+      duration_ms: durationMs,
+      status: result.completed && !result.error ? 'completed' : 'failed',
+      result: result.result,
+      error_message: result.error?.message || (!result.completed ? 'Job failed to complete' : null),
+      error_stack: this.config.captureErrorStacks ? result.error?.stack : null,
+      updated_at: new Date(),
+    });
+
+    this.buffer.jobExecutions.set(jobExecutionId, jobRecord);
 
     // Clean up job tracking
     this.activeJobExecutions.delete(jobExecutionKey);

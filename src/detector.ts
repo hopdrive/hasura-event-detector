@@ -528,12 +528,6 @@ const detect = async (
   const eventModule = await loadEventModule(eventName, eventModulesDirectory);
   const { detector, handler } = eventModule;
 
-  // log(eventName, 'Event module loaded: ', {
-  //   eventModulesDirectory,
-  //   wasLoaded: eventModule ? true : false,
-  //   eventModule,
-  // });
-
   if (!detector) return null;
   if (typeof detector !== 'function') return null;
   if (!handler) return null;
@@ -613,41 +607,37 @@ export const loadEventModule = async (
   eventModulesDirectory: string
 ): Promise<Partial<EventModule>> => {
   // Try multiple extensions in priority order:
-  // 1. .generated.js (compiled from TypeScript by build-events - preferred in production)
+  // 1. .generated.cjs (compiled from TypeScript by build-events - preferred in production)
   // 2. .js (user-written JavaScript - for backwards compatibility)
   // 3. .mjs (ESM modules)
   // 4. .ts (TypeScript source - only in development with ts-node/tsx)
-  const extensions = ['.generated.js', '.js', '.mjs', '.ts'];
+  const extensions = ['.generated.cjs', '.js', '.mjs', '.ts'];
 
   for (const ext of extensions) {
     const modulePath = path.join(eventModulesDirectory, `${eventName}${ext}`);
     try {
-      // Convert absolute path to file URL for ESM compatibility
-      // In ESM environments, import() requires file URLs for absolute paths
-      // In CommonJS, it accepts both paths and URLs
-      const moduleUrl = path.isAbsolute(modulePath) ? pathToFileURL(modulePath).href : modulePath;
+      let importedModule: any;
 
-      // log(eventName, `Importing module from ${moduleUrl}`, {
-      //   pathIsAbsolute: path.isAbsolute(modulePath),
-      //   pathToFileURL: pathToFileURL(modulePath),
-      //   pathToFileURLHref: pathToFileURL(modulePath).href,
-      //   modulePath,
-      // });
-
-      // Using dynamic import for ES modules compatibility (works in both CJS and ESM)
-      const importedModule = await import(moduleUrl);
-
-      //log(eventName, 'Imported module returned by await import(moduleUrl): ', importedModule);
+      // Use require() for CommonJS files (.js, .generated.cjs, .cjs)
+      // Use import() for ESM files (.mjs) and TypeScript (.ts with ts-node/tsx)
+      if (ext === '.mjs' || ext === '.ts') {
+        // ESM or TypeScript - use dynamic import
+        const moduleUrl = path.isAbsolute(modulePath) ? pathToFileURL(modulePath).href : modulePath;
+        importedModule = await import(moduleUrl);
+      } else {
+        // CommonJS - use require
+        // Clear require cache to support hot reloading in development
+        delete require.cache[require.resolve(modulePath)];
+        importedModule = require(modulePath);
+      }
 
       // Handle both CommonJS (module.exports) and ES modules (export default/named exports)
-      // CommonJS modules imported via import() have exports on the module object directly
-      // or sometimes on .default depending on the transpilation
+      // CommonJS modules imported via require() have exports on the module object directly
+      // ESM modules imported via import() may have exports on .default
       const module = (importedModule.default || importedModule) as EventModule;
 
-      //log(eventName, `🧩 Loaded event module from ${modulePath}`, module);
       return module;
     } catch (error) {
-      //log(eventName, `🧩 Error loading event module`, (error as any).message, error);
       // Continue to next extension if this one fails
       if (ext === extensions[extensions.length - 1]) {
         // Only log error on the last attempt

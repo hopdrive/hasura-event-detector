@@ -114,6 +114,32 @@ export interface ObservabilityTransport {
   }): Promise<void>;
 
   /**
+   * Update event execution completion fields directly in the database
+   * Used when periodic flush clears the buffer before handler completes
+   */
+  updateEventExecutionCompletion(eventExecutionId: string, data: {
+    handler_duration_ms: number;
+    jobs_count: number;
+    jobs_succeeded: number;
+    jobs_failed: number;
+    status: string;
+    updated_at: Date;
+  }): Promise<void>;
+
+  /**
+   * Update job execution completion fields directly in the database
+   * Used when periodic flush clears the buffer before job completes
+   */
+  updateJobExecutionCompletion(jobExecutionId: string, data: {
+    duration_ms: number;
+    status: string;
+    result: Record<string, any> | null;
+    error_message: string | null;
+    error_stack: string | null;
+    updated_at: Date;
+  }): Promise<void>;
+
+  /**
    * Shutdown the transport and cleanup resources
    */
   shutdown(): Promise<void>;
