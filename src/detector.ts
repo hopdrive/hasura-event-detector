@@ -408,7 +408,11 @@ const detectEventModules = async (modulesDir: string): Promise<EventName[]> => {
       eventNames.add(eventName);
     }
 
-    return Array.from(eventNames);
+    const eventNamesWithFoundModules = Array.from(eventNames);
+
+    log(`Found event ${eventNamesWithFoundModules?.length} event modules: `, eventNamesWithFoundModules.join(' | '));
+
+    return eventNamesWithFoundModules;
   } catch (error) {
     logError('DetectEventModules', 'Failed to list modules', error as Error);
     return [];
@@ -613,7 +617,7 @@ const loadEventModule = async (eventName: EventName, eventModulesDirectory: stri
       // or sometimes on .default depending on the transpilation
       const module = (importedModule.default || importedModule) as EventModule;
 
-      //log('loadEventModule', `🧩 Loaded ${event} module from ${modulePath}`, module);
+      log('loadEventModule', `🧩 Loaded ${eventName} module from ${modulePath}`, module);
       return module;
     } catch (error) {
       // Continue to next extension if this one fails
