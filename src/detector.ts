@@ -615,34 +615,65 @@ export const loadEventModule = async (
 
   for (const ext of extensions) {
     const modulePath = path.join(eventModulesDirectory, `${eventName}${ext}`);
-    try {
-      let importedModule: any;
 
-      // Use require() for CommonJS files (.js, .generated.cjs, .cjs)
-      // Use import() for ESM files (.mjs) and TypeScript (.ts with ts-node/tsx)
-      if (ext === '.mjs' || ext === '.ts') {
-        // ESM or TypeScript - use dynamic import
-        const moduleUrl = path.isAbsolute(modulePath) ? pathToFileURL(modulePath).href : modulePath;
-        importedModule = await import(moduleUrl);
-      } else {
-        // CommonJS - use require
-        // Clear require cache to support hot reloading in development
-        delete require.cache[require.resolve(modulePath)];
-        importedModule = require(modulePath);
+    // Helper to check if a module has valid detector/handler functions
+    const isValidModule = (mod: any): boolean => {
+      const m = mod?.default || mod;
+      return (
+        m &&
+        (typeof m.detector === 'function' || typeof m.handler === 'function')
+      );
+    };
+
+    // Try both require() and import() strategies
+    // This handles cases where:
+    // - Netlify bundles TypeScript as ESM (need import() even for .cjs files)
+    // - Regular Node.js environments (require() works for CommonJS)
+    const loadStrategies = [
+      // Strategy 1: Use require() for CommonJS-like files
+      async () => {
+        if (ext === '.mjs' || ext === '.ts') {
+          return null; // Skip require for ESM/TS
+        }
+        try {
+          delete require.cache[require.resolve(modulePath)];
+          return require(modulePath);
+        } catch (e) {
+          return null;
+        }
+      },
+      // Strategy 2: Use import() as fallback (works for both ESM and CommonJS)
+      async () => {
+        try {
+          const moduleUrl = path.isAbsolute(modulePath) ? pathToFileURL(modulePath).href : modulePath;
+          return await import(moduleUrl);
+        } catch (e) {
+          return null;
+        }
       }
+    ];
 
-      // Handle both CommonJS (module.exports) and ES modules (export default/named exports)
-      // CommonJS modules imported via require() have exports on the module object directly
-      // ESM modules imported via import() may have exports on .default
-      const module = (importedModule.default || importedModule) as EventModule;
+    // Try each loading strategy
+    for (const loadStrategy of loadStrategies) {
+      try {
+        const importedModule = await loadStrategy();
 
-      return module;
-    } catch (error) {
-      // Continue to next extension if this one fails
-      if (ext === extensions[extensions.length - 1]) {
-        // Only log error on the last attempt
-        logError('loadEventModule', `Failed to load module ${eventName} from ${eventModulesDirectory}`, error as Error);
+        // Check if we got a valid module with detector/handler
+        if (importedModule && isValidModule(importedModule)) {
+          // Handle both CommonJS (module.exports) and ES modules (export default/named exports)
+          const module = (importedModule.default || importedModule) as EventModule;
+          return module;
+        }
+      } catch (error) {
+        // Continue to next strategy
+        continue;
       }
+    }
+
+    // If we tried all strategies and none worked, continue to next extension
+    if (ext === extensions[extensions.length - 1]) {
+      // Only log error on the last extension attempt
+      logError('loadEventModule', `Failed to load module ${eventName} from ${eventModulesDirectory} with any strategy`, new Error('All load strategies failed'));
     }
   }
 
