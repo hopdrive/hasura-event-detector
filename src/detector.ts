@@ -394,7 +394,7 @@ const preparedResponse = (response: PromiseSettledResult<EventProcessingResult>[
  * @param modulesDir - Path to the events directory containing JavaScript modules
  * @returns Promise resolving to list of event names derived from file names
  */
-const detectEventModules = async (modulesDir: string): Promise<EventName[]> => {
+export const detectEventModules = async (modulesDir: string): Promise<EventName[]> => {
   try {
     const filenames = await fs.readdir(modulesDir);
     log('DetectEventModules', `Auto-detected event modules found in: ${modulesDir}`, filenames);
@@ -608,7 +608,7 @@ const consoleLogResponse = (response: ListenToResponse): void => {
  * @param eventModulesDirectory - Path to the events directory
  * @returns The loaded event module if it exists, else an empty object
  */
-const loadEventModule = async (eventName: EventName, eventModulesDirectory: string): Promise<Partial<EventModule>> => {
+export const loadEventModule = async (eventName: EventName, eventModulesDirectory: string): Promise<Partial<EventModule>> => {
   // Try multiple extensions in priority order:
   // 1. .generated.js (compiled from TypeScript by build-events - preferred in production)
   // 2. .js (user-written JavaScript - for backwards compatibility)

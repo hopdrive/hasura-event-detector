@@ -120,6 +120,29 @@ consoleCommand
   .action(checkConsoleCommand);
 
 program
+  .command('verify-setup')
+  .description('Verify event detection setup and configuration')
+  .option('--functions-dir <dir>', 'Functions directory', 'functions')
+  .action((options) => {
+    const { spawn } = require('child_process');
+    const scriptPath = path.join(__dirname, '../scripts/verify-setup.mjs');
+
+    const args = [];
+    if (options.functionsDir) {
+      args.push('--functions-dir', options.functionsDir);
+    }
+
+    const child = spawn('node', [scriptPath, ...args], {
+      stdio: 'inherit',
+      cwd: process.cwd()
+    });
+
+    child.on('exit', (code) => {
+      process.exit(code || 0);
+    });
+  });
+
+program
   .command('build-events')
   .description('Compile TypeScript event modules to .generated.js files')
   .option('--functions-dir <dir>', 'Functions directory', 'functions')

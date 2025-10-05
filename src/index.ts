@@ -1,5 +1,5 @@
 // Core event detection functionality
-export { listenTo } from './detector';
+export { listenTo, detectEventModules, loadEventModule } from './detector';
 
 // Plugin system for extensibility
 export {
@@ -10,7 +10,7 @@ export {
 } from './plugin';
 
 // Job handling
-export { run, job } from './handler';
+export { run, job, extractJobName } from './handler';
 
 // Utility functions (optional imports)
 // Import from 'hasura-event-detector/utils' for utility functions

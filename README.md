@@ -39,13 +39,25 @@ npx hasura-event-detector init --typescript
 npx hasura-event-detector create user-activation --template user-activation
 ```
 
-### 3. Test Your Event
+### 3. Verify Your Setup
+
+```bash
+npx hasura-event-detector verify-setup
+```
+
+This command validates your configuration by:
+- Detecting all event modules
+- Verifying TypeScript compilation and .generated.js files
+- Checking job function names (detects anonymous jobs)
+- Displaying a complete tree view of your setup
+
+### 4. Test Your Event
 
 ```bash
 npx hasura-event-detector test user-activation
 ```
 
-### 4. Set Up Observability Console
+### 5. Set Up Observability Console
 
 ```bash
 # Initialize console with configuration
@@ -55,7 +67,7 @@ hasura-event-detector console init --add-script
 npm run event-console
 ```
 
-### 5. Use in Production
+### 6. Use in Production
 
 **TypeScript/ESM:**
 ```typescript
@@ -765,6 +777,65 @@ hasura-event-detector console init [--add-script]
 hasura-event-detector console start [--port 3000]
 hasura-event-detector console build [--output-dir ./dist]
 hasura-event-detector console check
+```
+
+### Setup Verification
+
+```bash
+# Verify your event detection setup
+hasura-event-detector verify-setup
+
+# Verify with custom functions directory
+hasura-event-detector verify-setup --functions-dir path/to/functions
+```
+
+The `verify-setup` command is essential for validating your configuration. It:
+
+- **Detects all event modules** across all function directories
+- **Verifies TypeScript compilation** - ensures .generated.js files exist and are up-to-date
+- **Checks job function names** - identifies anonymous jobs that won't appear in observability logs
+- **Validates imports** - confirms job functions are properly imported and accessible
+- **Displays a tree view** - shows all events and their associated jobs
+
+**Example output:**
+```
+================================================================================
+Hasura Event Detector - Setup Verification
+================================================================================
+
+Functions directory: /project/functions
+
+Found 2 function(s) with event directories:
+
+📁 db-ridehails-background
+   Path: /project/functions/db-ridehails-background/events
+
+   Detected 4 event module(s):
+
+   ✓ ridehail.completed
+     Loaded from: .generated.js
+     Jobs imported: 1
+         [1] handleRidehailAccessorials → "handleRidehailAccessorials"
+
+   ✓ ridehail.pending
+     Loaded from: .generated.js
+     Jobs imported: 2
+         [1] handleRidehailSubmission → "handleRidehailSubmission"
+       ⚠️ [2] processMetrics → "anonymous"
+     ⚠️  WARNING: Some jobs will have anonymous names at runtime
+
+================================================================================
+Summary
+================================================================================
+Total event modules: 4
+Total jobs imported: 3
+⚠️  Jobs with anonymous names: 1
+
+To fix anonymous job names:
+1. Ensure job functions are named functions (not arrow functions)
+2. OR pass explicit jobName in options when calling job():
+   job(myFunction, { ...options, jobName: "myJobName" })
+3. Check that wrapper functions (like scopedJob) preserve function names
 ```
 
 ### Testing

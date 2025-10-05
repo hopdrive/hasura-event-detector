@@ -17,6 +17,18 @@ export const job = <T = any>(func: JobFunction<T>, options?: JobOptions): Job<T>
 };
 
 /**
+ * Extract the job name that would be used at runtime
+ * Pure function with no side effects - safe to use for testing/inspection
+ *
+ * @param job - Job descriptor containing function and options
+ * @returns The job name that would be used (from options.jobName, func.name, or 'anonymous')
+ */
+export const extractJobName = (job: Job): JobName => {
+  const { func, options = {} } = job;
+  return (options.jobName || func?.name || 'anonymous') as JobName;
+};
+
+/**
  * Run all functions passed into the jobs array as a set
  * of async promises to run as parallel as possible.
  *
@@ -64,8 +76,14 @@ const safeJobWrapper = async <T = any>(
   const correlationId = hasuraEvent?.__correlationId;
   const abortSignal = hasuraEvent?.__abortSignal;
 
+  log('safeJobWrapper', 'Wrapping function', {
+    optionsJobNameOverride: options.jobName,
+    functionName: func?.name,
+    func,
+  });
+
   const output: JobResult<T> = {
-    name: (options.jobName || func?.name || 'anonymous') as JobName,
+    name: extractJobName({ func, options }),
     durationMs: 0,
     result: null as any,
     completed: false,
