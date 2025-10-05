@@ -284,6 +284,12 @@ export const listenTo = async (
   // Execute with timeout protection if enabled
   let result: ListenToResponse;
 
+  log(
+    'listenTo',
+    `Running event processing for ${resolvedOptions?.listenedEvents?.length} events`,
+    resolvedOptions.listenedEvents
+  );
+
   try {
     if (timeoutManager) {
       // Execute with timeout protection
@@ -301,7 +307,10 @@ export const listenTo = async (
     // and we're in a serverless environment
     if (!isTimedOut && timeoutConfig.serverlessMode) {
       try {
-        log('listenTo', '[FLUSH TIMING] Normal completion - shutting down plugins for serverless environment (serverlessMode=true)');
+        log(
+          'listenTo',
+          '[FLUSH TIMING] Normal completion - shutting down plugins for serverless environment (serverlessMode=true)'
+        );
         await pluginManager.shutdown();
       } catch (error) {
         logError('PluginSystem', 'Error during plugin shutdown', error as Error);
@@ -309,7 +318,10 @@ export const listenTo = async (
     } else if (!isTimedOut) {
       // In non-serverless mode, just flush without full shutdown
       try {
-        log('listenTo', '[FLUSH TIMING] Normal completion - flushing plugins in non-serverless mode (serverlessMode=false or undefined)');
+        log(
+          'listenTo',
+          '[FLUSH TIMING] Normal completion - flushing plugins in non-serverless mode (serverlessMode=false or undefined)'
+        );
         for (const plugin of pluginManager.getEnabledPlugins()) {
           if (plugin.flush) {
             await plugin.flush();
@@ -355,9 +367,7 @@ export const listenTo = async (
   }
 };
 
-const preparedResponse = (
-  response: PromiseSettledResult<EventProcessingResult>[]
-): ListenToResponse => {
+const preparedResponse = (response: PromiseSettledResult<EventProcessingResult>[]): ListenToResponse => {
   const res: ListenToResponse = {
     events: [],
     durationMs: 0, // Will be set by caller
@@ -517,7 +527,7 @@ const detect = async (
 ): Promise<HandlerFunction | null> => {
   const { detector, handler } = await loadEventModule(eventName, eventModulesDirectory);
 
-  //log(event, 'Detector and handler loaded: ', detector, handler);
+  log(eventName, 'Detector and handler loaded: ', detector, handler);
 
   if (!detector) return null;
   if (typeof detector !== 'function') return null;
@@ -617,7 +627,7 @@ const loadEventModule = async (eventName: EventName, eventModulesDirectory: stri
       // or sometimes on .default depending on the transpilation
       const module = (importedModule.default || importedModule) as EventModule;
 
-      log('loadEventModule', `🧩 Loaded ${eventName} module from ${modulePath}`, module);
+      log(eventName, 'loadEventModule', `🧩 Loaded ${eventName} module from ${modulePath}`, module);
       return module;
     } catch (error) {
       // Continue to next extension if this one fails
