@@ -195,6 +195,46 @@ export class TrackingTokenUtils {
 
     return this.create(newSource, parsed.correlationId, parsed.jobExecutionId);
   }
+
+  /**
+   * Helper function to get a tracking token for use in job functions
+   * Automatically handles token reuse or creation based on context
+   *
+   * @param hasuraEvent - The Hasura event payload
+   * @param options - Job options containing sourceTrackingToken and jobExecutionId
+   * @param fallbackSource - Source to use when creating a new token (e.g., user email, role, or system name)
+   * @returns A tracking token ready to use in database updates
+   *
+   * @example
+   * ```typescript
+   * const trackingToken = TrackingToken.forJob(
+   *   hasuraEvent,
+   *   options,
+   *   user || role || 'event-handlers'
+   * );
+   * await db.update({ ...data, updated_by: trackingToken });
+   * ```
+   */
+  static forJob(
+    hasuraEvent: any,
+    options: any,
+    fallbackSource?: string
+  ): TrackingToken {
+    // Try to reuse existing tracking token if available
+    const sourceTrackingToken = options?.sourceTrackingToken;
+    const jobExecutionId = options?.jobExecutionId;
+
+    if (sourceTrackingToken && this.isValid(sourceTrackingToken)) {
+      // Reuse the token and just update the jobExecutionId for this job
+      return this.withJobExecutionId(sourceTrackingToken, jobExecutionId || 'unknown');
+    }
+
+    // Create a new token if no previous token exists (new record)
+    const source = fallbackSource || 'system';
+    const correlationId = hasuraEvent?.__correlationId || options?.correlationId || 'unknown';
+
+    return this.create(source, correlationId, jobExecutionId);
+  }
 }
 
 // Export the class with an alias for convenience

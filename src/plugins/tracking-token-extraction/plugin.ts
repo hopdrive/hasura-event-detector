@@ -60,6 +60,7 @@ export class TrackingTokenExtractionPlugin extends BasePlugin<TrackingTokenExtra
 
     let correlationId: string | null = null;
     let sourceJobId: string | null = null;
+    let sourceTrackingToken: string | null = null;
 
     // Strategy 1: Extract from updated_by field with pattern matching
     if (this.config.extractFromUpdatedBy) {
@@ -67,9 +68,10 @@ export class TrackingTokenExtractionPlugin extends BasePlugin<TrackingTokenExtra
       if (trackingResult) {
         correlationId = trackingResult.correlationId;
         sourceJobId = trackingResult.sourceJobId || null;
+        sourceTrackingToken = trackingResult.originalToken || null;
         log(
           'TrackingTokenExtraction',
-          `Extracted from updated_by - correlationId: ${correlationId}, sourceJobId: ${sourceJobId}`
+          `Extracted from updated_by - correlationId: ${correlationId}, sourceJobId: ${sourceJobId}, token: ${sourceTrackingToken}`
         );
       }
     }
@@ -99,17 +101,27 @@ export class TrackingTokenExtractionPlugin extends BasePlugin<TrackingTokenExtra
     }
 
     // Set the extracted values in hasuraEvent for other plugins/jobs to use
-    if (correlationId || sourceJobId) {
+    if (correlationId || sourceJobId || sourceTrackingToken) {
       // Store source job ID in hasuraEvent for observability plugin
       if (sourceJobId) {
         (hasuraEvent as any).__sourceJobId = sourceJobId;
         log('TrackingTokenExtraction', `Set hasuraEvent.__sourceJobId = ${sourceJobId}`);
       }
 
-      // Return updated options with correlationId
+      // Build updated options with extracted values
+      const updatedOptions: Partial<ListenToOptions> = { ...options };
+
       if (correlationId) {
-        return { ...options, correlationId };
+        updatedOptions.correlationId = correlationId;
       }
+
+      // Store the original tracking token in options for jobs to access
+      if (sourceTrackingToken) {
+        updatedOptions.sourceTrackingToken = sourceTrackingToken;
+        log('TrackingTokenExtraction', `Set options.sourceTrackingToken = ${sourceTrackingToken}`);
+      }
+
+      return updatedOptions;
     }
 
     log('TrackingTokenExtraction', 'No tracking token components found in payload');
@@ -122,7 +134,7 @@ export class TrackingTokenExtractionPlugin extends BasePlugin<TrackingTokenExtra
    * - "user@example.com|correlation_id|source_job_id" (full tracking token)
    * - "system|correlation_id" (without source job)
    */
-  private extractFromUpdatedBy(parsedEvent: ParsedHasuraEvent): { correlationId: string; sourceJobId?: string } | null {
+  private extractFromUpdatedBy(parsedEvent: ParsedHasuraEvent): { correlationId: string; sourceJobId?: string; originalToken?: string } | null {
     const updatedBy = parsedEvent.dbEvent?.new?.updatedby || parsedEvent.dbEvent?.new?.updated_by;
     if (!updatedBy || typeof updatedBy !== 'string') return null;
 
@@ -132,6 +144,7 @@ export class TrackingTokenExtractionPlugin extends BasePlugin<TrackingTokenExtra
       return {
         correlationId: components.correlationId,
         ...(components.jobExecutionId ? { sourceJobId: components.jobExecutionId } : {}),
+        originalToken: updatedBy, // Store the original token for jobs to reuse
       };
     }
 
@@ -139,14 +152,20 @@ export class TrackingTokenExtractionPlugin extends BasePlugin<TrackingTokenExtra
     if (this.config.updatedByPattern) {
       const match = updatedBy.match(this.config.updatedByPattern);
       if (match && match[1]) {
-        return { correlationId: match[1] };
+        return {
+          correlationId: match[1],
+          originalToken: updatedBy,
+        };
       }
     }
 
     // Fallback: check if the whole updated_by value is a UUID
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (uuidRegex.test(updatedBy)) {
-      return { correlationId: updatedBy };
+      return {
+        correlationId: updatedBy,
+        originalToken: updatedBy,
+      };
     }
 
     return null;

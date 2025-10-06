@@ -9,7 +9,7 @@ import { TrackingToken } from './tracking-token';
 import type { JobFunction, EventName, HasuraEventPayload } from '../types';
 
 /**
- * Example job that demonstrates TrackingToken usage
+ * Example job that demonstrates TrackingToken usage - NEW RECORD (no previous token)
  */
 export const exampleDatabaseUpdateJob: JobFunction = async (
   event: EventName,
@@ -57,15 +57,72 @@ export const exampleDatabaseUpdateJob: JobFunction = async (
 };
 
 /**
- * Example job that reads and continues a tracking chain
+ * Example job using the simplified helper - RECOMMENDED PATTERN
+ * This is the easiest way to get a tracking token in your job
+ */
+export const simpleJob: JobFunction = async (
+  event: EventName,
+  hasuraEvent: HasuraEventPayload,
+  options
+) => {
+  // ONE-LINER: Get tracking token (reuses existing or creates new)
+  const trackingToken = TrackingToken.forJob(
+    hasuraEvent,
+    options,
+    'my-service' // Fallback source for new records
+  );
+
+  // Use in your database update (pseudo-code)
+  // await db.update({
+  //   id: hasuraEvent.event.data.new?.id,
+  //   status: 'processed',
+  //   updated_by: trackingToken
+  // });
+
+  return { success: true, trackingToken };
+};
+
+/**
+ * Example with user/role context
+ */
+export const jobWithUserContext: JobFunction = async (
+  event: EventName,
+  hasuraEvent: HasuraEventPayload,
+  options
+) => {
+  // Extract user context (implementation depends on your parseHasuraEvent)
+  const user = hasuraEvent.event?.session_variables?.['x-hasura-user-email'];
+  const role = hasuraEvent.event?.session_variables?.['x-hasura-role'];
+
+  // Pass user email, role, or service name as fallback source
+  const trackingToken = TrackingToken.forJob(
+    hasuraEvent,
+    options,
+    user || role || 'event-handlers'
+  );
+
+  // Use in database update (pseudo-code)
+  // await db.update({
+  //   id: recordId,
+  //   status: 'processed',
+  //   updated_by: trackingToken
+  // });
+
+  return { success: true, trackingToken };
+};
+
+/**
+ * Example job that reads and continues a tracking chain - ADVANCED PATTERN
+ * Use this when you need to inspect the previous token
  */
 export const chainedJob: JobFunction = async (
   event: EventName,
   hasuraEvent: HasuraEventPayload,
   options
 ) => {
-  // Extract tracking information from a previous job's update
-  const previousToken = hasuraEvent.event.data.new?.updated_by;
+  // Get the original tracking token from options
+  // The TrackingTokenExtractionPlugin automatically extracts this from updated_by
+  const previousToken = options?.sourceTrackingToken;
 
   if (previousToken && TrackingToken.isValid(previousToken)) {
     // Parse the previous token to understand the chain
@@ -76,27 +133,23 @@ export const chainedJob: JobFunction = async (
       previousJobExecution: components?.jobExecutionId
     });
 
-    // Create a new token for this job, maintaining the correlation
+    // Reuse the previous token and just update the jobExecutionId
     const newToken = TrackingToken.withJobExecutionId(
       previousToken,
       options?.jobExecutionId || 'new-job-execution-uuid'
     );
 
-    // Or create with a different source but same correlation
-    const apiToken = TrackingToken.withSource(
-      previousToken,
-      'api-handler'
-    );
+    // Use newToken in your database updates
+    // await db.update({ ...data, updated_by: newToken });
 
     return {
       success: true,
       previousToken,
-      newToken,
-      apiToken
+      newToken
     };
   }
 
-  // Fallback if no valid tracking token found
+  // Fallback if no valid tracking token found (new record)
   const freshToken = TrackingToken.create(
     'chained-job',
     hasuraEvent.__correlationId || 'new-correlation',

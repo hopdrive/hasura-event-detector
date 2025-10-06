@@ -306,6 +306,7 @@ export interface ListenToOptions {
   sourceFunction?: string;
   context?: Record<string, any>; // User-provided context data
   correlationId?: string;
+  sourceTrackingToken?: string; // Original tracking token from updated_by field (extracted by TrackingTokenExtractionPlugin)
   // Timeout configuration for serverless environments
   timeoutConfig?: {
     enabled?: boolean;
