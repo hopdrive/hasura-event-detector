@@ -491,8 +491,6 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   override async onInvocationStart(hasuraEvent: HasuraEventPayload, options: ListenToOptions): Promise<void> {
     if (!this.config.enabled) return;
 
-    log('ObservabilityPlugin', '[VERSION CHECK] Using observability plugin with buffer recovery fix - v2.3.1-rc044-fixed');
-
     const { dbEvent } = parseHasuraEvent(hasuraEvent);
 
     const invocationData = {
