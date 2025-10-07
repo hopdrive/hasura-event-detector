@@ -9,12 +9,20 @@ import type { PluginManager } from '@/plugin';
 import type { JobName, CorrelationId } from '../types';
 
 let pluginManager: PluginManager | null = null;
+let consoleLoggingEnabled = false;
 
 /**
  * Set the plugin manager instance for integrated logging
  */
 export const setPluginManager = (manager: PluginManager): void => {
   pluginManager = manager;
+};
+
+/**
+ * Enable or disable console logging
+ */
+export const setConsoleLogging = (enabled: boolean): void => {
+  consoleLoggingEnabled = enabled;
 };
 
 /**
@@ -26,9 +34,10 @@ export const log = (prefix: string, message: string, ...args: any[]): void => {
       ? `${message} ${args.map(arg => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' ')}`
       : message;
 
-  // TEST
-  console.log(`[DEBUG] [${prefix}] ${formattedMessage}`);
-  // TEST
+  // Write to console if enabled
+  if (consoleLoggingEnabled) {
+    console.log(`[${prefix}] ${formattedMessage}`);
+  }
 
   // If plugin system is available, use it for consistent logging
   if (pluginManager && pluginManager.initialized) {
@@ -63,6 +72,14 @@ export const logError = (prefix: string, message: string, error: Error | null = 
     args.length > 0
       ? `${errorMessage} ${args.map(arg => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' ')}`
       : errorMessage;
+
+  // Write to console if enabled
+  if (consoleLoggingEnabled) {
+    console.error(`[${prefix}] ${formattedMessage}`);
+    if (error?.stack) {
+      console.error(error.stack);
+    }
+  }
 
   if (pluginManager && pluginManager.initialized) {
     pluginManager
@@ -102,6 +119,11 @@ export const logWarn = (prefix: string, message: string, ...args: any[]): void =
     args.length > 0
       ? `${message} ${args.map(arg => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' ')}`
       : message;
+
+  // Write to console if enabled
+  if (consoleLoggingEnabled) {
+    console.warn(`[${prefix}] ${formattedMessage}`);
+  }
 
   if (pluginManager && pluginManager.initialized) {
     pluginManager

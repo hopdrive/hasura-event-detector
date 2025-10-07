@@ -1,4 +1,4 @@
-import { log, logError, logWarn, setPluginManager } from '@/helpers/log';
+import { log, logError, logWarn, setPluginManager, setConsoleLogging } from '@/helpers/log';
 import { getObjectSafely } from '@/helpers/object';
 import { parseHasuraEvent } from '@/helpers/hasura';
 import { resolveFromCaller } from '@/helpers/caller-path';
@@ -71,6 +71,11 @@ export const listenTo = async (
 ): Promise<ListenToResponse> => {
   // Track execution start time
   const start = Date.now();
+
+  // Configure console logging if requested
+  if (options.logToConsole !== undefined) {
+    setConsoleLogging(options.logToConsole);
+  }
 
   // Runtime validation of input payload
   if (!validateHasuraEventPayload(hasuraEvent)) {
