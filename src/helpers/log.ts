@@ -217,28 +217,28 @@ export const createScopedLogger = (context: LogContext, autoPrefix: string): Sco
  * Automatically uses the event name as the log prefix.
  *
  * @param hasuraEvent - The Hasura event payload
- * @param event - The event name
+ * @param eventName - The event name
  * @returns A scoped logger with automatic context capture and prefix
  *
  * @example
  * ```typescript
  * export const detector: DetectorFunction = async (eventName, hasuraEvent) => {
- *   const { log, logError, logWarn } = getEventLogger(hasuraEvent, eventName);
+ *   const { log, logError, logWarn } = getEventLogger(eventName, hasuraEvent);
  *   log('Checking event match'); // Logs: [eventName] Checking event match
  *   return isMatch;
  * };
  * ```
  */
-export const getEventLogger = (hasuraEvent: HasuraEventPayload, event: EventName): ScopedLogger => {
+export const getEventLogger = (eventName: EventName, hasuraEvent: HasuraEventPayload): ScopedLogger => {
   const correlationId = hasuraEvent?.__correlationId || ('' as CorrelationId);
 
   return createScopedLogger(
     {
-      eventName: event,
+      eventName: eventName,
       jobName: 'system' as JobName,
       correlationId,
     },
-    event as string // Use event name as automatic prefix
+    eventName as string // Use event name as automatic prefix
   );
 };
 
