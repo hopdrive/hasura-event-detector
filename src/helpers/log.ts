@@ -9,7 +9,7 @@ import type { PluginManager } from '@/plugin';
 import type { JobName, CorrelationId } from '../types';
 
 let pluginManager: PluginManager | null = null;
-let consoleLoggingEnabled = false;
+let consoleLoggingEnabled = true;
 
 /**
  * Set the plugin manager instance for integrated logging
