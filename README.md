@@ -1104,37 +1104,7 @@ class MyObservabilityPlugin extends BasePlugin {
 
 #### TypeScript Event Modules
 
-If you're writing event modules in TypeScript, you need to compile them to JavaScript before deployment. The package provides two ways to do this:
-
-**Option 1: Netlify Build Plugin (Recommended)**
-
-Add the plugin to your `netlify.toml`:
-
-```toml
-[build]
-  command = "npm run build"
-  publish = "public"
-
-# Hasura Event Detector Plugin - Auto-compiles event modules
-[[plugins]]
-  package = "@hopdrive/hasura-event-detector"
-
-[plugins.inputs]
-  functionsDir = "functions"
-  verbose = true
-
-[functions]
-  directory = "functions"
-  # Include compiled event modules
-  included_files = ["functions/**/events/*.generated.js", "functions/**/jobs/*.js"]
-```
-
-The plugin automatically compiles TypeScript event modules during the Netlify build:
-- `events/*.ts` → `events/*.generated.js`
-- Runs before function bundling
-- Zero configuration needed
-
-**Option 2: Manual Build Script**
+If you're writing event modules in TypeScript, you need to compile them to JavaScript before deployment.
 
 Add a build script to your `package.json`:
 
@@ -1197,7 +1167,6 @@ hasura-event-detector console build --output-dir ./public/console
 **Complete Example:**
 See the [example-netlify-site](./example-netlify-site) directory for a full working example with:
 - TypeScript event modules
-- Netlify plugin configuration
 - Background and synchronous functions
 - Multiple event patterns
 - Job orchestration examples

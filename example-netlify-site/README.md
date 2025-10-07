@@ -198,7 +198,7 @@ export const sendEmail: JobFunction = async (eventName, hasuraEvent, options) =>
 
 ```
 example-netlify-site/
-├── netlify.toml                      # Config with plugin & cron
+├── netlify.toml                      # Config with cron schedule
 ├── package.json
 ├── IMPLEMENTATION.md                 # Detailed implementation guide
 ├── public/
@@ -309,10 +309,9 @@ netlify deploy --prod
 
 ### Build Process
 When deployed, Netlify automatically:
-1. Runs `npm run build`
-2. hasura-event-detector plugin compiles events:
+1. Runs `npm run build` which compiles TypeScript events:
    - `events/*.ts` → `events/*.generated.js`
-3. Functions bundled and deployed
+2. Functions bundled and deployed
 
 ## ⚙️ Configuration
 
@@ -332,7 +331,6 @@ HASURA_ADMIN_SECRET=...
 
 The configuration includes:
 - Build command
-- Plugin setup (auto-compiles events)
 - CRON schedule
 - Functions directory
 - Included files

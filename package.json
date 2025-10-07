@@ -25,8 +25,7 @@
       "import": "./dist/esm/netlify/index.js",
       "require": "./dist/cjs/netlify/index.js",
       "types": "./dist/types/netlify/index.d.ts"
-    },
-    "./netlify-plugin": "./netlify-plugin/index.js"
+    }
   },
   "bin": {
     "hasura-event-detector": "./bin/hasura-event-detector"
@@ -36,9 +35,6 @@
     "bin",
     "scripts",
     "templates",
-    "netlify-plugin",
-    "manifest.yml",
-    "index.js",
     "README.md",
     "LICENSE"
   ],
