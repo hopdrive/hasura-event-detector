@@ -633,9 +633,34 @@ See the [Plugin System Guide](./docs/PLUGIN_SYSTEM.md) for complete documentatio
 const config = {
   autoLoadEventModules: true,
   eventModulesDirectory: './events',
-  sourceFunction: 'netlify-function'
+  sourceFunction: 'netlify-function',
+  logToConsole: false  // Optional: Enable console logging
 };
 ```
+
+### Console Logging
+
+By default, internal logs are sent only to the plugin system (e.g., ObservabilityPlugin). You can enable console logging to also write logs to `console.log`, `console.error`, and `console.warn`:
+
+```typescript
+const result = await listenTo(hasuraEvent, {
+  autoLoadEventModules: true,
+  eventModulesDirectory: './events',
+  logToConsole: true  // Enable dual logging (plugin + console)
+});
+```
+
+**When to use console logging:**
+- **Development**: See logs in real-time without setting up plugins
+- **Debugging**: Quick troubleshooting without database queries
+- **Simple deployments**: When you don't need structured observability data
+- **Netlify/Vercel**: View logs directly in function logs tab
+
+**When to use plugin logging only (default):**
+- **Production**: Structured logs in database for analysis
+- **High volume**: Avoid console log spam
+- **Observability**: Use ObservabilityPlugin for queryable telemetry data
+- **Performance**: Console logging can add overhead
 
 ### Advanced Configuration with Observability
 
