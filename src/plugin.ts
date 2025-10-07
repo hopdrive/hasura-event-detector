@@ -265,10 +265,7 @@ export class PluginManager implements PluginManagerInterface {
    * Typed wrapper methods for plugin hooks - provide type safety
    */
 
-  async callOnInvocationStart(
-    hasuraEvent: HasuraEventPayload,
-    options: ListenToOptions
-  ): Promise<void> {
+  async callOnInvocationStart(hasuraEvent: HasuraEventPayload, options: ListenToOptions): Promise<void> {
     return this.callHook('onInvocationStart', hasuraEvent, options);
   }
 
@@ -280,10 +277,7 @@ export class PluginManager implements PluginManagerInterface {
     return this.callHook('onInvocationEnd', hasuraEvent, result, durationMs);
   }
 
-  async callOnEventDetectionStart(
-    eventName: EventName,
-    hasuraEvent: HasuraEventPayload
-  ): Promise<void> {
+  async callOnEventDetectionStart(eventName: EventName, hasuraEvent: HasuraEventPayload): Promise<void> {
     return this.callHook('onEventDetectionStart', eventName, hasuraEvent);
   }
 
@@ -296,10 +290,7 @@ export class PluginManager implements PluginManagerInterface {
     return this.callHook('onEventDetectionEnd', eventName, detected, hasuraEvent, durationMs);
   }
 
-  async callOnEventHandlerStart(
-    eventName: EventName,
-    hasuraEvent: HasuraEventPayload
-  ): Promise<void> {
+  async callOnEventHandlerStart(eventName: EventName, hasuraEvent: HasuraEventPayload): Promise<void> {
     return this.callHook('onEventHandlerStart', eventName, hasuraEvent);
   }
 
@@ -338,20 +329,10 @@ export class PluginManager implements PluginManagerInterface {
     jobName: JobName,
     correlationId: CorrelationId
   ): Promise<void> {
-    // test
-    console.log(`[callOnLog] level: ${level}`);
-    console.log(`[callOnLog] data: `, JSON.stringify(data, null, 2));
-    console.log(`[callOnLog] jobName: ${jobName}`);
-    console.log(`[callOnLog] correlationId: ${correlationId}`);
-    // test
     return this.callHook('onLog', level, message, data, jobName, correlationId);
   }
 
-  async callOnError(
-    error: Error,
-    context: string,
-    correlationId: CorrelationId
-  ): Promise<void> {
+  async callOnError(error: Error, context: string, correlationId: CorrelationId): Promise<void> {
     return this.callHook('onError', error, context, correlationId);
   }
 
