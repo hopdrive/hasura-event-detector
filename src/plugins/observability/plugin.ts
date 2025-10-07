@@ -499,8 +499,8 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       sourceTable: `${hasuraEvent?.table?.schema || 'public'}.${hasuraEvent?.table?.name || 'unknown'}`,
       sourceOperation: hasuraEvent.event?.op || 'MANUAL',
       sourceUser:
-        hasuraEvent.event?.session_variables?.['x-hasura-user-id'] ||
         hasuraEvent.event?.session_variables?.['x-hasura-user-email'] ||
+        hasuraEvent.event?.session_variables?.['x-hasura-user-id'] ||
         hasuraEvent.event?.session_variables?.['x-hasura-role'] ||
         null,
       sourceJobId: (hasuraEvent as any).__sourceJobId || null,
