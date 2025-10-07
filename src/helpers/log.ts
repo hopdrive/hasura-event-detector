@@ -6,10 +6,19 @@
  */
 
 import type { PluginManager } from '@/plugin';
-import type { JobName, CorrelationId } from '../types';
+import type { JobName, CorrelationId, EventName, HasuraEventPayload, JobOptions } from '../types';
 
 let pluginManager: PluginManager | null = null;
 let consoleLoggingEnabled = true;
+
+/**
+ * Context information for scoped logging
+ */
+interface LogContext {
+  eventName?: EventName;
+  jobName: JobName;
+  correlationId: CorrelationId;
+}
 
 /**
  * Set the plugin manager instance for integrated logging
@@ -26,9 +35,9 @@ export const setConsoleLogging = (enabled: boolean): void => {
 };
 
 /**
- * Internal log function that uses plugin system when available
+ * Internal log function with context support
  */
-export const log = (prefix: string, message: string, ...args: any[]): void => {
+const logWithContext = (prefix: string, message: string, context: LogContext, ...args: any[]): void => {
   const formattedMessage =
     args.length > 0
       ? `${message} ${args.map(arg => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' ')}`
@@ -49,9 +58,10 @@ export const log = (prefix: string, message: string, ...args: any[]): void => {
           source: 'internal_logger',
           prefix,
           originalArgs: args,
+          ...(context.eventName && { eventName: context.eventName }),
         },
-        'system' as JobName,
-        '' as CorrelationId
+        context.jobName,
+        context.correlationId
       )
       .catch(() => {
         // Fallback to console if plugin system fails
@@ -64,9 +74,22 @@ export const log = (prefix: string, message: string, ...args: any[]): void => {
 };
 
 /**
- * Internal error logging function
+ * Internal log function that uses plugin system when available
  */
-export const logError = (prefix: string, message: string, error: Error | null = null, ...args: any[]): void => {
+export const log = (prefix: string, message: string, ...args: any[]): void => {
+  logWithContext(prefix, message, { jobName: 'system' as JobName, correlationId: '' as CorrelationId }, ...args);
+};
+
+/**
+ * Internal error logging function with context support
+ */
+const logErrorWithContext = (
+  prefix: string,
+  message: string,
+  error: Error | null = null,
+  context: LogContext,
+  ...args: any[]
+): void => {
   const errorMessage = error ? `${message}: ${error.message}` : message;
   const formattedMessage =
     args.length > 0
@@ -97,9 +120,10 @@ export const logError = (prefix: string, message: string, error: Error | null = 
               }
             : null,
           originalArgs: args,
+          ...(context.eventName && { eventName: context.eventName }),
         },
-        'system' as JobName,
-        '' as CorrelationId
+        context.jobName,
+        context.correlationId
       )
       .catch(() => {
         // Fallback to console if plugin system fails
@@ -112,9 +136,16 @@ export const logError = (prefix: string, message: string, error: Error | null = 
 };
 
 /**
- * Internal warning logging function
+ * Internal error logging function
  */
-export const logWarn = (prefix: string, message: string, ...args: any[]): void => {
+export const logError = (prefix: string, message: string, error: Error | null = null, ...args: any[]): void => {
+  logErrorWithContext(prefix, message, error, { jobName: 'system' as JobName, correlationId: '' as CorrelationId }, ...args);
+};
+
+/**
+ * Internal warning logging function with context support
+ */
+const logWarnWithContext = (prefix: string, message: string, context: LogContext, ...args: any[]): void => {
   const formattedMessage =
     args.length > 0
       ? `${message} ${args.map(arg => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' ')}`
@@ -134,9 +165,10 @@ export const logWarn = (prefix: string, message: string, ...args: any[]): void =
           source: 'internal_logger',
           prefix,
           originalArgs: args,
+          ...(context.eventName && { eventName: context.eventName }),
         },
-        'system' as JobName,
-        '' as CorrelationId
+        context.jobName,
+        context.correlationId
       )
       .catch(() => {
         // Fallback to console if plugin system fails
@@ -149,7 +181,101 @@ export const logWarn = (prefix: string, message: string, ...args: any[]): void =
 };
 
 /**
+ * Internal warning logging function
+ */
+export const logWarn = (prefix: string, message: string, ...args: any[]): void => {
+  logWarnWithContext(prefix, message, { jobName: 'system' as JobName, correlationId: '' as CorrelationId }, ...args);
+};
+
+/**
  * Get current plugin manager (for testing/debugging)
  */
 export const getPluginManager = (): PluginManager | null => pluginManager;
+
+/**
+ * Scoped logger interface - console.log-like API with automatic prefix
+ */
+export interface ScopedLogger {
+  log: (message: string, ...args: any[]) => void;
+  logError: (message: string, error?: Error | null, ...args: any[]) => void;
+  logWarn: (message: string, ...args: any[]) => void;
+}
+
+/**
+ * Create a scoped logger with automatic context and prefix
+ */
+export const createScopedLogger = (context: LogContext, autoPrefix: string): ScopedLogger => ({
+  log: (message: string, ...args: any[]) => logWithContext(autoPrefix, message, context, ...args),
+  logError: (message: string, error: Error | null = null, ...args: any[]) =>
+    logErrorWithContext(autoPrefix, message, error, context, ...args),
+  logWarn: (message: string, ...args: any[]) => logWarnWithContext(autoPrefix, message, context, ...args),
+});
+
+/**
+ * Get a scoped logger for event module level (detectors and handlers)
+ *
+ * Automatically uses the event name as the log prefix.
+ *
+ * @param hasuraEvent - The Hasura event payload
+ * @param event - The event name
+ * @returns A scoped logger with automatic context capture and prefix
+ *
+ * @example
+ * ```typescript
+ * export const detector: DetectorFunction = async (eventName, hasuraEvent) => {
+ *   const { log, logError, logWarn } = getEventLogger(hasuraEvent, eventName);
+ *   log('Checking event match'); // Logs: [eventName] Checking event match
+ *   return isMatch;
+ * };
+ * ```
+ */
+export const getEventLogger = (hasuraEvent: HasuraEventPayload, event: EventName): ScopedLogger => {
+  const correlationId = hasuraEvent?.__correlationId || ('' as CorrelationId);
+
+  return createScopedLogger(
+    {
+      eventName: event,
+      jobName: 'system' as JobName,
+      correlationId,
+    },
+    event as string // Use event name as automatic prefix
+  );
+};
+
+/**
+ * Get a scoped logger for job level
+ *
+ * Automatically uses the job name as the log prefix.
+ *
+ * @param hasuraEvent - The Hasura event payload
+ * @param options - The job options (jobName is automatically set by the library)
+ * @returns A scoped logger with automatic context capture and prefix
+ *
+ * @example
+ * ```typescript
+ * export const myJob: JobFunction = async (event, hasuraEvent, options) => {
+ *   const { log, logError, logWarn } = getJobLogger(hasuraEvent, options);
+ *   log('Processing order'); // Logs: [myJob] Processing order
+ *   return result;
+ * };
+ * ```
+ */
+export const getJobLogger = (hasuraEvent: HasuraEventPayload, options: JobOptions): ScopedLogger => {
+  // First try to get pre-injected logger (parallel-safe)
+  if (options?.__logger) {
+    return options.__logger;
+  }
+
+  // Fallback: create on-demand (for backward compatibility)
+  const correlationId = hasuraEvent?.__correlationId || ('' as CorrelationId);
+  const jobName = options?.jobName || ('unknown' as JobName);
+
+  return createScopedLogger(
+    {
+      jobName,
+      correlationId,
+    },
+    jobName as string // Use job name as automatic prefix
+  );
+};
 

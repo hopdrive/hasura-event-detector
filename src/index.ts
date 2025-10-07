@@ -12,6 +12,10 @@ export {
 // Job handling
 export { run, job, extractJobName } from './handler';
 
+// Logging helpers
+export { getEventLogger, getJobLogger } from './helpers/log';
+export type { ScopedLogger } from './helpers/log';
+
 // Utility functions (optional imports)
 // Import from 'hasura-event-detector/utils' for utility functions
 // Note: Netlify-specific utilities are available at 'hasura-event-detector/netlify'

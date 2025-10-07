@@ -338,6 +338,12 @@ export class PluginManager implements PluginManagerInterface {
     jobName: JobName,
     correlationId: CorrelationId
   ): Promise<void> {
+    // test
+    console.log(`[callOnLog] level: ${level}`);
+    console.log(`[callOnLog] data: `, JSON.stringify(data, null, 2));
+    console.log(`[callOnLog] jobName: ${jobName}`);
+    console.log(`[callOnLog] correlationId: ${correlationId}`);
+    // test
     return this.callHook('onLog', level, message, data, jobName, correlationId);
   }
 

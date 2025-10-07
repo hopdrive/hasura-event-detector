@@ -1,4 +1,4 @@
-import { log } from '@/helpers/log';
+import { log, createScopedLogger } from '@/helpers/log';
 import { getObjectSafely } from '@/helpers/object';
 import { pluginManager } from '@/plugin';
 import type {
@@ -109,6 +109,18 @@ const safeJobWrapper = async <T = any>(
 
   // Call plugin hook for job start (plugins can inject values into enhancedOptions, like jobExecutionId)
   await pluginManager.callOnJobStart(output.name, enhancedOptions, event, hasuraEvent);
+
+  // Create and inject scoped logger with full context (including jobExecutionId from plugin)
+  const jobName = enhancedOptions.jobName || output.name;
+  const scopedLogger = createScopedLogger(
+    {
+      eventName: event,
+      jobName: jobName,
+      correlationId: enhancedOptions.correlationId || ('' as CorrelationId),
+    },
+    jobName as string // Use job name as automatic prefix
+  );
+  enhancedOptions.__logger = scopedLogger;
 
   try {
     if (!func) throw new Error('Job func not defined');

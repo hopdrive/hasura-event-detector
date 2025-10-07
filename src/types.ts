@@ -96,6 +96,11 @@ export interface JobOptions {
   timeout?: number;
   retries?: number;
   abortSignal?: AbortSignal;
+  __logger?: {
+    log: (message: string, ...args: any[]) => void;
+    logError: (message: string, error?: Error | null, ...args: any[]) => void;
+    logWarn: (message: string, ...args: any[]) => void;
+  };
   [key: string]: any;
 }
 
