@@ -876,7 +876,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
         status: result.completed && !result.error ? 'completed' : 'failed',
         result: result.result,
         error_message: result.error?.message || (!result.completed ? 'Job failed to complete' : null),
-        error_stack: this.config.captureErrorStacks ? result.error?.stack : null,
+        error_stack: this.config.captureErrorStacks ? (result.error?.stack ?? null) : null,
         updated_at: new Date(),
       };
 
