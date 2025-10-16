@@ -8,10 +8,11 @@
  */
 
 import express from 'express';
-import { createProxyMiddleware } from 'http-proxy-middleware';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { config as dotenvConfig } from 'dotenv';
+import https from 'https';
+import http from 'http';
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -33,38 +34,102 @@ const grafanaHost = GRAFANA_HOST.startsWith('http')
   ? GRAFANA_HOST
   : `https://${GRAFANA_HOST}`;
 
-// Grafana API proxy endpoint
-app.use('/api/grafana', createProxyMiddleware({
-  target: grafanaHost,
-  changeOrigin: true,
-  pathRewrite: {
-    '^/api/grafana': '', // Remove /api/grafana prefix
-  },
-  onProxyReq: (proxyReq, req, res) => {
-    // Add Basic Auth header
-    if (GRAFANA_USER_ID && GRAFANA_SECRET) {
-      const auth = Buffer.from(`${GRAFANA_USER_ID}:${GRAFANA_SECRET}`).toString('base64');
-      proxyReq.setHeader('Authorization', `Basic ${auth}`);
-    } else {
-      console.warn('⚠️  Grafana credentials not configured. Set VITE_GRAFANA_ID and VITE_GRAFANA_SECRET.');
+// Custom Grafana proxy (avoids redirect following issues)
+app.use('/api/grafana', (req, res) => {
+  if (!GRAFANA_USER_ID || !GRAFANA_SECRET) {
+    return res.status(500).json({
+      error: 'Grafana credentials not configured',
+      message: 'Set VITE_GRAFANA_ID and VITE_GRAFANA_SECRET in .env file'
+    });
+  }
+
+  // Build the target URL
+  const targetPath = req.url; // Already includes query params
+  const targetUrl = new URL(targetPath, grafanaHost);
+
+  console.log(`📤 Proxying to: ${targetUrl.href}`);
+
+  // Determine authentication method
+  // If GRAFANA_USER_ID looks like a service account ID (starts with 'sa-' or is numeric),
+  // use Basic Auth with ID:TOKEN format
+  // Otherwise, just use the token as Bearer auth
+  let authHeader;
+
+  if (GRAFANA_USER_ID && GRAFANA_USER_ID.trim() !== '') {
+    // Basic Auth: ID:TOKEN
+    const basicAuth = Buffer.from(`${GRAFANA_USER_ID}:${GRAFANA_SECRET}`).toString('base64');
+    authHeader = `Basic ${basicAuth}`;
+    console.log(`   Auth: Basic ${GRAFANA_USER_ID}:${'*'.repeat(GRAFANA_SECRET.length)}`);
+  } else {
+    // Bearer Token (for service accounts without explicit ID)
+    authHeader = `Bearer ${GRAFANA_SECRET}`;
+    console.log(`   Auth: Bearer ${'*'.repeat(GRAFANA_SECRET.length)}`);
+  }
+
+  const options = {
+    hostname: targetUrl.hostname,
+    port: targetUrl.port || 443,
+    path: targetUrl.pathname + targetUrl.search,
+    method: req.method,
+    headers: {
+      'Authorization': authHeader,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+  };
+
+  const protocol = targetUrl.protocol === 'https:' ? https : http;
+
+  const proxyReq = protocol.request(options, (proxyRes) => {
+    console.log(`📥 Grafana response: ${proxyRes.statusCode} ${proxyRes.statusMessage}`);
+
+    // Check for authentication failures
+    if (proxyRes.statusCode === 302 || proxyRes.statusCode === 301) {
+      console.log(`   ⚠️  Redirect to: ${proxyRes.headers.location}`);
+      console.log('   Authentication failed! Check your Grafana API key.');
+      return res.status(401).json({
+        error: 'Grafana authentication failed',
+        message: 'The API key may be invalid or expired',
+        statusCode: proxyRes.statusCode
+      });
     }
-  },
-  onProxyRes: (proxyRes, req, res) => {
-    // Log successful requests
+
+    if (proxyRes.statusCode === 401 || proxyRes.statusCode === 403) {
+      console.log('   ❌ Unauthorized - Check your Grafana API key permissions');
+      return res.status(proxyRes.statusCode).json({
+        error: 'Grafana authorization failed',
+        message: 'API key may not have datasources:query permission'
+      });
+    }
+
     if (proxyRes.statusCode === 200) {
-      console.log(`✓ Grafana API: ${req.method} ${req.path} → ${proxyRes.statusCode}`);
-    } else {
-      console.log(`✗ Grafana API: ${req.method} ${req.path} → ${proxyRes.statusCode}`);
+      console.log(`   ✓ Success`);
     }
-  },
-  onError: (err, req, res) => {
-    console.error('Grafana proxy error:', err.message);
+
+    // Forward the response
+    res.status(proxyRes.statusCode);
+    Object.keys(proxyRes.headers).forEach(key => {
+      res.setHeader(key, proxyRes.headers[key]);
+    });
+
+    proxyRes.pipe(res);
+  });
+
+  proxyReq.on('error', (err) => {
+    console.error('❌ Grafana proxy error:', err.message);
     res.status(500).json({
-      error: 'Failed to proxy request to Grafana',
+      error: 'Failed to connect to Grafana',
       message: err.message
     });
-  },
-}));
+  });
+
+  // Forward request body if present
+  if (req.body) {
+    proxyReq.write(JSON.stringify(req.body));
+  }
+
+  proxyReq.end();
+});
 
 async function startServer() {
   if (IS_PRODUCTION) {
