@@ -6,6 +6,8 @@ import { create, formatters } from 'jsondiffpatch';
 import { Node } from 'reactflow';
 import { formatDuration } from '../utils/formatDuration';
 import { useInvocationDetailQuery } from '../types/generated';
+import LogsViewer from './LogsViewer';
+import { createGrafanaService } from '../services/GrafanaService';
 
 interface InvocationDetailDrawerProps {
   node: Node | null;
@@ -468,11 +470,17 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
           >
             Events
           </TabButton>
-          <TabButton 
-            active={activeTab === 'jobs'} 
+          <TabButton
+            active={activeTab === 'jobs'}
             onClick={() => setActiveTab('jobs')}
           >
             Jobs
+          </TabButton>
+          <TabButton
+            active={activeTab === 'logs'}
+            onClick={() => setActiveTab('logs')}
+          >
+            Logs
           </TabButton>
         </div>
       </div>
@@ -785,6 +793,46 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {activeTab === 'logs' && (
+          <div className="space-y-4">
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800 mb-4">
+              <h5 className="font-medium text-blue-700 dark:text-blue-400 mb-2">
+                Invocation Logs
+              </h5>
+              <p className="text-sm text-blue-600 dark:text-blue-400">
+                Viewing all logs from Grafana Loki for this entire invocation, including all events and jobs.
+                Logs are filtered by invocationId.
+              </p>
+            </div>
+
+            {(() => {
+              const grafanaService = createGrafanaService();
+
+              if (!grafanaService) {
+                return (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <p>Grafana is not configured.</p>
+                    <p className="text-sm mt-1">
+                      Set VITE_GRAFANA_HOST, VITE_GRAFANA_ID, and VITE_GRAFANA_SECRET environment variables.
+                    </p>
+                  </div>
+                );
+              }
+
+              const invocationId = node.id;
+
+              return (
+                <LogsViewer
+                  queryFn={() => grafanaService.queryInvocationLogs(invocationId, 15)}
+                  autoRefresh={false}
+                  isJobRunning={false}
+                  refreshInterval={5000}
+                />
+              );
+            })()}
           </div>
         )}
       </div>

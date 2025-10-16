@@ -97,6 +97,37 @@ module.exports = {
 };
 ```
 
+### Grafana Logs Integration
+
+To enable Grafana Loki log viewing in the console UI, set these environment variables:
+
+```bash
+# Grafana Cloud configuration
+VITE_GRAFANA_HOST=https://your-org.grafana.net
+VITE_GRAFANA_ID=your-grafana-user-id
+VITE_GRAFANA_SECRET=your-grafana-api-key
+```
+
+**Example for Grafana Cloud:**
+```bash
+VITE_GRAFANA_HOST=https://hopdrive.grafana.net
+VITE_GRAFANA_ID=123456
+VITE_GRAFANA_SECRET=glsa_xxxxxxxxxxxxxxxxxxxx
+```
+
+Once configured, each node detail drawer (Invocation, Event, Job) will have a "Logs" tab that displays relevant logs from Grafana Loki:
+
+- **Invocation Logs**: All logs for the entire invocation (filtered by `invocationId`)
+- **Event Logs**: Logs for a specific event execution and its jobs (filtered by `correlationId` and `eventExecutionId`)
+- **Job Logs**: Logs for a specific job execution (filtered by `scopeId` and `jobExecutionId`)
+
+The logs viewer features:
+- **Live refresh** for running jobs
+- **Multiple view modes**: Text, JSON, and Table
+- **Search/filter** within logs
+- **Copy to clipboard** in any format
+- **Auto-scroll** for streaming logs
+
 ## Why Separate Package?
 
 - **Small Production Bundles**: Main package only 78KB (vs hundreds of MB with UI)

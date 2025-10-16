@@ -4,6 +4,8 @@ import { XMarkIcon, PlayIcon, ArrowRightIcon } from '@heroicons/react/24/outline
 import { JSONTree } from 'react-json-tree';
 import { Node } from 'reactflow';
 import { formatDuration } from '../utils/formatDuration';
+import LogsViewer from './LogsViewer';
+import { createGrafanaService } from '../services/GrafanaService';
 
 interface JobDetailDrawerProps {
   node: Node | null;
@@ -106,6 +108,12 @@ const JobDetailDrawer: React.FC<JobDetailDrawerProps> = ({
             onClick={() => setActiveTab('context')}
           >
             Context
+          </TabButton>
+          <TabButton
+            active={activeTab === 'logs'}
+            onClick={() => setActiveTab('logs')}
+          >
+            Logs
           </TabButton>
         </div>
       </div>
@@ -345,6 +353,47 @@ const JobDetailDrawer: React.FC<JobDetailDrawerProps> = ({
                 or triggering additional workflows.
               </p>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'logs' && (
+          <div className="space-y-4">
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800 mb-4">
+              <h5 className="font-medium text-blue-700 dark:text-blue-400 mb-2">
+                Job Execution Logs
+              </h5>
+              <p className="text-sm text-blue-600 dark:text-blue-400">
+                Viewing logs from Grafana Loki for this specific job execution. Logs are filtered by scopeId and job execution ID.
+              </p>
+            </div>
+
+            {(() => {
+              const grafanaService = createGrafanaService();
+
+              if (!grafanaService) {
+                return (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <p>Grafana is not configured.</p>
+                    <p className="text-sm mt-1">
+                      Set VITE_GRAFANA_HOST, VITE_GRAFANA_ID, and VITE_GRAFANA_SECRET environment variables.
+                    </p>
+                  </div>
+                );
+              }
+
+              // Get scopeId from jobData or generate from correlation ID + job name
+              const scopeId = jobData.scopeId || `${jobData.correlationId}-${jobData.jobName}`;
+              const jobExecutionId = node.id.replace('job-', '');
+
+              return (
+                <LogsViewer
+                  queryFn={() => grafanaService.queryJobLogs(scopeId, jobExecutionId, 15)}
+                  autoRefresh={jobData.status === 'running'}
+                  isJobRunning={jobData.status === 'running'}
+                  refreshInterval={5000}
+                />
+              );
+            })()}
           </div>
         )}
       </div>

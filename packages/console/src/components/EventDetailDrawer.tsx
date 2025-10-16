@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { XMarkIcon, CheckCircleIcon, ExclamationCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { Node } from 'reactflow';
 import { formatDuration } from '../utils/formatDuration';
+import LogsViewer from './LogsViewer';
+import { createGrafanaService } from '../services/GrafanaService';
 
 interface EventDetailDrawerProps {
   node: Node | null;
@@ -89,6 +91,12 @@ const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
             onClick={() => setActiveTab('performance')}
           >
             Performance
+          </TabButton>
+          <TabButton
+            active={activeTab === 'logs'}
+            onClick={() => setActiveTab('logs')}
+          >
+            Logs
           </TabButton>
         </div>
       </div>
@@ -392,6 +400,47 @@ export default async function detect(payload, context) {
                 </ul>
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'logs' && (
+          <div className="space-y-4">
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800 mb-4">
+              <h5 className="font-medium text-blue-700 dark:text-blue-400 mb-2">
+                Event Execution Logs
+              </h5>
+              <p className="text-sm text-blue-600 dark:text-blue-400">
+                Viewing logs from Grafana Loki for this event execution and all associated jobs.
+                Logs are filtered by correlationId and eventExecutionId.
+              </p>
+            </div>
+
+            {(() => {
+              const grafanaService = createGrafanaService();
+
+              if (!grafanaService) {
+                return (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <p>Grafana is not configured.</p>
+                    <p className="text-sm mt-1">
+                      Set VITE_GRAFANA_HOST, VITE_GRAFANA_ID, and VITE_GRAFANA_SECRET environment variables.
+                    </p>
+                  </div>
+                );
+              }
+
+              const correlationId = eventData.correlationId;
+              const eventExecutionId = node.id.replace('event-', '');
+
+              return (
+                <LogsViewer
+                  queryFn={() => grafanaService.queryEventLogs(correlationId, eventExecutionId, 15)}
+                  autoRefresh={false}
+                  isJobRunning={false}
+                  refreshInterval={5000}
+                />
+              );
+            })()}
           </div>
         )}
       </div>
