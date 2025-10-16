@@ -494,23 +494,23 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     const { dbEvent } = parseHasuraEvent(hasuraEvent);
 
     const invocationData = {
-      correlationId: hasuraEvent.__correlationId,
-      sourceFunction: options?.context?.functionName || hasuraEvent.trigger.name || 'unknown',
+      correlationId: hasuraEvent?.__correlationId,
+      sourceFunction: options?.context?.functionName || hasuraEvent?.trigger?.name || 'unknown',
       sourceTable: `${hasuraEvent?.table?.schema || 'public'}.${hasuraEvent?.table?.name || 'unknown'}`,
-      sourceOperation: hasuraEvent.event?.op || 'MANUAL',
+      sourceOperation: hasuraEvent?.event?.op || 'MANUAL',
       sourceUser:
-        hasuraEvent.event?.session_variables?.['x-hasura-user-email'] ||
-        hasuraEvent.event?.session_variables?.['x-hasura-user-id'] ||
-        hasuraEvent.event?.session_variables?.['x-hasura-role'] ||
+        hasuraEvent?.event?.session_variables?.['x-hasura-user-email'] ||
+        hasuraEvent?.event?.session_variables?.['x-hasura-user-id'] ||
+        hasuraEvent?.event?.session_variables?.['x-hasura-role'] ||
         null,
-      sourceJobId: (hasuraEvent as any).__sourceJobId || null,
-      hasuraEventId: hasuraEvent.id || null,
+      sourceJobId: (hasuraEvent as any)?.__sourceJobId || null,
+      hasuraEventId: hasuraEvent?.id || null,
       hasuraEventPayload: hasuraEvent,
-      hasuraEventTime: new Date(hasuraEvent.created_at || Date.now()),
-      hasuraUserEmail: hasuraEvent.event?.session_variables?.['x-hasura-user-email'] || null,
-      hasuraUserRole: hasuraEvent.event?.session_variables?.['x-hasura-role'] || null,
-      autoLoadModules: options.autoLoadEventModules !== false,
-      eventModulesDirectory: options.eventModulesDirectory || './events',
+      hasuraEventTime: new Date(hasuraEvent?.created_at || Date.now()),
+      hasuraUserEmail: hasuraEvent?.event?.session_variables?.['x-hasura-user-email'] || null,
+      hasuraUserRole: hasuraEvent?.event?.session_variables?.['x-hasura-role'] || null,
+      autoLoadModules: options?.autoLoadEventModules !== false,
+      eventModulesDirectory: options?.eventModulesDirectory || './events',
       contextData: hasuraEvent?.__context || null,
     };
 
@@ -522,6 +522,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
     const invocationId = await this.recordInvocationStart(invocationData);
     if (invocationId) {
       this.activeInvocations.set(hasuraEvent.__correlationId as CorrelationId, invocationId);
+      hasuraEvent.__invocationId = invocationId;
       log(
         'ObservabilityPlugin',
         `Recorded invocation start: ${invocationId} for correlation: ${hasuraEvent.__correlationId}`

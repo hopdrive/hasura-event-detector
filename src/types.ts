@@ -44,6 +44,7 @@ export interface HasuraEventPayload<T = Record<string, any>> {
   // Internal fields for timeout handling (not part of user context)
   __abortSignal?: AbortSignal;
   __maxJobExecutionTime?: number;
+  __invocationId?: string;
 }
 
 // Nested event structure (matches JSDoc HasuraEvent)
