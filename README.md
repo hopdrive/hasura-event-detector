@@ -109,9 +109,9 @@ exports.handler = async (event, context) => {
 };
 ```
 
-### 7. Pre-load Event Modules (Advanced)
+### 7. Pre-load Event Modules (Advanced - Optional)
 
-For better performance and control, you can pre-load event modules from an index file instead of dynamically scanning the filesystem:
+For better performance and control in production, you can pre-load event modules from an index file instead of dynamically scanning the filesystem. **This is completely optional** - the default filesystem scanning works great for most use cases.
 
 **Create an index file:**
 ```typescript
@@ -140,7 +140,7 @@ export const handler = async (event, context) => {
 
   const result = await listenTo(hasuraEvent, {
     context: { environment: 'production' },
-    loadModulesFromIndex: true,
+    loadModulesFromIndex: true,  // This automatically disables autoLoadEventModules
     eventModules: eventModules
   });
 
@@ -157,6 +157,8 @@ export const handler = async (event, context) => {
 - **Better Tree-Shaking**: Bundlers can optimize unused modules
 - **Type Safety**: Full TypeScript support for the module array
 - **Simpler Deployment**: No need to worry about filesystem structure in serverless environments
+
+**Note:** When you set `loadModulesFromIndex: true`, the framework automatically disables `autoLoadEventModules` for you.
 
 ## 🏗️ Architecture
 
@@ -693,11 +695,17 @@ The framework supports two ways to load event modules:
 
 #### 1. Dynamic Filesystem Loading (Default)
 
-Automatically scans the events directory at runtime:
+**This is the default behavior** - automatically scans the events directory at runtime:
 
 ```typescript
 const result = await listenTo(hasuraEvent, {
-  autoLoadEventModules: true,
+  // autoLoadEventModules: true is the default, no need to specify
+  eventModulesDirectory: './events'
+});
+
+// Or explicitly:
+const result = await listenTo(hasuraEvent, {
+  autoLoadEventModules: true,  // Default: true
   eventModulesDirectory: './events'
 });
 ```
@@ -706,21 +714,22 @@ const result = await listenTo(hasuraEvent, {
 - Simple setup - just drop files in the events directory
 - No need to maintain an index file
 - Great for rapid development
+- Works out of the box
 
 **Cons:**
 - Filesystem I/O on every cold start
-- Slower in serverless environments
+- Slightly slower in serverless environments
 - All files must be deployed
 
-#### 2. Pre-loaded from Index (Recommended for Production)
+#### 2. Pre-loaded from Index (Optional - Optimized for Production)
 
-Load modules from a pre-defined array:
+Load modules from a pre-defined array - **completely optional optimization**:
 
 ```typescript
 import eventModules from './events/index';
 
 const result = await listenTo(hasuraEvent, {
-  loadModulesFromIndex: true,
+  loadModulesFromIndex: true,  // Automatically disables autoLoadEventModules
   eventModules: eventModules
 });
 ```
@@ -735,10 +744,13 @@ const result = await listenTo(hasuraEvent, {
 **Cons:**
 - Requires maintaining an index file
 - Must update index when adding new events
+- More setup work
 
 **When to use each:**
-- Use **dynamic loading** for development and simple deployments
-- Use **index loading** for production serverless environments where cold start time matters
+- Use **dynamic loading (default)** for development and most deployments - works great!
+- Use **index loading** only if you need maximum performance in production serverless environments where cold start time is critical
+
+**Important:** When you set `loadModulesFromIndex: true`, it automatically disables `autoLoadEventModules` - you don't need to set both.
 
 ### Console Logging
 

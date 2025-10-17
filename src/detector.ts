@@ -163,8 +163,6 @@ export const listenTo = async (
   const shouldAutoLoad = shouldLoadFromIndex ? false : (modifiedOptions.autoLoadEventModules ?? true);
 
   const resolvedOptions: ListenToOptions = {
-    autoLoadEventModules: shouldAutoLoad,
-    loadModulesFromIndex: shouldLoadFromIndex,
     eventModulesDirectory: eventModulesDir,
     listenedEvents: [],
     ...modifiedOptions,
