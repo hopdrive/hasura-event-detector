@@ -297,8 +297,13 @@ export interface HandlerFunction<T = Record<string, any>> {
 }
 
 export interface EventModule<T = Record<string, any>> {
+  name?: EventName; // Optional name property for index-based loading
   detector: DetectorFunction<T>;
   handler: HandlerFunction<T>;
+}
+
+export interface NamedEventModule<T = Record<string, any>> extends EventModule<T> {
+  name: EventName; // Required name for index-based loading
 }
 
 // =============================================================================
@@ -307,8 +312,10 @@ export interface EventModule<T = Record<string, any>> {
 
 export interface ListenToOptions {
   autoLoadEventModules?: boolean;
+  loadModulesFromIndex?: boolean;
   eventModulesDirectory?: string;
   listenedEvents?: EventName[];
+  eventModules?: NamedEventModule[]; // Array of pre-loaded event modules (from import eventModules from 'index')
   sourceFunction?: string;
   context?: Record<string, any>; // User-provided context data
   correlationId?: string;

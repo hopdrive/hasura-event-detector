@@ -19,8 +19,10 @@ import type {
   DetectorFunction,
   HandlerFunction,
   EventModule,
+  NamedEventModule,
   JobResult,
 } from './types';
+import { eventNames } from 'process';
 
 /**
  * Runtime validation for Hasura event payload
@@ -157,6 +159,7 @@ export const listenTo = async (
 
   const resolvedOptions: ListenToOptions = {
     autoLoadEventModules: true,
+    loadModulesFromIndex: false,
     eventModulesDirectory: eventModulesDir,
     listenedEvents: [],
     ...modifiedOptions,
@@ -198,8 +201,12 @@ export const listenTo = async (
   }
 
   // If configured to do so, load the events from the file system
-  if (resolvedOptions.autoLoadEventModules) {
+  // Skip dynamic loading if loadModulesFromIndex is true and eventModules are provided
+  if (resolvedOptions.autoLoadEventModules && !resolvedOptions.loadModulesFromIndex) {
     resolvedOptions.listenedEvents = await detectEventModules(resolvedOptions.eventModulesDirectory);
+  } else if (resolvedOptions.loadModulesFromIndex && resolvedOptions.eventModules) {
+    // Extract event names from the provided event modules array
+    resolvedOptions.listenedEvents = resolvedOptions.eventModules.map((module) => module.name);
   }
 
   if (
@@ -258,7 +265,8 @@ export const listenTo = async (
       const processingPromise = runEventDetectorWithHooks(
         eventName,
         hasuraEvent,
-        resolvedOptions.eventModulesDirectory || './events'
+        resolvedOptions.eventModulesDirectory || './events',
+        resolvedOptions.eventModules
       ).catch(error => {
         // If there's an error in detection, still return a result indicating not detected
         pluginManager.callOnError(error as Error, 'event_detection', hasuraEvent.__correlationId);
@@ -439,14 +447,15 @@ export const detectEventModules = async (modulesDir: string): Promise<EventName[
 const runEventDetectorWithHooks = async (
   eventName: EventName,
   hasuraEvent: HasuraEventPayload,
-  eventModulesDirectory: string
+  eventModulesDirectory: string,
+  eventModules?: NamedEventModule[]
 ): Promise<EventProcessingResult> => {
   const detectionStart = Date.now();
 
   // Call plugin hook for event detection start
   await pluginManager.callOnEventDetectionStart(eventName, hasuraEvent);
 
-  const eventHandler = await detect(eventName, hasuraEvent, eventModulesDirectory);
+  const eventHandler = await detect(eventName, hasuraEvent, eventModulesDirectory, eventModules);
 
   const detectionDuration = Date.now() - detectionStart;
   const detected = eventHandler !== null;
@@ -519,14 +528,16 @@ const runEventHandlerWithHooks = async (
  * @param eventName - Name of the event to detect
  * @param hasuraEvent - Hasura event trigger payload
  * @param eventModulesDirectory - Path to the modules directory
+ * @param eventModules - Optional array of pre-loaded event modules
  * @returns Handler function from the event module, only returned if event is detected
  */
 const detect = async (
   eventName: EventName,
   hasuraEvent: HasuraEventPayload,
-  eventModulesDirectory: string
+  eventModulesDirectory: string,
+  eventModules?: NamedEventModule[]
 ): Promise<HandlerFunction | null> => {
-  const eventModule = await loadEventModule(eventName, eventModulesDirectory);
+  const eventModule = await loadEventModule(eventName, eventModulesDirectory, eventModules);
   const { detector, handler } = eventModule;
 
   if (!detector) return null;
@@ -601,12 +612,30 @@ const consoleLogResponse = (response: ListenToResponse): void => {
  *
  * @param eventName - Name of the event to load the module for
  * @param eventModulesDirectory - Path to the events directory
+ * @param modulesArray - Optional array of modules to load (array gotten from doing import moduleArray from 'someIndexFile')
  * @returns The loaded event module if it exists, else an empty object
  */
 export const loadEventModule = async (
   eventName: EventName,
-  eventModulesDirectory: string
+  eventModulesDirectory: string,
+  modulesArray?: NamedEventModule[]
 ): Promise<Partial<EventModule>> => {
+  // If modulesArray is provided, retrieve the module from the array by name
+  if (modulesArray && modulesArray.length > 0) {
+    log('loadEventModule', `Loading module ${eventName} from provided array`);
+
+    // Find the module in the array by matching the name property
+    const foundModule = modulesArray.find((module) => module.name === eventName);
+
+    if (foundModule) {
+      log('loadEventModule', `Successfully loaded module ${eventName} from array`);
+      return foundModule;
+    } else {
+      logWarn('loadEventModule', `Module ${eventName} not found in provided array`);
+      return {};
+    }
+  }
+
   // Try multiple extensions in priority order:
   // 1. .generated.js (compiled from TypeScript by build-events for ESM projects)
   // 2. .generated.cjs (compiled from TypeScript by build-events for CommonJS projects)
@@ -621,10 +650,7 @@ export const loadEventModule = async (
     // Helper to check if a module has valid detector/handler functions
     const isValidModule = (mod: any): boolean => {
       const m = mod?.default || mod;
-      return (
-        m &&
-        (typeof m.detector === 'function' || typeof m.handler === 'function')
-      );
+      return m && (typeof m.detector === 'function' || typeof m.handler === 'function');
     };
 
     // Try both require() and import() strategies
@@ -652,7 +678,7 @@ export const loadEventModule = async (
         } catch (e) {
           return null;
         }
-      }
+      },
     ];
 
     // Try each loading strategy
@@ -675,7 +701,11 @@ export const loadEventModule = async (
     // If we tried all strategies and none worked, continue to next extension
     if (ext === extensions[extensions.length - 1]) {
       // Only log error on the last extension attempt
-      logError('loadEventModule', `Failed to load module ${eventName} from ${eventModulesDirectory} with any strategy`, new Error('All load strategies failed'));
+      logError(
+        'loadEventModule',
+        `Failed to load module ${eventName} from ${eventModulesDirectory} with any strategy`,
+        new Error('All load strategies failed')
+      );
     }
   }
 
