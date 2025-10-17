@@ -157,12 +157,20 @@ export const listenTo = async (
     eventModulesDir = resolveFromCaller(eventModulesDir, 2);
   }
 
+  // Determine module loading strategy
+  // If loadModulesFromIndex is explicitly set to true, disable autoLoadEventModules
+  const shouldLoadFromIndex = modifiedOptions.loadModulesFromIndex === true;
+  const shouldAutoLoad = shouldLoadFromIndex ? false : (modifiedOptions.autoLoadEventModules ?? true);
+
   const resolvedOptions: ListenToOptions = {
-    autoLoadEventModules: true,
-    loadModulesFromIndex: false,
+    autoLoadEventModules: shouldAutoLoad,
+    loadModulesFromIndex: shouldLoadFromIndex,
     eventModulesDirectory: eventModulesDir,
     listenedEvents: [],
     ...modifiedOptions,
+    // Override to ensure proper defaults
+    autoLoadEventModules: shouldAutoLoad,
+    loadModulesFromIndex: shouldLoadFromIndex,
   };
 
   // Extract or generate correlation ID
