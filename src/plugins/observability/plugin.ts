@@ -281,11 +281,13 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
 
   /**
    * Record the start of an invocation (call to listenTo)
+   * @param data - The invocation data to record
+   * @param providedId - Optional pre-generated invocation ID to use instead of generating a new one
    */
-  async recordInvocationStart(data: any): Promise<string | null> {
+  async recordInvocationStart(data: any, providedId?: string | null): Promise<string | null> {
     if (!this.config.enabled) return null;
 
-    const id = uuidv4();
+    const id = providedId || uuidv4();
     const record: BufferedInvocation = {
       id,
       correlation_id: data.correlationId,
@@ -519,13 +521,14 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       log('ObservabilityPlugin', `Recording invocation with sourceJobId: ${invocationData.sourceJobId}`);
     }
 
-    const invocationId = await this.recordInvocationStart(invocationData);
+    // Use provided invocationId from options if available, otherwise generate a new one
+    const invocationId = await this.recordInvocationStart(invocationData, options?.invocationId);
     if (invocationId) {
       this.activeInvocations.set(hasuraEvent.__correlationId as CorrelationId, invocationId);
       hasuraEvent.__invocationId = invocationId;
       log(
         'ObservabilityPlugin',
-        `Recorded invocation start: ${invocationId} for correlation: ${hasuraEvent.__correlationId}`
+        `Recorded invocation start: ${invocationId} for correlation: ${hasuraEvent.__correlationId}${options?.invocationId ? ' (using provided invocationId)' : ''}`
       );
     }
   }

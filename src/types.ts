@@ -312,6 +312,7 @@ export interface ListenToOptions {
   sourceFunction?: string;
   context?: Record<string, any>; // User-provided context data
   correlationId?: string;
+  invocationId?: string; // Override invocation ID to use for database record and logs
   sourceTrackingToken?: string; // Original tracking token from updated_by field (extracted by TrackingTokenExtractionPlugin)
   logToConsole?: boolean; // Also write logs to console in addition to plugin system (default: false)
   // Timeout configuration for serverless environments
