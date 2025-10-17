@@ -6,7 +6,14 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3000,
-    open: true
+    open: true,
+    proxy: {
+      '/api/grafana': {
+        target: process.env.VITE_GRAFANA_HOST || 'https://logs-prod-036.grafana.net',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/grafana/, ''),
+      },
+    },
   },
   build: {
     outDir: 'dist',

@@ -153,13 +153,17 @@ export class GrafanaService {
     }
 
     // Always use proxy endpoint to avoid CORS issues
-    // The Express server handles authentication and proxying to Grafana
+    // The proxy forwards requests to Grafana
     const url = `/api/grafana/loki/api/v1/query_range?${queryParams.toString()}`;
+
+    // Build Basic Auth header
+    const auth = btoa(`${this.config.userId}:${this.config.secret}`);
 
     try {
       const response = await fetch(url, {
         method: 'GET',
         headers: {
+          'Authorization': `Basic ${auth}`,
           'Content-Type': 'application/json',
         },
       });
@@ -255,11 +259,14 @@ export class GrafanaService {
  */
 export function createGrafanaService(): GrafanaService | null {
   let host = import.meta.env.VITE_GRAFANA_HOST;
-  const userId = import.meta.env.VITE_GRAFANA_ID;
+  const userId = import.meta.env.VITE_GRAFANA_USER || import.meta.env.VITE_GRAFANA_ID;
   const secret = import.meta.env.VITE_GRAFANA_SECRET;
 
   if (!host || !userId || !secret) {
     console.warn('Grafana configuration missing. Logs will not be available.');
+    console.warn('  VITE_GRAFANA_HOST:', host);
+    console.warn('  VITE_GRAFANA_USER:', userId);
+    console.warn('  VITE_GRAFANA_SECRET:', secret ? '***' : 'missing');
     return null;
   }
 
