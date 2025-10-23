@@ -57,6 +57,7 @@ interface InvocationsTableProps {
 const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch = '' }) => {
   const navigate = useNavigate();
   const [selectedInvocation, setSelectedInvocation] = useState<Node | null>(null);
+  const [hideZeroDetectedEvents, setHideZeroDetectedEvents] = useState(true);
 
   const {
     data: queryData,
@@ -90,6 +91,13 @@ const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch =
       recordId: `${inv?.source_table?.split('.')[1]}:${inv.source_event_payload?.event?.data?.new?.id}`,
     }));
   }, [queryData]);
+
+  const filteredInvocationsData = useMemo(() => {
+    if (!hideZeroDetectedEvents) {
+      return invocationsData;
+    }
+    return invocationsData.filter(inv => inv.eventsDetectedCount > 0);
+  }, [invocationsData, hideZeroDetectedEvents]);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([{ id: 'createdAt', desc: true }]);
@@ -301,7 +309,7 @@ const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch =
   );
 
   const table = useReactTable({
-    data: invocationsData,
+    data: filteredInvocationsData,
     columns,
     state: { sorting, columnFilters, columnVisibility, globalFilter, pagination },
     onSortingChange: setSorting,
@@ -358,7 +366,7 @@ const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch =
           <div>
             <h2 className='text-xl font-semibold text-gray-900 dark:text-white'>Invocations</h2>
             <p className='mt-1 text-sm text-gray-600 dark:text-gray-400'>
-              {table.getFilteredRowModel().rows.length} of {invocationsData.length} invocations
+              {table.getFilteredRowModel().rows.length} of {filteredInvocationsData.length} invocations
             </p>
           </div>
 
@@ -386,6 +394,16 @@ const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch =
               <option value='failed'>Failed</option>
               <option value='running'>Running</option>
             </select>
+
+            <label className='inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600'>
+              <input
+                type='checkbox'
+                checked={!hideZeroDetectedEvents}
+                onChange={e => setHideZeroDetectedEvents(!e.target.checked)}
+                className='h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+              />
+              <span className='ml-2 text-sm text-gray-700 dark:text-gray-200'>Show Undetected Events</span>
+            </label>
 
             <button className='inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-lg text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600'>
               <AdjustmentsHorizontalIcon className='h-4 w-4 mr-2' />
