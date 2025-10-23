@@ -23,6 +23,21 @@ query InvocationsList(
     status
     error_message
     source_event_payload
+    event_executions_aggregate {
+      aggregate {
+        count
+      }
+    }
+    detected_events: event_executions_aggregate(where: { detected: { _eq: true } }) {
+      aggregate {
+        count
+      }
+    }
+    undetected_events: event_executions_aggregate(where: { detected: { _eq: false } }) {
+      aggregate {
+        count
+      }
+    }
   }
 
   invocations_aggregate(where: $where) {

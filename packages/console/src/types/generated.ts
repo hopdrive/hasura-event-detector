@@ -17548,6 +17548,10 @@ export type Consumer_Numbers_Variance_Fields = {
 /** columns and relationships of "contacts" */
 export type Contacts = {
   __typename?: 'contacts';
+  /** An array relationship */
+  contactstomoves: Array<Contactstomoves>;
+  /** An aggregate relationship */
+  contactstomoves_aggregate: Contactstomoves_Aggregate;
   created_at: Scalars['timestamptz']['output'];
   /** Type of user who created the contact: customer | hopdrive */
   created_by_type?: Maybe<Scalars['String']['output']>;
@@ -17565,6 +17569,26 @@ export type Contacts = {
   notes?: Maybe<Scalars['String']['output']>;
   ttl_expires_at?: Maybe<Scalars['timestamptz']['output']>;
   updated_at: Scalars['timestamptz']['output'];
+};
+
+
+/** columns and relationships of "contacts" */
+export type ContactsContactstomovesArgs = {
+  distinct_on?: InputMaybe<Array<Contactstomoves_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Contactstomoves_Order_By>>;
+  where?: InputMaybe<Contactstomoves_Bool_Exp>;
+};
+
+
+/** columns and relationships of "contacts" */
+export type ContactsContactstomoves_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Contactstomoves_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Contactstomoves_Order_By>>;
+  where?: InputMaybe<Contactstomoves_Bool_Exp>;
 };
 
 /** aggregated selection of "contacts" */
@@ -17610,6 +17634,8 @@ export type Contacts_Bool_Exp = {
   _and?: InputMaybe<Array<Contacts_Bool_Exp>>;
   _not?: InputMaybe<Contacts_Bool_Exp>;
   _or?: InputMaybe<Array<Contacts_Bool_Exp>>;
+  contactstomoves?: InputMaybe<Contactstomoves_Bool_Exp>;
+  contactstomoves_aggregate?: InputMaybe<Contactstomoves_Aggregate_Bool_Exp>;
   created_at?: InputMaybe<Timestamptz_Comparison_Exp>;
   created_by_type?: InputMaybe<String_Comparison_Exp>;
   created_by_user_id?: InputMaybe<Int_Comparison_Exp>;
@@ -17639,6 +17665,7 @@ export type Contacts_Inc_Input = {
 
 /** input type for inserting data into table "contacts" */
 export type Contacts_Insert_Input = {
+  contactstomoves?: InputMaybe<Contactstomoves_Arr_Rel_Insert_Input>;
   created_at?: InputMaybe<Scalars['timestamptz']['input']>;
   /** Type of user who created the contact: customer | hopdrive */
   created_by_type?: InputMaybe<Scalars['String']['input']>;
@@ -17725,6 +17752,7 @@ export type Contacts_On_Conflict = {
 
 /** Ordering options when selecting data from "contacts". */
 export type Contacts_Order_By = {
+  contactstomoves_aggregate?: InputMaybe<Contactstomoves_Aggregate_Order_By>;
   created_at?: InputMaybe<Order_By>;
   created_by_type?: InputMaybe<Order_By>;
   created_by_user_id?: InputMaybe<Order_By>;
@@ -17939,6 +17967,33 @@ export type Contactstomoves_Aggregate = {
   nodes: Array<Contactstomoves>;
 };
 
+export type Contactstomoves_Aggregate_Bool_Exp = {
+  bool_and?: InputMaybe<Contactstomoves_Aggregate_Bool_Exp_Bool_And>;
+  bool_or?: InputMaybe<Contactstomoves_Aggregate_Bool_Exp_Bool_Or>;
+  count?: InputMaybe<Contactstomoves_Aggregate_Bool_Exp_Count>;
+};
+
+export type Contactstomoves_Aggregate_Bool_Exp_Bool_And = {
+  arguments: Contactstomoves_Select_Column_Contactstomoves_Aggregate_Bool_Exp_Bool_And_Arguments_Columns;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<Contactstomoves_Bool_Exp>;
+  predicate: Boolean_Comparison_Exp;
+};
+
+export type Contactstomoves_Aggregate_Bool_Exp_Bool_Or = {
+  arguments: Contactstomoves_Select_Column_Contactstomoves_Aggregate_Bool_Exp_Bool_Or_Arguments_Columns;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<Contactstomoves_Bool_Exp>;
+  predicate: Boolean_Comparison_Exp;
+};
+
+export type Contactstomoves_Aggregate_Bool_Exp_Count = {
+  arguments?: InputMaybe<Array<Contactstomoves_Select_Column>>;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<Contactstomoves_Bool_Exp>;
+  predicate: Int_Comparison_Exp;
+};
+
 /** aggregate fields of "contactstomoves" */
 export type Contactstomoves_Aggregate_Fields = {
   __typename?: 'contactstomoves_aggregate_fields';
@@ -17962,12 +18017,41 @@ export type Contactstomoves_Aggregate_FieldsCountArgs = {
   distinct?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
+/** order by aggregate values of table "contactstomoves" */
+export type Contactstomoves_Aggregate_Order_By = {
+  avg?: InputMaybe<Contactstomoves_Avg_Order_By>;
+  count?: InputMaybe<Order_By>;
+  max?: InputMaybe<Contactstomoves_Max_Order_By>;
+  min?: InputMaybe<Contactstomoves_Min_Order_By>;
+  stddev?: InputMaybe<Contactstomoves_Stddev_Order_By>;
+  stddev_pop?: InputMaybe<Contactstomoves_Stddev_Pop_Order_By>;
+  stddev_samp?: InputMaybe<Contactstomoves_Stddev_Samp_Order_By>;
+  sum?: InputMaybe<Contactstomoves_Sum_Order_By>;
+  var_pop?: InputMaybe<Contactstomoves_Var_Pop_Order_By>;
+  var_samp?: InputMaybe<Contactstomoves_Var_Samp_Order_By>;
+  variance?: InputMaybe<Contactstomoves_Variance_Order_By>;
+};
+
+/** input type for inserting array relation for remote table "contactstomoves" */
+export type Contactstomoves_Arr_Rel_Insert_Input = {
+  data: Array<Contactstomoves_Insert_Input>;
+  /** upsert condition */
+  on_conflict?: InputMaybe<Contactstomoves_On_Conflict>;
+};
+
 /** aggregate avg on columns */
 export type Contactstomoves_Avg_Fields = {
   __typename?: 'contactstomoves_avg_fields';
   contact_id?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   move_id?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by avg() on columns of table "contactstomoves" */
+export type Contactstomoves_Avg_Order_By = {
+  contact_id?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  move_id?: InputMaybe<Order_By>;
 };
 
 /** Boolean expression to filter rows from the table "contactstomoves". All fields are combined with a logical 'AND'. */
@@ -18025,6 +18109,17 @@ export type Contactstomoves_Max_Fields = {
   move_id?: Maybe<Scalars['bigint']['output']>;
 };
 
+/** order by max() on columns of table "contactstomoves" */
+export type Contactstomoves_Max_Order_By = {
+  contact_id?: InputMaybe<Order_By>;
+  contact_notes?: InputMaybe<Order_By>;
+  /** Type of contact: pickup | delivery | pickup_confirmation | delivery_confirmation | consumer */
+  contact_type?: InputMaybe<Order_By>;
+  created_at?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  move_id?: InputMaybe<Order_By>;
+};
+
 /** aggregate min on columns */
 export type Contactstomoves_Min_Fields = {
   __typename?: 'contactstomoves_min_fields';
@@ -18035,6 +18130,17 @@ export type Contactstomoves_Min_Fields = {
   created_at?: Maybe<Scalars['timestamptz']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   move_id?: Maybe<Scalars['bigint']['output']>;
+};
+
+/** order by min() on columns of table "contactstomoves" */
+export type Contactstomoves_Min_Order_By = {
+  contact_id?: InputMaybe<Order_By>;
+  contact_notes?: InputMaybe<Order_By>;
+  /** Type of contact: pickup | delivery | pickup_confirmation | delivery_confirmation | consumer */
+  contact_type?: InputMaybe<Order_By>;
+  created_at?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  move_id?: InputMaybe<Order_By>;
 };
 
 /** response of any mutation on the table "contactstomoves" */
@@ -18089,6 +18195,18 @@ export enum Contactstomoves_Select_Column {
   MoveId = 'move_id'
 }
 
+/** select "contactstomoves_aggregate_bool_exp_bool_and_arguments_columns" columns of table "contactstomoves" */
+export enum Contactstomoves_Select_Column_Contactstomoves_Aggregate_Bool_Exp_Bool_And_Arguments_Columns {
+  /** column name */
+  IsPrimary = 'is_primary'
+}
+
+/** select "contactstomoves_aggregate_bool_exp_bool_or_arguments_columns" columns of table "contactstomoves" */
+export enum Contactstomoves_Select_Column_Contactstomoves_Aggregate_Bool_Exp_Bool_Or_Arguments_Columns {
+  /** column name */
+  IsPrimary = 'is_primary'
+}
+
 /** input type for updating data in table "contactstomoves" */
 export type Contactstomoves_Set_Input = {
   contact_id?: InputMaybe<Scalars['bigint']['input']>;
@@ -18109,6 +18227,13 @@ export type Contactstomoves_Stddev_Fields = {
   move_id?: Maybe<Scalars['Float']['output']>;
 };
 
+/** order by stddev() on columns of table "contactstomoves" */
+export type Contactstomoves_Stddev_Order_By = {
+  contact_id?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  move_id?: InputMaybe<Order_By>;
+};
+
 /** aggregate stddev_pop on columns */
 export type Contactstomoves_Stddev_Pop_Fields = {
   __typename?: 'contactstomoves_stddev_pop_fields';
@@ -18117,12 +18242,26 @@ export type Contactstomoves_Stddev_Pop_Fields = {
   move_id?: Maybe<Scalars['Float']['output']>;
 };
 
+/** order by stddev_pop() on columns of table "contactstomoves" */
+export type Contactstomoves_Stddev_Pop_Order_By = {
+  contact_id?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  move_id?: InputMaybe<Order_By>;
+};
+
 /** aggregate stddev_samp on columns */
 export type Contactstomoves_Stddev_Samp_Fields = {
   __typename?: 'contactstomoves_stddev_samp_fields';
   contact_id?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   move_id?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by stddev_samp() on columns of table "contactstomoves" */
+export type Contactstomoves_Stddev_Samp_Order_By = {
+  contact_id?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  move_id?: InputMaybe<Order_By>;
 };
 
 /** Streaming cursor of the table "contactstomoves" */
@@ -18151,6 +18290,13 @@ export type Contactstomoves_Sum_Fields = {
   contact_id?: Maybe<Scalars['bigint']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   move_id?: Maybe<Scalars['bigint']['output']>;
+};
+
+/** order by sum() on columns of table "contactstomoves" */
+export type Contactstomoves_Sum_Order_By = {
+  contact_id?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  move_id?: InputMaybe<Order_By>;
 };
 
 /** update columns of table "contactstomoves" */
@@ -18188,6 +18334,13 @@ export type Contactstomoves_Var_Pop_Fields = {
   move_id?: Maybe<Scalars['Float']['output']>;
 };
 
+/** order by var_pop() on columns of table "contactstomoves" */
+export type Contactstomoves_Var_Pop_Order_By = {
+  contact_id?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  move_id?: InputMaybe<Order_By>;
+};
+
 /** aggregate var_samp on columns */
 export type Contactstomoves_Var_Samp_Fields = {
   __typename?: 'contactstomoves_var_samp_fields';
@@ -18196,12 +18349,26 @@ export type Contactstomoves_Var_Samp_Fields = {
   move_id?: Maybe<Scalars['Float']['output']>;
 };
 
+/** order by var_samp() on columns of table "contactstomoves" */
+export type Contactstomoves_Var_Samp_Order_By = {
+  contact_id?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  move_id?: InputMaybe<Order_By>;
+};
+
 /** aggregate variance on columns */
 export type Contactstomoves_Variance_Fields = {
   __typename?: 'contactstomoves_variance_fields';
   contact_id?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   move_id?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by variance() on columns of table "contactstomoves" */
+export type Contactstomoves_Variance_Order_By = {
+  contact_id?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  move_id?: InputMaybe<Order_By>;
 };
 
 /** Contains information about individual plans that should be coordinated. */
@@ -20697,7 +20864,7 @@ export type Customerstocertifications_Variance_Order_By = {
   customer_id?: InputMaybe<Order_By>;
 };
 
-/** columns and relationships of "dashboard_stats" */
+/** Pre-computed metrics for dashboard performance */
 export type Dashboard_Stats = {
   __typename?: 'dashboard_stats';
   avg_duration_ms?: Maybe<Scalars['numeric']['output']>;
@@ -43124,12 +43291,16 @@ export type Lyftrides_Variance_Order_By = {
 /** Table for tracking manual rides that could not be called via vendor API */
 export type Manualrides = {
   __typename?: 'manualrides';
+  created_at?: Maybe<Scalars['timestamptz']['output']>;
+  created_by?: Maybe<Scalars['String']['output']>;
   id: Scalars['bigint']['output'];
   manual_cost: Scalars['numeric']['output'];
   notes?: Maybe<Scalars['String']['output']>;
   receipt_urls?: Maybe<Scalars['jsonb']['output']>;
   ride_id: Scalars['bigint']['output'];
   status_history: Scalars['jsonb']['output'];
+  updated_at?: Maybe<Scalars['timestamptz']['output']>;
+  updated_by?: Maybe<Scalars['String']['output']>;
   vendor_description: Scalars['String']['output'];
 };
 
@@ -43194,12 +43365,16 @@ export type Manualrides_Bool_Exp = {
   _and?: InputMaybe<Array<Manualrides_Bool_Exp>>;
   _not?: InputMaybe<Manualrides_Bool_Exp>;
   _or?: InputMaybe<Array<Manualrides_Bool_Exp>>;
+  created_at?: InputMaybe<Timestamptz_Comparison_Exp>;
+  created_by?: InputMaybe<String_Comparison_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
   manual_cost?: InputMaybe<Numeric_Comparison_Exp>;
   notes?: InputMaybe<String_Comparison_Exp>;
   receipt_urls?: InputMaybe<Jsonb_Comparison_Exp>;
   ride_id?: InputMaybe<Bigint_Comparison_Exp>;
   status_history?: InputMaybe<Jsonb_Comparison_Exp>;
+  updated_at?: InputMaybe<Timestamptz_Comparison_Exp>;
+  updated_by?: InputMaybe<String_Comparison_Exp>;
   vendor_description?: InputMaybe<String_Comparison_Exp>;
 };
 
@@ -43236,32 +43411,44 @@ export type Manualrides_Inc_Input = {
 
 /** input type for inserting data into table "manualrides" */
 export type Manualrides_Insert_Input = {
+  created_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  created_by?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   manual_cost?: InputMaybe<Scalars['numeric']['input']>;
   notes?: InputMaybe<Scalars['String']['input']>;
   receipt_urls?: InputMaybe<Scalars['jsonb']['input']>;
   ride_id?: InputMaybe<Scalars['bigint']['input']>;
   status_history?: InputMaybe<Scalars['jsonb']['input']>;
+  updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  updated_by?: InputMaybe<Scalars['String']['input']>;
   vendor_description?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** aggregate max on columns */
 export type Manualrides_Max_Fields = {
   __typename?: 'manualrides_max_fields';
+  created_at?: Maybe<Scalars['timestamptz']['output']>;
+  created_by?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   manual_cost?: Maybe<Scalars['numeric']['output']>;
   notes?: Maybe<Scalars['String']['output']>;
   ride_id?: Maybe<Scalars['bigint']['output']>;
+  updated_at?: Maybe<Scalars['timestamptz']['output']>;
+  updated_by?: Maybe<Scalars['String']['output']>;
   vendor_description?: Maybe<Scalars['String']['output']>;
 };
 
 /** aggregate min on columns */
 export type Manualrides_Min_Fields = {
   __typename?: 'manualrides_min_fields';
+  created_at?: Maybe<Scalars['timestamptz']['output']>;
+  created_by?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   manual_cost?: Maybe<Scalars['numeric']['output']>;
   notes?: Maybe<Scalars['String']['output']>;
   ride_id?: Maybe<Scalars['bigint']['output']>;
+  updated_at?: Maybe<Scalars['timestamptz']['output']>;
+  updated_by?: Maybe<Scalars['String']['output']>;
   vendor_description?: Maybe<Scalars['String']['output']>;
 };
 
@@ -43283,12 +43470,16 @@ export type Manualrides_On_Conflict = {
 
 /** Ordering options when selecting data from "manualrides". */
 export type Manualrides_Order_By = {
+  created_at?: InputMaybe<Order_By>;
+  created_by?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   manual_cost?: InputMaybe<Order_By>;
   notes?: InputMaybe<Order_By>;
   receipt_urls?: InputMaybe<Order_By>;
   ride_id?: InputMaybe<Order_By>;
   status_history?: InputMaybe<Order_By>;
+  updated_at?: InputMaybe<Order_By>;
+  updated_by?: InputMaybe<Order_By>;
   vendor_description?: InputMaybe<Order_By>;
 };
 
@@ -43306,6 +43497,10 @@ export type Manualrides_Prepend_Input = {
 /** select columns of table "manualrides" */
 export enum Manualrides_Select_Column {
   /** column name */
+  CreatedAt = 'created_at',
+  /** column name */
+  CreatedBy = 'created_by',
+  /** column name */
   Id = 'id',
   /** column name */
   ManualCost = 'manual_cost',
@@ -43318,17 +43513,25 @@ export enum Manualrides_Select_Column {
   /** column name */
   StatusHistory = 'status_history',
   /** column name */
+  UpdatedAt = 'updated_at',
+  /** column name */
+  UpdatedBy = 'updated_by',
+  /** column name */
   VendorDescription = 'vendor_description'
 }
 
 /** input type for updating data in table "manualrides" */
 export type Manualrides_Set_Input = {
+  created_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  created_by?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   manual_cost?: InputMaybe<Scalars['numeric']['input']>;
   notes?: InputMaybe<Scalars['String']['input']>;
   receipt_urls?: InputMaybe<Scalars['jsonb']['input']>;
   ride_id?: InputMaybe<Scalars['bigint']['input']>;
   status_history?: InputMaybe<Scalars['jsonb']['input']>;
+  updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  updated_by?: InputMaybe<Scalars['String']['input']>;
   vendor_description?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -43366,12 +43569,16 @@ export type Manualrides_Stream_Cursor_Input = {
 
 /** Initial value of the column from where the streaming should start */
 export type Manualrides_Stream_Cursor_Value_Input = {
+  created_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  created_by?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   manual_cost?: InputMaybe<Scalars['numeric']['input']>;
   notes?: InputMaybe<Scalars['String']['input']>;
   receipt_urls?: InputMaybe<Scalars['jsonb']['input']>;
   ride_id?: InputMaybe<Scalars['bigint']['input']>;
   status_history?: InputMaybe<Scalars['jsonb']['input']>;
+  updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  updated_by?: InputMaybe<Scalars['String']['input']>;
   vendor_description?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -43386,6 +43593,10 @@ export type Manualrides_Sum_Fields = {
 /** update columns of table "manualrides" */
 export enum Manualrides_Update_Column {
   /** column name */
+  CreatedAt = 'created_at',
+  /** column name */
+  CreatedBy = 'created_by',
+  /** column name */
   Id = 'id',
   /** column name */
   ManualCost = 'manual_cost',
@@ -43397,6 +43608,10 @@ export enum Manualrides_Update_Column {
   RideId = 'ride_id',
   /** column name */
   StatusHistory = 'status_history',
+  /** column name */
+  UpdatedAt = 'updated_at',
+  /** column name */
+  UpdatedBy = 'updated_by',
   /** column name */
   VendorDescription = 'vendor_description'
 }
@@ -44991,6 +45206,10 @@ export type Moves = {
   consumer_phone?: Maybe<Scalars['String']['output']>;
   consumer_pickup?: Maybe<Scalars['Boolean']['output']>;
   consumer_type?: Maybe<Scalars['String']['output']>;
+  /** An array relationship */
+  contactstomoves: Array<Contactstomoves>;
+  /** An aggregate relationship */
+  contactstomoves_aggregate: Contactstomoves_Aggregate;
   createdBy?: Maybe<Scalars['String']['output']>;
   createdat?: Maybe<Scalars['timestamptz']['output']>;
   /** An object relationship */
@@ -45002,7 +45221,6 @@ export type Moves = {
   delivery_started?: Maybe<Scalars['timestamptz']['output']>;
   delivery_stop_id?: Maybe<Scalars['String']['output']>;
   delivery_successful?: Maybe<Scalars['timestamptz']['output']>;
-  /** Tookan delivery template which overrides the default customer delivery template */
   delivery_template_override?: Maybe<Scalars['String']['output']>;
   delivery_time?: Maybe<Scalars['timestamptz']['output']>;
   /** An object relationship */
@@ -45091,7 +45309,6 @@ export type Moves = {
   pickup_started?: Maybe<Scalars['timestamptz']['output']>;
   pickup_stop_id?: Maybe<Scalars['String']['output']>;
   pickup_successful?: Maybe<Scalars['timestamptz']['output']>;
-  /** Tookan pickup template which overrides the default customer pickup template */
   pickup_template_override?: Maybe<Scalars['String']['output']>;
   pickup_time?: Maybe<Scalars['timestamptz']['output']>;
   /** An object relationship */
@@ -45245,6 +45462,26 @@ export type MovesChildMoves_AggregateArgs = {
 /** columns and relationships of "moves" */
 export type MovesConfigArgs = {
   path?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+/** columns and relationships of "moves" */
+export type MovesContactstomovesArgs = {
+  distinct_on?: InputMaybe<Array<Contactstomoves_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Contactstomoves_Order_By>>;
+  where?: InputMaybe<Contactstomoves_Bool_Exp>;
+};
+
+
+/** columns and relationships of "moves" */
+export type MovesContactstomoves_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Contactstomoves_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Contactstomoves_Order_By>>;
+  where?: InputMaybe<Contactstomoves_Bool_Exp>;
 };
 
 
@@ -45705,6 +45942,8 @@ export type Moves_Bool_Exp = {
   consumer_phone?: InputMaybe<String_Comparison_Exp>;
   consumer_pickup?: InputMaybe<Boolean_Comparison_Exp>;
   consumer_type?: InputMaybe<String_Comparison_Exp>;
+  contactstomoves?: InputMaybe<Contactstomoves_Bool_Exp>;
+  contactstomoves_aggregate?: InputMaybe<Contactstomoves_Aggregate_Bool_Exp>;
   createdBy?: InputMaybe<String_Comparison_Exp>;
   createdat?: InputMaybe<Timestamptz_Comparison_Exp>;
   customer?: InputMaybe<Customers_Bool_Exp>;
@@ -45938,6 +46177,7 @@ export type Moves_Insert_Input = {
   consumer_phone?: InputMaybe<Scalars['String']['input']>;
   consumer_pickup?: InputMaybe<Scalars['Boolean']['input']>;
   consumer_type?: InputMaybe<Scalars['String']['input']>;
+  contactstomoves?: InputMaybe<Contactstomoves_Arr_Rel_Insert_Input>;
   createdBy?: InputMaybe<Scalars['String']['input']>;
   createdat?: InputMaybe<Scalars['timestamptz']['input']>;
   customer?: InputMaybe<Customers_Obj_Rel_Insert_Input>;
@@ -45948,7 +46188,6 @@ export type Moves_Insert_Input = {
   delivery_started?: InputMaybe<Scalars['timestamptz']['input']>;
   delivery_stop_id?: InputMaybe<Scalars['String']['input']>;
   delivery_successful?: InputMaybe<Scalars['timestamptz']['input']>;
-  /** Tookan delivery template which overrides the default customer delivery template */
   delivery_template_override?: InputMaybe<Scalars['String']['input']>;
   delivery_time?: InputMaybe<Scalars['timestamptz']['input']>;
   delivery_workflow?: InputMaybe<Workflows_Obj_Rel_Insert_Input>;
@@ -46002,7 +46241,6 @@ export type Moves_Insert_Input = {
   pickup_started?: InputMaybe<Scalars['timestamptz']['input']>;
   pickup_stop_id?: InputMaybe<Scalars['String']['input']>;
   pickup_successful?: InputMaybe<Scalars['timestamptz']['input']>;
-  /** Tookan pickup template which overrides the default customer pickup template */
   pickup_template_override?: InputMaybe<Scalars['String']['input']>;
   pickup_time?: InputMaybe<Scalars['timestamptz']['input']>;
   pickup_workflow?: InputMaybe<Workflows_Obj_Rel_Insert_Input>;
@@ -46097,7 +46335,6 @@ export type Moves_Max_Fields = {
   delivery_started?: Maybe<Scalars['timestamptz']['output']>;
   delivery_stop_id?: Maybe<Scalars['String']['output']>;
   delivery_successful?: Maybe<Scalars['timestamptz']['output']>;
-  /** Tookan delivery template which overrides the default customer delivery template */
   delivery_template_override?: Maybe<Scalars['String']['output']>;
   delivery_time?: Maybe<Scalars['timestamptz']['output']>;
   delivery_workflow_id?: Maybe<Scalars['Int']['output']>;
@@ -46126,7 +46363,6 @@ export type Moves_Max_Fields = {
   pickup_started?: Maybe<Scalars['timestamptz']['output']>;
   pickup_stop_id?: Maybe<Scalars['String']['output']>;
   pickup_successful?: Maybe<Scalars['timestamptz']['output']>;
-  /** Tookan pickup template which overrides the default customer pickup template */
   pickup_template_override?: Maybe<Scalars['String']['output']>;
   pickup_time?: Maybe<Scalars['timestamptz']['output']>;
   pickup_workflow_id?: Maybe<Scalars['Int']['output']>;
@@ -46196,7 +46432,6 @@ export type Moves_Max_Order_By = {
   delivery_started?: InputMaybe<Order_By>;
   delivery_stop_id?: InputMaybe<Order_By>;
   delivery_successful?: InputMaybe<Order_By>;
-  /** Tookan delivery template which overrides the default customer delivery template */
   delivery_template_override?: InputMaybe<Order_By>;
   delivery_time?: InputMaybe<Order_By>;
   delivery_workflow_id?: InputMaybe<Order_By>;
@@ -46225,7 +46460,6 @@ export type Moves_Max_Order_By = {
   pickup_started?: InputMaybe<Order_By>;
   pickup_stop_id?: InputMaybe<Order_By>;
   pickup_successful?: InputMaybe<Order_By>;
-  /** Tookan pickup template which overrides the default customer pickup template */
   pickup_template_override?: InputMaybe<Order_By>;
   pickup_time?: InputMaybe<Order_By>;
   pickup_workflow_id?: InputMaybe<Order_By>;
@@ -46296,7 +46530,6 @@ export type Moves_Min_Fields = {
   delivery_started?: Maybe<Scalars['timestamptz']['output']>;
   delivery_stop_id?: Maybe<Scalars['String']['output']>;
   delivery_successful?: Maybe<Scalars['timestamptz']['output']>;
-  /** Tookan delivery template which overrides the default customer delivery template */
   delivery_template_override?: Maybe<Scalars['String']['output']>;
   delivery_time?: Maybe<Scalars['timestamptz']['output']>;
   delivery_workflow_id?: Maybe<Scalars['Int']['output']>;
@@ -46325,7 +46558,6 @@ export type Moves_Min_Fields = {
   pickup_started?: Maybe<Scalars['timestamptz']['output']>;
   pickup_stop_id?: Maybe<Scalars['String']['output']>;
   pickup_successful?: Maybe<Scalars['timestamptz']['output']>;
-  /** Tookan pickup template which overrides the default customer pickup template */
   pickup_template_override?: Maybe<Scalars['String']['output']>;
   pickup_time?: Maybe<Scalars['timestamptz']['output']>;
   pickup_workflow_id?: Maybe<Scalars['Int']['output']>;
@@ -46395,7 +46627,6 @@ export type Moves_Min_Order_By = {
   delivery_started?: InputMaybe<Order_By>;
   delivery_stop_id?: InputMaybe<Order_By>;
   delivery_successful?: InputMaybe<Order_By>;
-  /** Tookan delivery template which overrides the default customer delivery template */
   delivery_template_override?: InputMaybe<Order_By>;
   delivery_time?: InputMaybe<Order_By>;
   delivery_workflow_id?: InputMaybe<Order_By>;
@@ -46424,7 +46655,6 @@ export type Moves_Min_Order_By = {
   pickup_started?: InputMaybe<Order_By>;
   pickup_stop_id?: InputMaybe<Order_By>;
   pickup_successful?: InputMaybe<Order_By>;
-  /** Tookan pickup template which overrides the default customer pickup template */
   pickup_template_override?: InputMaybe<Order_By>;
   pickup_time?: InputMaybe<Order_By>;
   pickup_workflow_id?: InputMaybe<Order_By>;
@@ -46513,6 +46743,7 @@ export type Moves_Order_By = {
   consumer_phone?: InputMaybe<Order_By>;
   consumer_pickup?: InputMaybe<Order_By>;
   consumer_type?: InputMaybe<Order_By>;
+  contactstomoves_aggregate?: InputMaybe<Contactstomoves_Aggregate_Order_By>;
   createdBy?: InputMaybe<Order_By>;
   createdat?: InputMaybe<Order_By>;
   customer?: InputMaybe<Customers_Order_By>;
@@ -46904,7 +47135,6 @@ export type Moves_Set_Input = {
   delivery_started?: InputMaybe<Scalars['timestamptz']['input']>;
   delivery_stop_id?: InputMaybe<Scalars['String']['input']>;
   delivery_successful?: InputMaybe<Scalars['timestamptz']['input']>;
-  /** Tookan delivery template which overrides the default customer delivery template */
   delivery_template_override?: InputMaybe<Scalars['String']['input']>;
   delivery_time?: InputMaybe<Scalars['timestamptz']['input']>;
   delivery_workflow_data?: InputMaybe<Scalars['jsonb']['input']>;
@@ -46939,7 +47169,6 @@ export type Moves_Set_Input = {
   pickup_started?: InputMaybe<Scalars['timestamptz']['input']>;
   pickup_stop_id?: InputMaybe<Scalars['String']['input']>;
   pickup_successful?: InputMaybe<Scalars['timestamptz']['input']>;
-  /** Tookan pickup template which overrides the default customer pickup template */
   pickup_template_override?: InputMaybe<Scalars['String']['input']>;
   pickup_time?: InputMaybe<Scalars['timestamptz']['input']>;
   pickup_workflow_data?: InputMaybe<Scalars['jsonb']['input']>;
@@ -47248,7 +47477,6 @@ export type Moves_Stream_Cursor_Value_Input = {
   delivery_started?: InputMaybe<Scalars['timestamptz']['input']>;
   delivery_stop_id?: InputMaybe<Scalars['String']['input']>;
   delivery_successful?: InputMaybe<Scalars['timestamptz']['input']>;
-  /** Tookan delivery template which overrides the default customer delivery template */
   delivery_template_override?: InputMaybe<Scalars['String']['input']>;
   delivery_time?: InputMaybe<Scalars['timestamptz']['input']>;
   delivery_workflow_data?: InputMaybe<Scalars['jsonb']['input']>;
@@ -47283,7 +47511,6 @@ export type Moves_Stream_Cursor_Value_Input = {
   pickup_started?: InputMaybe<Scalars['timestamptz']['input']>;
   pickup_stop_id?: InputMaybe<Scalars['String']['input']>;
   pickup_successful?: InputMaybe<Scalars['timestamptz']['input']>;
-  /** Tookan pickup template which overrides the default customer pickup template */
   pickup_template_override?: InputMaybe<Scalars['String']['input']>;
   pickup_time?: InputMaybe<Scalars['timestamptz']['input']>;
   pickup_workflow_data?: InputMaybe<Scalars['jsonb']['input']>;
@@ -62844,9 +63071,9 @@ export type Query_Root = {
   contacts_aggregate: Contacts_Aggregate;
   /** fetch data from the table: "contacts" using primary key columns */
   contacts_by_pk?: Maybe<Contacts>;
-  /** fetch data from the table: "contactstomoves" */
+  /** An array relationship */
   contactstomoves: Array<Contactstomoves>;
-  /** fetch aggregated fields from the table: "contactstomoves" */
+  /** An aggregate relationship */
   contactstomoves_aggregate: Contactstomoves_Aggregate;
   /** fetch data from the table: "contactstomoves" using primary key columns */
   contactstomoves_by_pk?: Maybe<Contactstomoves>;
@@ -68471,8 +68698,6 @@ export type Regions = {
   accounting_class_num?: Maybe<Scalars['String']['output']>;
   createdat?: Maybe<Scalars['timestamptz']['output']>;
   description?: Maybe<Scalars['String']['output']>;
-  /** Determines if this region uses daylight-savings time (coupled with timezone gives a definitive time). */
-  dst_flag?: Maybe<Scalars['Boolean']['output']>;
   email?: Maybe<Scalars['String']['output']>;
   geofence?: Maybe<Scalars['geometry']['output']>;
   id: Scalars['bigint']['output'];
@@ -68557,7 +68782,6 @@ export type Regions_Bool_Exp = {
   accounting_class_num?: InputMaybe<String_Comparison_Exp>;
   createdat?: InputMaybe<Timestamptz_Comparison_Exp>;
   description?: InputMaybe<String_Comparison_Exp>;
-  dst_flag?: InputMaybe<Boolean_Comparison_Exp>;
   email?: InputMaybe<String_Comparison_Exp>;
   geofence?: InputMaybe<Geometry_Comparison_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
@@ -68594,8 +68818,6 @@ export type Regions_Insert_Input = {
   accounting_class_num?: InputMaybe<Scalars['String']['input']>;
   createdat?: InputMaybe<Scalars['timestamptz']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
-  /** Determines if this region uses daylight-savings time (coupled with timezone gives a definitive time). */
-  dst_flag?: InputMaybe<Scalars['Boolean']['input']>;
   email?: InputMaybe<Scalars['String']['input']>;
   geofence?: InputMaybe<Scalars['geometry']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
@@ -68677,7 +68899,6 @@ export type Regions_Order_By = {
   accounting_class_num?: InputMaybe<Order_By>;
   createdat?: InputMaybe<Order_By>;
   description?: InputMaybe<Order_By>;
-  dst_flag?: InputMaybe<Order_By>;
   email?: InputMaybe<Order_By>;
   geofence?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
@@ -68705,8 +68926,6 @@ export enum Regions_Select_Column {
   /** column name */
   Description = 'description',
   /** column name */
-  DstFlag = 'dst_flag',
-  /** column name */
   Email = 'email',
   /** column name */
   Geofence = 'geofence',
@@ -68733,8 +68952,6 @@ export type Regions_Set_Input = {
   accounting_class_num?: InputMaybe<Scalars['String']['input']>;
   createdat?: InputMaybe<Scalars['timestamptz']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
-  /** Determines if this region uses daylight-savings time (coupled with timezone gives a definitive time). */
-  dst_flag?: InputMaybe<Scalars['Boolean']['input']>;
   email?: InputMaybe<Scalars['String']['input']>;
   geofence?: InputMaybe<Scalars['geometry']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
@@ -68786,8 +69003,6 @@ export type Regions_Stream_Cursor_Value_Input = {
   accounting_class_num?: InputMaybe<Scalars['String']['input']>;
   createdat?: InputMaybe<Scalars['timestamptz']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
-  /** Determines if this region uses daylight-savings time (coupled with timezone gives a definitive time). */
-  dst_flag?: InputMaybe<Scalars['Boolean']['input']>;
   email?: InputMaybe<Scalars['String']['input']>;
   geofence?: InputMaybe<Scalars['geometry']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
@@ -68818,8 +69033,6 @@ export enum Regions_Update_Column {
   Createdat = 'createdat',
   /** column name */
   Description = 'description',
-  /** column name */
-  DstFlag = 'dst_flag',
   /** column name */
   Email = 'email',
   /** column name */
@@ -70276,6 +70489,7 @@ export type Ridehails = {
   attempt_number: Scalars['Int']['output'];
   booked_at?: Maybe<Scalars['timestamp']['output']>;
   created_at: Scalars['timestamptz']['output'];
+  created_by?: Maybe<Scalars['String']['output']>;
   dispute_reason?: Maybe<Scalars['String']['output']>;
   dispute_resolution?: Maybe<Scalars['String']['output']>;
   driver_assigned_at?: Maybe<Scalars['timestamptz']['output']>;
@@ -70312,6 +70526,7 @@ export type Ridehails = {
   status?: Maybe<Scalars['String']['output']>;
   surge_multiplier?: Maybe<Scalars['numeric']['output']>;
   updated_at: Scalars['timestamptz']['output'];
+  updated_by?: Maybe<Scalars['String']['output']>;
   vehicle_color?: Maybe<Scalars['String']['output']>;
   vehicle_license_plate?: Maybe<Scalars['String']['output']>;
   vehicle_make?: Maybe<Scalars['String']['output']>;
@@ -70481,6 +70696,7 @@ export type Ridehails_Bool_Exp = {
   attempt_number?: InputMaybe<Int_Comparison_Exp>;
   booked_at?: InputMaybe<Timestamp_Comparison_Exp>;
   created_at?: InputMaybe<Timestamptz_Comparison_Exp>;
+  created_by?: InputMaybe<String_Comparison_Exp>;
   dispute_reason?: InputMaybe<String_Comparison_Exp>;
   dispute_resolution?: InputMaybe<String_Comparison_Exp>;
   driver_assigned_at?: InputMaybe<Timestamptz_Comparison_Exp>;
@@ -70516,6 +70732,7 @@ export type Ridehails_Bool_Exp = {
   status?: InputMaybe<String_Comparison_Exp>;
   surge_multiplier?: InputMaybe<Numeric_Comparison_Exp>;
   updated_at?: InputMaybe<Timestamptz_Comparison_Exp>;
+  updated_by?: InputMaybe<String_Comparison_Exp>;
   vehicle_color?: InputMaybe<String_Comparison_Exp>;
   vehicle_license_plate?: InputMaybe<String_Comparison_Exp>;
   vehicle_make?: InputMaybe<String_Comparison_Exp>;
@@ -70582,6 +70799,7 @@ export type Ridehails_Insert_Input = {
   attempt_number?: InputMaybe<Scalars['Int']['input']>;
   booked_at?: InputMaybe<Scalars['timestamp']['input']>;
   created_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  created_by?: InputMaybe<Scalars['String']['input']>;
   dispute_reason?: InputMaybe<Scalars['String']['input']>;
   dispute_resolution?: InputMaybe<Scalars['String']['input']>;
   driver_assigned_at?: InputMaybe<Scalars['timestamptz']['input']>;
@@ -70617,6 +70835,7 @@ export type Ridehails_Insert_Input = {
   status?: InputMaybe<Scalars['String']['input']>;
   surge_multiplier?: InputMaybe<Scalars['numeric']['input']>;
   updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  updated_by?: InputMaybe<Scalars['String']['input']>;
   vehicle_color?: InputMaybe<Scalars['String']['input']>;
   vehicle_license_plate?: InputMaybe<Scalars['String']['input']>;
   vehicle_make?: InputMaybe<Scalars['String']['input']>;
@@ -70634,6 +70853,7 @@ export type Ridehails_Max_Fields = {
   attempt_number?: Maybe<Scalars['Int']['output']>;
   booked_at?: Maybe<Scalars['timestamp']['output']>;
   created_at?: Maybe<Scalars['timestamptz']['output']>;
+  created_by?: Maybe<Scalars['String']['output']>;
   dispute_reason?: Maybe<Scalars['String']['output']>;
   dispute_resolution?: Maybe<Scalars['String']['output']>;
   driver_assigned_at?: Maybe<Scalars['timestamptz']['output']>;
@@ -70664,6 +70884,7 @@ export type Ridehails_Max_Fields = {
   status?: Maybe<Scalars['String']['output']>;
   surge_multiplier?: Maybe<Scalars['numeric']['output']>;
   updated_at?: Maybe<Scalars['timestamptz']['output']>;
+  updated_by?: Maybe<Scalars['String']['output']>;
   vehicle_color?: Maybe<Scalars['String']['output']>;
   vehicle_license_plate?: Maybe<Scalars['String']['output']>;
   vehicle_make?: Maybe<Scalars['String']['output']>;
@@ -70680,6 +70901,7 @@ export type Ridehails_Max_Order_By = {
   attempt_number?: InputMaybe<Order_By>;
   booked_at?: InputMaybe<Order_By>;
   created_at?: InputMaybe<Order_By>;
+  created_by?: InputMaybe<Order_By>;
   dispute_reason?: InputMaybe<Order_By>;
   dispute_resolution?: InputMaybe<Order_By>;
   driver_assigned_at?: InputMaybe<Order_By>;
@@ -70710,6 +70932,7 @@ export type Ridehails_Max_Order_By = {
   status?: InputMaybe<Order_By>;
   surge_multiplier?: InputMaybe<Order_By>;
   updated_at?: InputMaybe<Order_By>;
+  updated_by?: InputMaybe<Order_By>;
   vehicle_color?: InputMaybe<Order_By>;
   vehicle_license_plate?: InputMaybe<Order_By>;
   vehicle_make?: InputMaybe<Order_By>;
@@ -70727,6 +70950,7 @@ export type Ridehails_Min_Fields = {
   attempt_number?: Maybe<Scalars['Int']['output']>;
   booked_at?: Maybe<Scalars['timestamp']['output']>;
   created_at?: Maybe<Scalars['timestamptz']['output']>;
+  created_by?: Maybe<Scalars['String']['output']>;
   dispute_reason?: Maybe<Scalars['String']['output']>;
   dispute_resolution?: Maybe<Scalars['String']['output']>;
   driver_assigned_at?: Maybe<Scalars['timestamptz']['output']>;
@@ -70757,6 +70981,7 @@ export type Ridehails_Min_Fields = {
   status?: Maybe<Scalars['String']['output']>;
   surge_multiplier?: Maybe<Scalars['numeric']['output']>;
   updated_at?: Maybe<Scalars['timestamptz']['output']>;
+  updated_by?: Maybe<Scalars['String']['output']>;
   vehicle_color?: Maybe<Scalars['String']['output']>;
   vehicle_license_plate?: Maybe<Scalars['String']['output']>;
   vehicle_make?: Maybe<Scalars['String']['output']>;
@@ -70773,6 +70998,7 @@ export type Ridehails_Min_Order_By = {
   attempt_number?: InputMaybe<Order_By>;
   booked_at?: InputMaybe<Order_By>;
   created_at?: InputMaybe<Order_By>;
+  created_by?: InputMaybe<Order_By>;
   dispute_reason?: InputMaybe<Order_By>;
   dispute_resolution?: InputMaybe<Order_By>;
   driver_assigned_at?: InputMaybe<Order_By>;
@@ -70803,6 +71029,7 @@ export type Ridehails_Min_Order_By = {
   status?: InputMaybe<Order_By>;
   surge_multiplier?: InputMaybe<Order_By>;
   updated_at?: InputMaybe<Order_By>;
+  updated_by?: InputMaybe<Order_By>;
   vehicle_color?: InputMaybe<Order_By>;
   vehicle_license_plate?: InputMaybe<Order_By>;
   vehicle_make?: InputMaybe<Order_By>;
@@ -70836,6 +71063,7 @@ export type Ridehails_Order_By = {
   attempt_number?: InputMaybe<Order_By>;
   booked_at?: InputMaybe<Order_By>;
   created_at?: InputMaybe<Order_By>;
+  created_by?: InputMaybe<Order_By>;
   dispute_reason?: InputMaybe<Order_By>;
   dispute_resolution?: InputMaybe<Order_By>;
   driver_assigned_at?: InputMaybe<Order_By>;
@@ -70871,6 +71099,7 @@ export type Ridehails_Order_By = {
   status?: InputMaybe<Order_By>;
   surge_multiplier?: InputMaybe<Order_By>;
   updated_at?: InputMaybe<Order_By>;
+  updated_by?: InputMaybe<Order_By>;
   vehicle_color?: InputMaybe<Order_By>;
   vehicle_license_plate?: InputMaybe<Order_By>;
   vehicle_make?: InputMaybe<Order_By>;
@@ -70907,6 +71136,8 @@ export enum Ridehails_Select_Column {
   BookedAt = 'booked_at',
   /** column name */
   CreatedAt = 'created_at',
+  /** column name */
+  CreatedBy = 'created_by',
   /** column name */
   DisputeReason = 'dispute_reason',
   /** column name */
@@ -70976,6 +71207,8 @@ export enum Ridehails_Select_Column {
   /** column name */
   UpdatedAt = 'updated_at',
   /** column name */
+  UpdatedBy = 'updated_by',
+  /** column name */
   VehicleColor = 'vehicle_color',
   /** column name */
   VehicleLicensePlate = 'vehicle_license_plate',
@@ -71014,6 +71247,7 @@ export type Ridehails_Set_Input = {
   attempt_number?: InputMaybe<Scalars['Int']['input']>;
   booked_at?: InputMaybe<Scalars['timestamp']['input']>;
   created_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  created_by?: InputMaybe<Scalars['String']['input']>;
   dispute_reason?: InputMaybe<Scalars['String']['input']>;
   dispute_resolution?: InputMaybe<Scalars['String']['input']>;
   driver_assigned_at?: InputMaybe<Scalars['timestamptz']['input']>;
@@ -71048,6 +71282,7 @@ export type Ridehails_Set_Input = {
   status?: InputMaybe<Scalars['String']['input']>;
   surge_multiplier?: InputMaybe<Scalars['numeric']['input']>;
   updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  updated_by?: InputMaybe<Scalars['String']['input']>;
   vehicle_color?: InputMaybe<Scalars['String']['input']>;
   vehicle_license_plate?: InputMaybe<Scalars['String']['input']>;
   vehicle_make?: InputMaybe<Scalars['String']['input']>;
@@ -71208,6 +71443,7 @@ export type Ridehails_Stream_Cursor_Value_Input = {
   attempt_number?: InputMaybe<Scalars['Int']['input']>;
   booked_at?: InputMaybe<Scalars['timestamp']['input']>;
   created_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  created_by?: InputMaybe<Scalars['String']['input']>;
   dispute_reason?: InputMaybe<Scalars['String']['input']>;
   dispute_resolution?: InputMaybe<Scalars['String']['input']>;
   driver_assigned_at?: InputMaybe<Scalars['timestamptz']['input']>;
@@ -71242,6 +71478,7 @@ export type Ridehails_Stream_Cursor_Value_Input = {
   status?: InputMaybe<Scalars['String']['input']>;
   surge_multiplier?: InputMaybe<Scalars['numeric']['input']>;
   updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  updated_by?: InputMaybe<Scalars['String']['input']>;
   vehicle_color?: InputMaybe<Scalars['String']['input']>;
   vehicle_license_plate?: InputMaybe<Scalars['String']['input']>;
   vehicle_make?: InputMaybe<Scalars['String']['input']>;
@@ -71312,6 +71549,8 @@ export enum Ridehails_Update_Column {
   /** column name */
   CreatedAt = 'created_at',
   /** column name */
+  CreatedBy = 'created_by',
+  /** column name */
   DisputeReason = 'dispute_reason',
   /** column name */
   DisputeResolution = 'dispute_resolution',
@@ -71379,6 +71618,8 @@ export enum Ridehails_Update_Column {
   SurgeMultiplier = 'surge_multiplier',
   /** column name */
   UpdatedAt = 'updated_at',
+  /** column name */
+  UpdatedBy = 'updated_by',
   /** column name */
   VehicleColor = 'vehicle_color',
   /** column name */
@@ -73844,7 +74085,7 @@ export type Scenarios = {
   scenarios_coordinatedplantoscenarios: Array<Coordinatedplantoscenarios>;
   /** An aggregate relationship */
   scenarios_coordinatedplantoscenarios_aggregate: Coordinatedplantoscenarios_Aggregate;
-  /** a string which is always lowercase and only alpha characters with words that describe the state of the scenario. Valid values are: new - The scenario has only just been created but is not yet ready for bundling. ready - The scenario building is completed and is now ready for bundling. dispatched - The scenario was placed into a bundle and then offer(s) were made for the bundle to drivers. You might wonder why the scenario has a dispatched status if the parent bundle also has this status. This is because a bundle is a group of scenarios that collectively can be dispatched to a driver, but then one of the collections might need to be treated separately in the event of something unexpected happening in the field. Thus it's important to reflect the status of dispatched directly in the scenario too. Each time the parent bundle is dispatched, the bundler will keep the status of the child scenarios in sync.  declined - The scenario, already part of a bundle, and already dispatched to a specific driver, was then declined after accepting the bundle. We call this a “late decline”. deprecated - The move(s) under this scenario have been unplanned by manual dispatch. This can cause them to plan them in a different way that this scenario implies. */
+  /** a string which is always lowercase and only alpha characters with words that describe the state of the scenario. Valid values are: "new" - The scenario has only just been created but is not yet ready for bundling. "ready" - The scenario building is completed and is now ready for the system to determine if dispatching should be automated or performed manually. "manual" -  The scenario is awaiting manual dispatch by a dispatcher in the admin portal. "auto" -  The scenario is actively being dispatched by the automated dispatch system. "dispatched" - The scenario was placed into a bundle and then offer(s) were made for the bundle to drivers. "declined" - The scenario, already part of a bundle, and already dispatched to a specific driver, was then declined after accepting the bundle. We call this a "late decline”. "deprecated" - The move(s) under this scenario have been unplanned by manual dispatch. This can cause them to plan them in a different way that this scenario implies. */
   status: Scalars['String']['output'];
   /** An object relationship */
   type: Scenariotypes;
@@ -74082,7 +74323,7 @@ export type Scenarios_Insert_Input = {
   /** id for the parent scenario type this is derived from */
   scenario_key?: InputMaybe<Scalars['String']['input']>;
   scenarios_coordinatedplantoscenarios?: InputMaybe<Coordinatedplantoscenarios_Arr_Rel_Insert_Input>;
-  /** a string which is always lowercase and only alpha characters with words that describe the state of the scenario. Valid values are: new - The scenario has only just been created but is not yet ready for bundling. ready - The scenario building is completed and is now ready for bundling. dispatched - The scenario was placed into a bundle and then offer(s) were made for the bundle to drivers. You might wonder why the scenario has a dispatched status if the parent bundle also has this status. This is because a bundle is a group of scenarios that collectively can be dispatched to a driver, but then one of the collections might need to be treated separately in the event of something unexpected happening in the field. Thus it's important to reflect the status of dispatched directly in the scenario too. Each time the parent bundle is dispatched, the bundler will keep the status of the child scenarios in sync.  declined - The scenario, already part of a bundle, and already dispatched to a specific driver, was then declined after accepting the bundle. We call this a “late decline”. deprecated - The move(s) under this scenario have been unplanned by manual dispatch. This can cause them to plan them in a different way that this scenario implies. */
+  /** a string which is always lowercase and only alpha characters with words that describe the state of the scenario. Valid values are: "new" - The scenario has only just been created but is not yet ready for bundling. "ready" - The scenario building is completed and is now ready for the system to determine if dispatching should be automated or performed manually. "manual" -  The scenario is awaiting manual dispatch by a dispatcher in the admin portal. "auto" -  The scenario is actively being dispatched by the automated dispatch system. "dispatched" - The scenario was placed into a bundle and then offer(s) were made for the bundle to drivers. "declined" - The scenario, already part of a bundle, and already dispatched to a specific driver, was then declined after accepting the bundle. We call this a "late decline”. "deprecated" - The move(s) under this scenario have been unplanned by manual dispatch. This can cause them to plan them in a different way that this scenario implies. */
   status?: InputMaybe<Scalars['String']['input']>;
   type?: InputMaybe<Scenariotypes_Obj_Rel_Insert_Input>;
   updatedat?: InputMaybe<Scalars['timestamptz']['input']>;
@@ -74100,7 +74341,7 @@ export type Scenarios_Max_Fields = {
   id?: Maybe<Scalars['bigint']['output']>;
   /** id for the parent scenario type this is derived from */
   scenario_key?: Maybe<Scalars['String']['output']>;
-  /** a string which is always lowercase and only alpha characters with words that describe the state of the scenario. Valid values are: new - The scenario has only just been created but is not yet ready for bundling. ready - The scenario building is completed and is now ready for bundling. dispatched - The scenario was placed into a bundle and then offer(s) were made for the bundle to drivers. You might wonder why the scenario has a dispatched status if the parent bundle also has this status. This is because a bundle is a group of scenarios that collectively can be dispatched to a driver, but then one of the collections might need to be treated separately in the event of something unexpected happening in the field. Thus it's important to reflect the status of dispatched directly in the scenario too. Each time the parent bundle is dispatched, the bundler will keep the status of the child scenarios in sync.  declined - The scenario, already part of a bundle, and already dispatched to a specific driver, was then declined after accepting the bundle. We call this a “late decline”. deprecated - The move(s) under this scenario have been unplanned by manual dispatch. This can cause them to plan them in a different way that this scenario implies. */
+  /** a string which is always lowercase and only alpha characters with words that describe the state of the scenario. Valid values are: "new" - The scenario has only just been created but is not yet ready for bundling. "ready" - The scenario building is completed and is now ready for the system to determine if dispatching should be automated or performed manually. "manual" -  The scenario is awaiting manual dispatch by a dispatcher in the admin portal. "auto" -  The scenario is actively being dispatched by the automated dispatch system. "dispatched" - The scenario was placed into a bundle and then offer(s) were made for the bundle to drivers. "declined" - The scenario, already part of a bundle, and already dispatched to a specific driver, was then declined after accepting the bundle. We call this a "late decline”. "deprecated" - The move(s) under this scenario have been unplanned by manual dispatch. This can cause them to plan them in a different way that this scenario implies. */
   status?: Maybe<Scalars['String']['output']>;
   updatedat?: Maybe<Scalars['timestamptz']['output']>;
   updatedby?: Maybe<Scalars['String']['output']>;
@@ -74114,7 +74355,7 @@ export type Scenarios_Max_Order_By = {
   id?: InputMaybe<Order_By>;
   /** id for the parent scenario type this is derived from */
   scenario_key?: InputMaybe<Order_By>;
-  /** a string which is always lowercase and only alpha characters with words that describe the state of the scenario. Valid values are: new - The scenario has only just been created but is not yet ready for bundling. ready - The scenario building is completed and is now ready for bundling. dispatched - The scenario was placed into a bundle and then offer(s) were made for the bundle to drivers. You might wonder why the scenario has a dispatched status if the parent bundle also has this status. This is because a bundle is a group of scenarios that collectively can be dispatched to a driver, but then one of the collections might need to be treated separately in the event of something unexpected happening in the field. Thus it's important to reflect the status of dispatched directly in the scenario too. Each time the parent bundle is dispatched, the bundler will keep the status of the child scenarios in sync.  declined - The scenario, already part of a bundle, and already dispatched to a specific driver, was then declined after accepting the bundle. We call this a “late decline”. deprecated - The move(s) under this scenario have been unplanned by manual dispatch. This can cause them to plan them in a different way that this scenario implies. */
+  /** a string which is always lowercase and only alpha characters with words that describe the state of the scenario. Valid values are: "new" - The scenario has only just been created but is not yet ready for bundling. "ready" - The scenario building is completed and is now ready for the system to determine if dispatching should be automated or performed manually. "manual" -  The scenario is awaiting manual dispatch by a dispatcher in the admin portal. "auto" -  The scenario is actively being dispatched by the automated dispatch system. "dispatched" - The scenario was placed into a bundle and then offer(s) were made for the bundle to drivers. "declined" - The scenario, already part of a bundle, and already dispatched to a specific driver, was then declined after accepting the bundle. We call this a "late decline”. "deprecated" - The move(s) under this scenario have been unplanned by manual dispatch. This can cause them to plan them in a different way that this scenario implies. */
   status?: InputMaybe<Order_By>;
   updatedat?: InputMaybe<Order_By>;
   updatedby?: InputMaybe<Order_By>;
@@ -74129,7 +74370,7 @@ export type Scenarios_Min_Fields = {
   id?: Maybe<Scalars['bigint']['output']>;
   /** id for the parent scenario type this is derived from */
   scenario_key?: Maybe<Scalars['String']['output']>;
-  /** a string which is always lowercase and only alpha characters with words that describe the state of the scenario. Valid values are: new - The scenario has only just been created but is not yet ready for bundling. ready - The scenario building is completed and is now ready for bundling. dispatched - The scenario was placed into a bundle and then offer(s) were made for the bundle to drivers. You might wonder why the scenario has a dispatched status if the parent bundle also has this status. This is because a bundle is a group of scenarios that collectively can be dispatched to a driver, but then one of the collections might need to be treated separately in the event of something unexpected happening in the field. Thus it's important to reflect the status of dispatched directly in the scenario too. Each time the parent bundle is dispatched, the bundler will keep the status of the child scenarios in sync.  declined - The scenario, already part of a bundle, and already dispatched to a specific driver, was then declined after accepting the bundle. We call this a “late decline”. deprecated - The move(s) under this scenario have been unplanned by manual dispatch. This can cause them to plan them in a different way that this scenario implies. */
+  /** a string which is always lowercase and only alpha characters with words that describe the state of the scenario. Valid values are: "new" - The scenario has only just been created but is not yet ready for bundling. "ready" - The scenario building is completed and is now ready for the system to determine if dispatching should be automated or performed manually. "manual" -  The scenario is awaiting manual dispatch by a dispatcher in the admin portal. "auto" -  The scenario is actively being dispatched by the automated dispatch system. "dispatched" - The scenario was placed into a bundle and then offer(s) were made for the bundle to drivers. "declined" - The scenario, already part of a bundle, and already dispatched to a specific driver, was then declined after accepting the bundle. We call this a "late decline”. "deprecated" - The move(s) under this scenario have been unplanned by manual dispatch. This can cause them to plan them in a different way that this scenario implies. */
   status?: Maybe<Scalars['String']['output']>;
   updatedat?: Maybe<Scalars['timestamptz']['output']>;
   updatedby?: Maybe<Scalars['String']['output']>;
@@ -74143,7 +74384,7 @@ export type Scenarios_Min_Order_By = {
   id?: InputMaybe<Order_By>;
   /** id for the parent scenario type this is derived from */
   scenario_key?: InputMaybe<Order_By>;
-  /** a string which is always lowercase and only alpha characters with words that describe the state of the scenario. Valid values are: new - The scenario has only just been created but is not yet ready for bundling. ready - The scenario building is completed and is now ready for bundling. dispatched - The scenario was placed into a bundle and then offer(s) were made for the bundle to drivers. You might wonder why the scenario has a dispatched status if the parent bundle also has this status. This is because a bundle is a group of scenarios that collectively can be dispatched to a driver, but then one of the collections might need to be treated separately in the event of something unexpected happening in the field. Thus it's important to reflect the status of dispatched directly in the scenario too. Each time the parent bundle is dispatched, the bundler will keep the status of the child scenarios in sync.  declined - The scenario, already part of a bundle, and already dispatched to a specific driver, was then declined after accepting the bundle. We call this a “late decline”. deprecated - The move(s) under this scenario have been unplanned by manual dispatch. This can cause them to plan them in a different way that this scenario implies. */
+  /** a string which is always lowercase and only alpha characters with words that describe the state of the scenario. Valid values are: "new" - The scenario has only just been created but is not yet ready for bundling. "ready" - The scenario building is completed and is now ready for the system to determine if dispatching should be automated or performed manually. "manual" -  The scenario is awaiting manual dispatch by a dispatcher in the admin portal. "auto" -  The scenario is actively being dispatched by the automated dispatch system. "dispatched" - The scenario was placed into a bundle and then offer(s) were made for the bundle to drivers. "declined" - The scenario, already part of a bundle, and already dispatched to a specific driver, was then declined after accepting the bundle. We call this a "late decline”. "deprecated" - The move(s) under this scenario have been unplanned by manual dispatch. This can cause them to plan them in a different way that this scenario implies. */
   status?: InputMaybe<Order_By>;
   updatedat?: InputMaybe<Order_By>;
   updatedby?: InputMaybe<Order_By>;
@@ -74235,7 +74476,7 @@ export type Scenarios_Set_Input = {
   id?: InputMaybe<Scalars['bigint']['input']>;
   /** id for the parent scenario type this is derived from */
   scenario_key?: InputMaybe<Scalars['String']['input']>;
-  /** a string which is always lowercase and only alpha characters with words that describe the state of the scenario. Valid values are: new - The scenario has only just been created but is not yet ready for bundling. ready - The scenario building is completed and is now ready for bundling. dispatched - The scenario was placed into a bundle and then offer(s) were made for the bundle to drivers. You might wonder why the scenario has a dispatched status if the parent bundle also has this status. This is because a bundle is a group of scenarios that collectively can be dispatched to a driver, but then one of the collections might need to be treated separately in the event of something unexpected happening in the field. Thus it's important to reflect the status of dispatched directly in the scenario too. Each time the parent bundle is dispatched, the bundler will keep the status of the child scenarios in sync.  declined - The scenario, already part of a bundle, and already dispatched to a specific driver, was then declined after accepting the bundle. We call this a “late decline”. deprecated - The move(s) under this scenario have been unplanned by manual dispatch. This can cause them to plan them in a different way that this scenario implies. */
+  /** a string which is always lowercase and only alpha characters with words that describe the state of the scenario. Valid values are: "new" - The scenario has only just been created but is not yet ready for bundling. "ready" - The scenario building is completed and is now ready for the system to determine if dispatching should be automated or performed manually. "manual" -  The scenario is awaiting manual dispatch by a dispatcher in the admin portal. "auto" -  The scenario is actively being dispatched by the automated dispatch system. "dispatched" - The scenario was placed into a bundle and then offer(s) were made for the bundle to drivers. "declined" - The scenario, already part of a bundle, and already dispatched to a specific driver, was then declined after accepting the bundle. We call this a "late decline”. "deprecated" - The move(s) under this scenario have been unplanned by manual dispatch. This can cause them to plan them in a different way that this scenario implies. */
   status?: InputMaybe<Scalars['String']['input']>;
   updatedat?: InputMaybe<Scalars['timestamptz']['input']>;
   updatedby?: InputMaybe<Scalars['String']['input']>;
@@ -74300,7 +74541,7 @@ export type Scenarios_Stream_Cursor_Value_Input = {
   id?: InputMaybe<Scalars['bigint']['input']>;
   /** id for the parent scenario type this is derived from */
   scenario_key?: InputMaybe<Scalars['String']['input']>;
-  /** a string which is always lowercase and only alpha characters with words that describe the state of the scenario. Valid values are: new - The scenario has only just been created but is not yet ready for bundling. ready - The scenario building is completed and is now ready for bundling. dispatched - The scenario was placed into a bundle and then offer(s) were made for the bundle to drivers. You might wonder why the scenario has a dispatched status if the parent bundle also has this status. This is because a bundle is a group of scenarios that collectively can be dispatched to a driver, but then one of the collections might need to be treated separately in the event of something unexpected happening in the field. Thus it's important to reflect the status of dispatched directly in the scenario too. Each time the parent bundle is dispatched, the bundler will keep the status of the child scenarios in sync.  declined - The scenario, already part of a bundle, and already dispatched to a specific driver, was then declined after accepting the bundle. We call this a “late decline”. deprecated - The move(s) under this scenario have been unplanned by manual dispatch. This can cause them to plan them in a different way that this scenario implies. */
+  /** a string which is always lowercase and only alpha characters with words that describe the state of the scenario. Valid values are: "new" - The scenario has only just been created but is not yet ready for bundling. "ready" - The scenario building is completed and is now ready for the system to determine if dispatching should be automated or performed manually. "manual" -  The scenario is awaiting manual dispatch by a dispatcher in the admin portal. "auto" -  The scenario is actively being dispatched by the automated dispatch system. "dispatched" - The scenario was placed into a bundle and then offer(s) were made for the bundle to drivers. "declined" - The scenario, already part of a bundle, and already dispatched to a specific driver, was then declined after accepting the bundle. We call this a "late decline”. "deprecated" - The move(s) under this scenario have been unplanned by manual dispatch. This can cause them to plan them in a different way that this scenario implies. */
   status?: InputMaybe<Scalars['String']['input']>;
   updatedat?: InputMaybe<Scalars['timestamptz']['input']>;
   updatedby?: InputMaybe<Scalars['String']['input']>;
@@ -76789,8 +77030,6 @@ export type Smsmedia_Bool_Exp = {
 /** unique or primary key constraints on table "smsmedia" */
 export enum Smsmedia_Constraint {
   /** unique or primary key constraint on columns "id" */
-  SmsmediaIdKey = 'smsmedia_id_key',
-  /** unique or primary key constraint on columns "id" */
   SmsmediaPkey = 'smsmedia_pkey'
 }
 
@@ -77009,7 +77248,7 @@ export type Smsmedia_Variance_Order_By = {
   sms_message_id?: InputMaybe<Order_By>;
 };
 
-/** Stores the content, status, and any data required for sending SMS messages */
+/** Stores the content, status, and data required for sending SMS messages */
 export type Smsmessages = {
   __typename?: 'smsmessages';
   /** An object relationship */
@@ -77045,13 +77284,13 @@ export type Smsmessages = {
 };
 
 
-/** Stores the content, status, and any data required for sending SMS messages */
+/** Stores the content, status, and data required for sending SMS messages */
 export type SmsmessagesMetadataArgs = {
   path?: InputMaybe<Scalars['String']['input']>;
 };
 
 
-/** Stores the content, status, and any data required for sending SMS messages */
+/** Stores the content, status, and data required for sending SMS messages */
 export type SmsmessagesSmsmediaArgs = {
   distinct_on?: InputMaybe<Array<Smsmedia_Select_Column>>;
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -77061,7 +77300,7 @@ export type SmsmessagesSmsmediaArgs = {
 };
 
 
-/** Stores the content, status, and any data required for sending SMS messages */
+/** Stores the content, status, and data required for sending SMS messages */
 export type SmsmessagesSmsmedia_AggregateArgs = {
   distinct_on?: InputMaybe<Array<Smsmedia_Select_Column>>;
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -77187,8 +77426,6 @@ export type Smsmessages_Bool_Exp = {
 
 /** unique or primary key constraints on table "smsmessages" */
 export enum Smsmessages_Constraint {
-  /** unique or primary key constraint on columns "id" */
-  SmsmessagesIdKey = 'smsmessages_id_key',
   /** unique or primary key constraint on columns "id" */
   SmsmessagesPkey = 'smsmessages_pkey'
 }
@@ -77688,11 +77925,11 @@ export type Smsmessages_Variance_Order_By = {
   template_id?: InputMaybe<Order_By>;
 };
 
-/** Stores SMS templates by type and region, customer, and organization */
+/** Stores templates for SMS messages by type, customer, organization, and region */
 export type Smstemplates = {
   __typename?: 'smstemplates';
-  created_at?: Maybe<Scalars['timestamptz']['output']>;
-  created_by?: Maybe<Scalars['String']['output']>;
+  createdat?: Maybe<Scalars['timestamptz']['output']>;
+  createdby?: Maybe<Scalars['String']['output']>;
   customer_id?: Maybe<Scalars['bigint']['output']>;
   /** Describes the scenario to which the template applies (e.g. "House account override for pickup starting on a concierge move with the consumer at the pickup location" */
   description?: Maybe<Scalars['String']['output']>;
@@ -77707,12 +77944,12 @@ export type Smstemplates = {
   template: Scalars['String']['output'];
   /** Designates the scenario for sending the SMS (e.g., concierge.consumer.at.pickup.pickup.started) */
   type: Scalars['String']['output'];
-  updated_at?: Maybe<Scalars['timestamptz']['output']>;
-  updated_by?: Maybe<Scalars['String']['output']>;
+  updatedat?: Maybe<Scalars['timestamptz']['output']>;
+  updatedby?: Maybe<Scalars['String']['output']>;
 };
 
 
-/** Stores SMS templates by type and region, customer, and organization */
+/** Stores templates for SMS messages by type, customer, organization, and region */
 export type SmstemplatesMedia_AttachmentsArgs = {
   path?: InputMaybe<Scalars['String']['input']>;
 };
@@ -77767,8 +78004,8 @@ export type Smstemplates_Bool_Exp = {
   _and?: InputMaybe<Array<Smstemplates_Bool_Exp>>;
   _not?: InputMaybe<Smstemplates_Bool_Exp>;
   _or?: InputMaybe<Array<Smstemplates_Bool_Exp>>;
-  created_at?: InputMaybe<Timestamptz_Comparison_Exp>;
-  created_by?: InputMaybe<String_Comparison_Exp>;
+  createdat?: InputMaybe<Timestamptz_Comparison_Exp>;
+  createdby?: InputMaybe<String_Comparison_Exp>;
   customer_id?: InputMaybe<Bigint_Comparison_Exp>;
   description?: InputMaybe<String_Comparison_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
@@ -77778,8 +78015,8 @@ export type Smstemplates_Bool_Exp = {
   region_id?: InputMaybe<Bigint_Comparison_Exp>;
   template?: InputMaybe<String_Comparison_Exp>;
   type?: InputMaybe<String_Comparison_Exp>;
-  updated_at?: InputMaybe<Timestamptz_Comparison_Exp>;
-  updated_by?: InputMaybe<String_Comparison_Exp>;
+  updatedat?: InputMaybe<Timestamptz_Comparison_Exp>;
+  updatedby?: InputMaybe<String_Comparison_Exp>;
 };
 
 /** unique or primary key constraints on table "smstemplates" */
@@ -77818,8 +78055,8 @@ export type Smstemplates_Inc_Input = {
 
 /** input type for inserting data into table "smstemplates" */
 export type Smstemplates_Insert_Input = {
-  created_at?: InputMaybe<Scalars['timestamptz']['input']>;
-  created_by?: InputMaybe<Scalars['String']['input']>;
+  createdat?: InputMaybe<Scalars['timestamptz']['input']>;
+  createdby?: InputMaybe<Scalars['String']['input']>;
   customer_id?: InputMaybe<Scalars['bigint']['input']>;
   /** Describes the scenario to which the template applies (e.g. "House account override for pickup starting on a concierge move with the consumer at the pickup location" */
   description?: InputMaybe<Scalars['String']['input']>;
@@ -77834,15 +78071,15 @@ export type Smstemplates_Insert_Input = {
   template?: InputMaybe<Scalars['String']['input']>;
   /** Designates the scenario for sending the SMS (e.g., concierge.consumer.at.pickup.pickup.started) */
   type?: InputMaybe<Scalars['String']['input']>;
-  updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
-  updated_by?: InputMaybe<Scalars['String']['input']>;
+  updatedat?: InputMaybe<Scalars['timestamptz']['input']>;
+  updatedby?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** aggregate max on columns */
 export type Smstemplates_Max_Fields = {
   __typename?: 'smstemplates_max_fields';
-  created_at?: Maybe<Scalars['timestamptz']['output']>;
-  created_by?: Maybe<Scalars['String']['output']>;
+  createdat?: Maybe<Scalars['timestamptz']['output']>;
+  createdby?: Maybe<Scalars['String']['output']>;
   customer_id?: Maybe<Scalars['bigint']['output']>;
   /** Describes the scenario to which the template applies (e.g. "House account override for pickup starting on a concierge move with the consumer at the pickup location" */
   description?: Maybe<Scalars['String']['output']>;
@@ -77855,15 +78092,15 @@ export type Smstemplates_Max_Fields = {
   template?: Maybe<Scalars['String']['output']>;
   /** Designates the scenario for sending the SMS (e.g., concierge.consumer.at.pickup.pickup.started) */
   type?: Maybe<Scalars['String']['output']>;
-  updated_at?: Maybe<Scalars['timestamptz']['output']>;
-  updated_by?: Maybe<Scalars['String']['output']>;
+  updatedat?: Maybe<Scalars['timestamptz']['output']>;
+  updatedby?: Maybe<Scalars['String']['output']>;
 };
 
 /** aggregate min on columns */
 export type Smstemplates_Min_Fields = {
   __typename?: 'smstemplates_min_fields';
-  created_at?: Maybe<Scalars['timestamptz']['output']>;
-  created_by?: Maybe<Scalars['String']['output']>;
+  createdat?: Maybe<Scalars['timestamptz']['output']>;
+  createdby?: Maybe<Scalars['String']['output']>;
   customer_id?: Maybe<Scalars['bigint']['output']>;
   /** Describes the scenario to which the template applies (e.g. "House account override for pickup starting on a concierge move with the consumer at the pickup location" */
   description?: Maybe<Scalars['String']['output']>;
@@ -77876,8 +78113,8 @@ export type Smstemplates_Min_Fields = {
   template?: Maybe<Scalars['String']['output']>;
   /** Designates the scenario for sending the SMS (e.g., concierge.consumer.at.pickup.pickup.started) */
   type?: Maybe<Scalars['String']['output']>;
-  updated_at?: Maybe<Scalars['timestamptz']['output']>;
-  updated_by?: Maybe<Scalars['String']['output']>;
+  updatedat?: Maybe<Scalars['timestamptz']['output']>;
+  updatedby?: Maybe<Scalars['String']['output']>;
 };
 
 /** response of any mutation on the table "smstemplates" */
@@ -77898,8 +78135,8 @@ export type Smstemplates_On_Conflict = {
 
 /** Ordering options when selecting data from "smstemplates". */
 export type Smstemplates_Order_By = {
-  created_at?: InputMaybe<Order_By>;
-  created_by?: InputMaybe<Order_By>;
+  createdat?: InputMaybe<Order_By>;
+  createdby?: InputMaybe<Order_By>;
   customer_id?: InputMaybe<Order_By>;
   description?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
@@ -77909,8 +78146,8 @@ export type Smstemplates_Order_By = {
   region_id?: InputMaybe<Order_By>;
   template?: InputMaybe<Order_By>;
   type?: InputMaybe<Order_By>;
-  updated_at?: InputMaybe<Order_By>;
-  updated_by?: InputMaybe<Order_By>;
+  updatedat?: InputMaybe<Order_By>;
+  updatedby?: InputMaybe<Order_By>;
 };
 
 /** primary key columns input for table: smstemplates */
@@ -77927,9 +78164,9 @@ export type Smstemplates_Prepend_Input = {
 /** select columns of table "smstemplates" */
 export enum Smstemplates_Select_Column {
   /** column name */
-  CreatedAt = 'created_at',
+  Createdat = 'createdat',
   /** column name */
-  CreatedBy = 'created_by',
+  Createdby = 'createdby',
   /** column name */
   CustomerId = 'customer_id',
   /** column name */
@@ -77949,15 +78186,15 @@ export enum Smstemplates_Select_Column {
   /** column name */
   Type = 'type',
   /** column name */
-  UpdatedAt = 'updated_at',
+  Updatedat = 'updatedat',
   /** column name */
-  UpdatedBy = 'updated_by'
+  Updatedby = 'updatedby'
 }
 
 /** input type for updating data in table "smstemplates" */
 export type Smstemplates_Set_Input = {
-  created_at?: InputMaybe<Scalars['timestamptz']['input']>;
-  created_by?: InputMaybe<Scalars['String']['input']>;
+  createdat?: InputMaybe<Scalars['timestamptz']['input']>;
+  createdby?: InputMaybe<Scalars['String']['input']>;
   customer_id?: InputMaybe<Scalars['bigint']['input']>;
   /** Describes the scenario to which the template applies (e.g. "House account override for pickup starting on a concierge move with the consumer at the pickup location" */
   description?: InputMaybe<Scalars['String']['input']>;
@@ -77972,8 +78209,8 @@ export type Smstemplates_Set_Input = {
   template?: InputMaybe<Scalars['String']['input']>;
   /** Designates the scenario for sending the SMS (e.g., concierge.consumer.at.pickup.pickup.started) */
   type?: InputMaybe<Scalars['String']['input']>;
-  updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
-  updated_by?: InputMaybe<Scalars['String']['input']>;
+  updatedat?: InputMaybe<Scalars['timestamptz']['input']>;
+  updatedby?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** aggregate stddev on columns */
@@ -78013,8 +78250,8 @@ export type Smstemplates_Stream_Cursor_Input = {
 
 /** Initial value of the column from where the streaming should start */
 export type Smstemplates_Stream_Cursor_Value_Input = {
-  created_at?: InputMaybe<Scalars['timestamptz']['input']>;
-  created_by?: InputMaybe<Scalars['String']['input']>;
+  createdat?: InputMaybe<Scalars['timestamptz']['input']>;
+  createdby?: InputMaybe<Scalars['String']['input']>;
   customer_id?: InputMaybe<Scalars['bigint']['input']>;
   /** Describes the scenario to which the template applies (e.g. "House account override for pickup starting on a concierge move with the consumer at the pickup location" */
   description?: InputMaybe<Scalars['String']['input']>;
@@ -78029,8 +78266,8 @@ export type Smstemplates_Stream_Cursor_Value_Input = {
   template?: InputMaybe<Scalars['String']['input']>;
   /** Designates the scenario for sending the SMS (e.g., concierge.consumer.at.pickup.pickup.started) */
   type?: InputMaybe<Scalars['String']['input']>;
-  updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
-  updated_by?: InputMaybe<Scalars['String']['input']>;
+  updatedat?: InputMaybe<Scalars['timestamptz']['input']>;
+  updatedby?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** aggregate sum on columns */
@@ -78045,9 +78282,9 @@ export type Smstemplates_Sum_Fields = {
 /** update columns of table "smstemplates" */
 export enum Smstemplates_Update_Column {
   /** column name */
-  CreatedAt = 'created_at',
+  Createdat = 'createdat',
   /** column name */
-  CreatedBy = 'created_by',
+  Createdby = 'createdby',
   /** column name */
   CustomerId = 'customer_id',
   /** column name */
@@ -78067,9 +78304,9 @@ export enum Smstemplates_Update_Column {
   /** column name */
   Type = 'type',
   /** column name */
-  UpdatedAt = 'updated_at',
+  Updatedat = 'updatedat',
   /** column name */
-  UpdatedBy = 'updated_by'
+  Updatedby = 'updatedby'
 }
 
 export type Smstemplates_Updates = {
@@ -78407,9 +78644,9 @@ export type Subscription_Root = {
   contacts_by_pk?: Maybe<Contacts>;
   /** fetch data from the table in a streaming manner: "contacts" */
   contacts_stream: Array<Contacts>;
-  /** fetch data from the table: "contactstomoves" */
+  /** An array relationship */
   contactstomoves: Array<Contactstomoves>;
-  /** fetch aggregated fields from the table: "contactstomoves" */
+  /** An aggregate relationship */
   contactstomoves_aggregate: Contactstomoves_Aggregate;
   /** fetch data from the table: "contactstomoves" using primary key columns */
   contactstomoves_by_pk?: Maybe<Contactstomoves>;
@@ -89096,7 +89333,7 @@ export type Vehicles = {
   doe_modified_on: Scalars['timestamptz']['output'];
   drive_axle_type?: Maybe<Scalars['String']['output']>;
   electric_motor?: Maybe<Scalars['String']['output']>;
-  /** Engine descriptor code e.g. DI for Direct Injection, HEV for Hybrid Electric Vehicle, etc. See http://www.fueleconomy.gov/feg/findacarhelp.shtml#engine for all descriptors */
+  /** Engine descriptor code e.g. DI for Direct Injeection, HEV for Hybrid Electric Vehicle, etc. See http://www.fueleconomy.gov/feg/findacarhelp.shtml#engine for all descriptors */
   engine_descriptor?: Maybe<Scalars['String']['output']>;
   engine_displacement_liters?: Maybe<Scalars['numeric']['output']>;
   /** EPA model type index */
@@ -89534,7 +89771,7 @@ export type Vehicles_Insert_Input = {
   doe_modified_on?: InputMaybe<Scalars['timestamptz']['input']>;
   drive_axle_type?: InputMaybe<Scalars['String']['input']>;
   electric_motor?: InputMaybe<Scalars['String']['input']>;
-  /** Engine descriptor code e.g. DI for Direct Injection, HEV for Hybrid Electric Vehicle, etc. See http://www.fueleconomy.gov/feg/findacarhelp.shtml#engine for all descriptors */
+  /** Engine descriptor code e.g. DI for Direct Injeection, HEV for Hybrid Electric Vehicle, etc. See http://www.fueleconomy.gov/feg/findacarhelp.shtml#engine for all descriptors */
   engine_descriptor?: InputMaybe<Scalars['String']['input']>;
   engine_displacement_liters?: InputMaybe<Scalars['numeric']['input']>;
   /** EPA model type index */
@@ -89666,7 +89903,7 @@ export type Vehicles_Max_Fields = {
   doe_modified_on?: Maybe<Scalars['timestamptz']['output']>;
   drive_axle_type?: Maybe<Scalars['String']['output']>;
   electric_motor?: Maybe<Scalars['String']['output']>;
-  /** Engine descriptor code e.g. DI for Direct Injection, HEV for Hybrid Electric Vehicle, etc. See http://www.fueleconomy.gov/feg/findacarhelp.shtml#engine for all descriptors */
+  /** Engine descriptor code e.g. DI for Direct Injeection, HEV for Hybrid Electric Vehicle, etc. See http://www.fueleconomy.gov/feg/findacarhelp.shtml#engine for all descriptors */
   engine_descriptor?: Maybe<Scalars['String']['output']>;
   engine_displacement_liters?: Maybe<Scalars['numeric']['output']>;
   /** EPA model type index */
@@ -89791,7 +90028,7 @@ export type Vehicles_Min_Fields = {
   doe_modified_on?: Maybe<Scalars['timestamptz']['output']>;
   drive_axle_type?: Maybe<Scalars['String']['output']>;
   electric_motor?: Maybe<Scalars['String']['output']>;
-  /** Engine descriptor code e.g. DI for Direct Injection, HEV for Hybrid Electric Vehicle, etc. See http://www.fueleconomy.gov/feg/findacarhelp.shtml#engine for all descriptors */
+  /** Engine descriptor code e.g. DI for Direct Injeection, HEV for Hybrid Electric Vehicle, etc. See http://www.fueleconomy.gov/feg/findacarhelp.shtml#engine for all descriptors */
   engine_descriptor?: Maybe<Scalars['String']['output']>;
   engine_displacement_liters?: Maybe<Scalars['numeric']['output']>;
   /** EPA model type index */
@@ -90157,7 +90394,7 @@ export type Vehicles_Set_Input = {
   doe_modified_on?: InputMaybe<Scalars['timestamptz']['input']>;
   drive_axle_type?: InputMaybe<Scalars['String']['input']>;
   electric_motor?: InputMaybe<Scalars['String']['input']>;
-  /** Engine descriptor code e.g. DI for Direct Injection, HEV for Hybrid Electric Vehicle, etc. See http://www.fueleconomy.gov/feg/findacarhelp.shtml#engine for all descriptors */
+  /** Engine descriptor code e.g. DI for Direct Injeection, HEV for Hybrid Electric Vehicle, etc. See http://www.fueleconomy.gov/feg/findacarhelp.shtml#engine for all descriptors */
   engine_descriptor?: InputMaybe<Scalars['String']['input']>;
   engine_displacement_liters?: InputMaybe<Scalars['numeric']['input']>;
   /** EPA model type index */
@@ -90553,7 +90790,7 @@ export type Vehicles_Stream_Cursor_Value_Input = {
   doe_modified_on?: InputMaybe<Scalars['timestamptz']['input']>;
   drive_axle_type?: InputMaybe<Scalars['String']['input']>;
   electric_motor?: InputMaybe<Scalars['String']['input']>;
-  /** Engine descriptor code e.g. DI for Direct Injection, HEV for Hybrid Electric Vehicle, etc. See http://www.fueleconomy.gov/feg/findacarhelp.shtml#engine for all descriptors */
+  /** Engine descriptor code e.g. DI for Direct Injeection, HEV for Hybrid Electric Vehicle, etc. See http://www.fueleconomy.gov/feg/findacarhelp.shtml#engine for all descriptors */
   engine_descriptor?: InputMaybe<Scalars['String']['input']>;
   engine_displacement_liters?: InputMaybe<Scalars['numeric']['input']>;
   /** EPA model type index */
@@ -93680,7 +93917,7 @@ export type InvocationsListQueryVariables = Exact<{
 }>;
 
 
-export type InvocationsListQuery = { __typename?: 'query_root', invocations: Array<{ __typename?: 'invocations', id: string, created_at: string, updated_at: string, source_function: string, source_table?: string | null, source_operation?: string | null, source_system?: string | null, correlation_id?: string | null, source_user_email?: string | null, source_user_role?: string | null, total_duration_ms?: number | null, events_detected_count?: number | null, total_jobs_run?: number | null, total_jobs_succeeded?: number | null, total_jobs_failed?: number | null, status: string, error_message?: string | null, source_event_payload: object }>, invocations_aggregate: { __typename?: 'invocations_aggregate', aggregate?: { __typename?: 'invocations_aggregate_fields', count: number } | null } };
+export type InvocationsListQuery = { __typename?: 'query_root', invocations: Array<{ __typename?: 'invocations', id: string, created_at: string, updated_at: string, source_function: string, source_table?: string | null, source_operation?: string | null, source_system?: string | null, correlation_id?: string | null, source_user_email?: string | null, source_user_role?: string | null, total_duration_ms?: number | null, events_detected_count?: number | null, total_jobs_run?: number | null, total_jobs_succeeded?: number | null, total_jobs_failed?: number | null, status: string, error_message?: string | null, source_event_payload: object, event_executions_aggregate: { __typename?: 'event_executions_aggregate', aggregate?: { __typename?: 'event_executions_aggregate_fields', count: number } | null }, detected_events: { __typename?: 'event_executions_aggregate', aggregate?: { __typename?: 'event_executions_aggregate_fields', count: number } | null }, undetected_events: { __typename?: 'event_executions_aggregate', aggregate?: { __typename?: 'event_executions_aggregate_fields', count: number } | null } }>, invocations_aggregate: { __typename?: 'invocations_aggregate', aggregate?: { __typename?: 'invocations_aggregate_fields', count: number } | null } };
 
 export type InvocationDetailQueryVariables = Exact<{
   id: Scalars['uuid']['input'];
@@ -94069,6 +94306,21 @@ export const InvocationsListDocument = gql`
     status
     error_message
     source_event_payload
+    event_executions_aggregate {
+      aggregate {
+        count
+      }
+    }
+    detected_events: event_executions_aggregate(where: {detected: {_eq: true}}) {
+      aggregate {
+        count
+      }
+    }
+    undetected_events: event_executions_aggregate(where: {detected: {_eq: false}}) {
+      aggregate {
+        count
+      }
+    }
   }
   invocations_aggregate(where: $where) {
     aggregate {

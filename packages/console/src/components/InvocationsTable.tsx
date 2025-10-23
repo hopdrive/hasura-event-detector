@@ -38,6 +38,7 @@ interface Invocation {
   sourceOperation: string;
   totalDuration: number;
   eventsDetectedCount: number;
+  eventsUndetectedCount: number;
   totalEventsCount: number;
   totalJobsSucceeded: number;
   totalJobsFailed: number;
@@ -77,8 +78,9 @@ const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch =
       userEmail: inv.source_user_email || '',
       sourceOperation: inv.source_operation || '',
       totalDuration: inv.total_duration_ms || 0,
-      eventsDetectedCount: inv.events_detected_count || 0,
-      totalEventsCount: inv.total_events_count || 0,
+      eventsDetectedCount: inv.detected_events?.aggregate?.count || inv.events_detected_count || 0,
+      eventsUndetectedCount: inv.undetected_events?.aggregate?.count || 0,
+      totalEventsCount: inv.event_executions_aggregate?.aggregate?.count || 0,
       totalJobsSucceeded: inv.total_jobs_succeeded || 0,
       totalJobsFailed: inv.total_jobs_failed || 0,
       totalJobsRun: inv.total_jobs_run || 0,
@@ -186,8 +188,8 @@ const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch =
         cell: info => {
           const row = info.row.original;
           const detected = row.eventsDetectedCount;
-          const total = row.totalEventsCount;
-          const undetected = total - detected;
+          const undetected = row.eventsUndetectedCount;
+          const total = detected + undetected;
 
           return (
             <div className='flex items-center space-x-1'>
