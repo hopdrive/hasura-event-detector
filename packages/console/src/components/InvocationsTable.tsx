@@ -36,6 +36,7 @@ interface Invocation {
   correlationId: string;
   userEmail: string;
   sourceOperation: string;
+  sourceJobId?: string;
   totalDuration: number;
   eventsDetectedCount: number;
   eventsUndetectedCount: number;
@@ -58,6 +59,7 @@ const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch =
   const navigate = useNavigate();
   const [selectedInvocation, setSelectedInvocation] = useState<Node | null>(null);
   const [hideZeroDetectedEvents, setHideZeroDetectedEvents] = useState(true);
+  const [hideChildInvocations, setHideChildInvocations] = useState(true);
 
   const {
     data: queryData,
@@ -78,6 +80,7 @@ const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch =
       correlationId: inv.correlation_id || '',
       userEmail: inv.source_user_email || '',
       sourceOperation: inv.source_operation || '',
+      sourceJobId: inv.source_job_id || undefined,
       totalDuration: inv.total_duration_ms || 0,
       eventsDetectedCount: inv.detected_events?.aggregate?.count || inv.events_detected_count || 0,
       eventsUndetectedCount: inv.undetected_events?.aggregate?.count || 0,
@@ -93,11 +96,18 @@ const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch =
   }, [queryData]);
 
   const filteredInvocationsData = useMemo(() => {
-    if (!hideZeroDetectedEvents) {
-      return invocationsData;
+    let filtered = invocationsData;
+
+    if (hideZeroDetectedEvents) {
+      filtered = filtered.filter(inv => inv.eventsDetectedCount > 0);
     }
-    return invocationsData.filter(inv => inv.eventsDetectedCount > 0);
-  }, [invocationsData, hideZeroDetectedEvents]);
+
+    if (hideChildInvocations) {
+      filtered = filtered.filter(inv => !inv.sourceJobId);
+    }
+
+    return filtered;
+  }, [invocationsData, hideZeroDetectedEvents, hideChildInvocations]);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([{ id: 'createdAt', desc: true }]);
@@ -403,6 +413,16 @@ const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch =
                 className='h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
               />
               <span className='ml-2 text-sm text-gray-700 dark:text-gray-200'>Show Undetected Events</span>
+            </label>
+
+            <label className='inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600'>
+              <input
+                type='checkbox'
+                checked={hideChildInvocations}
+                onChange={e => setHideChildInvocations(e.target.checked)}
+                className='h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+              />
+              <span className='ml-2 text-sm text-gray-700 dark:text-gray-200'>Hide Child Events</span>
             </label>
 
             <button className='inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-lg text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600'>

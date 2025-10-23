@@ -12,6 +12,7 @@ query InvocationsList(
     source_table
     source_operation
     source_system
+    source_job_id
     correlation_id
     source_user_email
     source_user_role
