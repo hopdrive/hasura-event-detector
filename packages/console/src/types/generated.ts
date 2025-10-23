@@ -93917,7 +93917,7 @@ export type InvocationsListQueryVariables = Exact<{
 }>;
 
 
-export type InvocationsListQuery = { __typename?: 'query_root', invocations: Array<{ __typename?: 'invocations', id: string, created_at: string, updated_at: string, source_function: string, source_table?: string | null, source_operation?: string | null, source_system?: string | null, source_job_id?: string | null, correlation_id?: string | null, source_user_email?: string | null, source_user_role?: string | null, total_duration_ms?: number | null, events_detected_count?: number | null, total_jobs_run?: number | null, total_jobs_succeeded?: number | null, total_jobs_failed?: number | null, status: string, error_message?: string | null, source_event_payload: object, event_executions_aggregate: { __typename?: 'event_executions_aggregate', aggregate?: { __typename?: 'event_executions_aggregate_fields', count: number } | null }, detected_events: { __typename?: 'event_executions_aggregate', aggregate?: { __typename?: 'event_executions_aggregate_fields', count: number } | null }, undetected_events: { __typename?: 'event_executions_aggregate', aggregate?: { __typename?: 'event_executions_aggregate_fields', count: number } | null } }>, invocations_aggregate: { __typename?: 'invocations_aggregate', aggregate?: { __typename?: 'invocations_aggregate_fields', count: number } | null } };
+export type InvocationsListQuery = { __typename?: 'query_root', invocations: Array<{ __typename?: 'invocations', id: string, created_at: string, updated_at: string, source_function: string, source_table?: string | null, source_operation?: string | null, source_system?: string | null, source_job_id?: string | null, correlation_id?: string | null, source_user_email?: string | null, source_user_role?: string | null, total_duration_ms?: number | null, events_detected_count?: number | null, total_jobs_run?: number | null, total_jobs_succeeded?: number | null, total_jobs_failed?: number | null, status: string, error_message?: string | null, source_event_payload: object, event_executions_aggregate: { __typename?: 'event_executions_aggregate', aggregate?: { __typename?: 'event_executions_aggregate_fields', count: number } | null }, detected_events: { __typename?: 'event_executions_aggregate', aggregate?: { __typename?: 'event_executions_aggregate_fields', count: number } | null }, undetected_events: { __typename?: 'event_executions_aggregate', aggregate?: { __typename?: 'event_executions_aggregate_fields', count: number } | null }, event_executions: Array<{ __typename?: 'event_executions', id: string, event_name: string, detected: boolean }> }>, invocations_aggregate: { __typename?: 'invocations_aggregate', aggregate?: { __typename?: 'invocations_aggregate_fields', count: number } | null } };
 
 export type InvocationDetailQueryVariables = Exact<{
   id: Scalars['uuid']['input'];
@@ -94321,6 +94321,11 @@ export const InvocationsListDocument = gql`
       aggregate {
         count
       }
+    }
+    event_executions(where: {detected: {_eq: true}}) {
+      id
+      event_name
+      detected
     }
   }
   invocations_aggregate(where: $where) {

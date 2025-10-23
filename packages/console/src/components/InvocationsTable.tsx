@@ -24,6 +24,7 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   ExclamationTriangleIcon,
+  CircleStackIcon,
 } from '@heroicons/react/24/outline';
 import InvocationDetailDrawer from './InvocationDetailDrawer';
 import { useInvocationsListQuery } from '../types/generated';
@@ -41,6 +42,7 @@ interface Invocation {
   eventsDetectedCount: number;
   eventsUndetectedCount: number;
   totalEventsCount: number;
+  detectedEventNames: string[];
   totalJobsSucceeded: number;
   totalJobsFailed: number;
   totalJobsRun: number;
@@ -85,6 +87,7 @@ const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch =
       eventsDetectedCount: inv.detected_events?.aggregate?.count || inv.events_detected_count || 0,
       eventsUndetectedCount: inv.undetected_events?.aggregate?.count || 0,
       totalEventsCount: inv.event_executions_aggregate?.aggregate?.count || 0,
+      detectedEventNames: inv.event_executions?.map(e => e.event_name).filter(Boolean) || [],
       totalJobsSucceeded: inv.total_jobs_succeeded || 0,
       totalJobsFailed: inv.total_jobs_failed || 0,
       totalJobsRun: inv.total_jobs_run || 0,
@@ -165,19 +168,53 @@ const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch =
     return Math.round((succeeded / total) * 100);
   };
 
+  const getOperationColor = (operation: string) => {
+    switch (operation.toUpperCase()) {
+      case 'INSERT':
+        return 'bg-green-500 text-white';
+      case 'UPDATE':
+        return 'bg-blue-500 text-white';
+      case 'DELETE':
+        return 'bg-red-500 text-white';
+      default:
+        return 'bg-gray-500 text-white';
+    }
+  };
+
   const columns = useMemo<ColumnDef<Invocation>[]>(
     () => [
       columnHelper.accessor('sourceFunction', {
         id: 'sourceFunction',
         header: 'Source Function',
-        cell: info => <div className='font-medium text-gray-900 dark:text-gray-100'>{info.getValue()}</div>,
+        cell: info => {
+          const row = info.row.original;
+          const operation = row.sourceOperation;
+
+          return (
+            <div className='relative inline-flex items-center gap-1.5 pl-1 pr-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-full'>
+              <div className='flex items-center justify-center w-6 h-6 bg-gray-700 dark:bg-gray-900 rounded-full flex-shrink-0'>
+                <CircleStackIcon className='h-3.5 w-3.5 text-gray-100 dark:text-gray-300' />
+              </div>
+              <span className='font-medium text-gray-900 dark:text-gray-100 text-sm'>{info.getValue()}</span>
+              {operation && (
+                <span
+                  className={`absolute -top-0.5 -right-0.5 px-1 py-0 rounded text-[8px] font-semibold uppercase leading-tight ${getOperationColor(
+                    operation
+                  )}`}
+                >
+                  {operation}
+                </span>
+              )}
+            </div>
+          );
+        },
         filterFn: 'includesString',
       }),
-      columnHelper.accessor('sourceOperation', {
-        id: 'sourceOperation',
-        header: 'Operation',
+      columnHelper.accessor('createdAt', {
+        id: 'createdAt',
+        header: 'Created',
         cell: info => (
-          <span className='px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 rounded'>{info.getValue()}</span>
+          <div className='text-gray-600 dark:text-gray-400 text-sm'>{formatRelativeTime(info.getValue())}</div>
         ),
       }),
       columnHelper.accessor('totalDuration', {
@@ -276,6 +313,27 @@ const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch =
         cell: info => getStatusBadge(info.getValue()),
         filterFn: 'equals',
       }),
+      columnHelper.display({
+        id: 'detectedEvents',
+        header: 'Detected Events',
+        cell: info => {
+          const eventNames = info.row.original.detectedEventNames;
+          if (eventNames.length === 0) return null;
+
+          return (
+            <div className='flex flex-wrap gap-0.5 max-w-xs'>
+              {eventNames.map((eventName, idx) => (
+                <span
+                  key={idx}
+                  className='inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono tracking-wide bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 whitespace-nowrap'
+                >
+                  {eventName}
+                </span>
+              ))}
+            </div>
+          );
+        },
+      }),
       columnHelper.accessor('recordId', {
         id: 'recordId',
         header: 'Record ID',
@@ -289,13 +347,6 @@ const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch =
         header: 'User',
         cell: info => <div className='text-gray-600 dark:text-gray-400 text-sm'>{info.getValue()}</div>,
         filterFn: 'includesString',
-      }),
-      columnHelper.accessor('createdAt', {
-        id: 'createdAt',
-        header: 'Created',
-        cell: info => (
-          <div className='text-gray-600 dark:text-gray-400 text-sm'>{formatRelativeTime(info.getValue())}</div>
-        ),
       }),
       columnHelper.display({
         id: 'actions',

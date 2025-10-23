@@ -39,6 +39,11 @@ query InvocationsList(
         count
       }
     }
+    event_executions(where: { detected: { _eq: true } }) {
+      id
+      event_name
+      detected
+    }
   }
 
   invocations_aggregate(where: $where) {
