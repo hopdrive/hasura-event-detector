@@ -166,7 +166,45 @@ const FlowDiagramContent = () => {
   const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
     setSelectedNode(node);
     setDrawerOpen(true);
-  }, []);
+
+    // Center and zoom on the selected node, accounting for the 600px drawer on the right
+    setTimeout(() => {
+      if (reactFlowInstance) {
+        const flowBounds = document.querySelector('.react-flow')?.getBoundingClientRect();
+
+        if (flowBounds) {
+          const drawerWidth = 600;
+          const zoom = 1.5;
+          const totalWidth = flowBounds.width;
+          const visibleWidth = totalWidth - drawerWidth;
+
+          // FLIPPED: To shift the viewport so the node appears LEFT (in visible area),
+          // we actually need to move the CENTER POINT to the RIGHT in flow coordinates
+          // This is because setCenter positions what FLOW POINT appears at screen center
+
+          // We want the node to appear at the center of the visible area
+          // which is visibleWidth/2 from the left edge of the screen
+          // In terms of offset from total screen center: -(drawerWidth/2)
+          // But since we're moving the flow coordinate that appears at screen center,
+          // we need to ADD (positive) to shift viewport left
+          const shiftRight = (drawerWidth / 2);
+
+          // Convert to flow coordinates
+          const centerShiftInFlowCoords = shiftRight / zoom;
+
+          // Position the node in the center of the visible area
+          reactFlowInstance.setCenter(
+            node.position.x + 120 + centerShiftInFlowCoords,
+            node.position.y,
+            {
+              zoom: zoom,
+              duration: 800
+            }
+          );
+        }
+      }
+    }, 100);
+  }, [reactFlowInstance]);
 
   const onPaneClick = useCallback(() => {
     setSelectedNode(null);
