@@ -209,7 +209,17 @@ const FlowDiagramContent = () => {
   const onPaneClick = useCallback(() => {
     setSelectedNode(null);
     setDrawerOpen(false);
-  }, []);
+
+    // Zoom out to show the entire flow diagram
+    if (reactFlowInstance) {
+      reactFlowInstance.fitView({
+        padding: 0.2,
+        duration: 800,
+        maxZoom: 1.5,
+        minZoom: 0.1
+      });
+    }
+  }, [reactFlowInstance]);
 
   // Node dragging will work automatically with direct props
 
