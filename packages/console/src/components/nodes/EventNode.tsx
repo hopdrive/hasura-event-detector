@@ -39,20 +39,20 @@ export const EventNode: React.FC<NodeProps<EventNodeData>> = ({ data, selected }
   return (
     <motion.div
       initial={{ scale: 0.8, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
+      animate={{ scale: selected ? 1.05 : 1, opacity: 1 }}
       transition={{ duration: 0.3, delay: 0.1 }}
       className={`
         relative bg-white dark:bg-gray-800 rounded-lg border-2
         ${hasErrors ? 'border-red-500' : isDetected ? 'border-green-500' : 'border-gray-300 opacity-60'}
-        ${selected ? `ring-4 ${hasErrors ? 'ring-red-400' : 'ring-green-400'} ring-opacity-50` : ''}
-        shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer
+        ${selected ? `ring-4 ${hasErrors ? 'ring-red-500 ring-opacity-75 shadow-2xl' : 'ring-green-500 ring-opacity-75 shadow-2xl'}` : 'shadow-md'}
+        hover:shadow-lg transition-all duration-200 cursor-pointer
         min-w-[220px]
       `}
     >
       <Handle type='target' position={Position.Left} className='w-3 h-3' />
 
-      {/* Status-colored accent strip */}
-      <div className={`absolute left-0 top-0 bottom-0 w-1 ${hasErrors ? 'bg-red-500' : 'bg-green-500'} rounded-l-lg`} />
+      {/* Status-colored accent strip - thicker when selected */}
+      <div className={`absolute left-0 top-0 bottom-0 ${selected ? 'w-2' : 'w-1'} ${hasErrors ? 'bg-red-500' : 'bg-green-500'} rounded-l-lg transition-all duration-200`} />
 
       <div className='p-3 pl-4'>
         <div className='flex items-center justify-between mb-1'>

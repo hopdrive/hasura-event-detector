@@ -24,20 +24,20 @@ export const GroupedEventsNode: React.FC<NodeProps<GroupedEventsNodeData>> = ({ 
   return (
     <motion.div
       initial={{ scale: 0.8, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
+      animate={{ scale: selected ? 1.05 : 1, opacity: 1 }}
       transition={{ duration: 0.3 }}
       className={`
         relative bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-400 dark:border-gray-500
-        ${selected ? 'ring-4 ring-gray-400 ring-opacity-50' : ''}
-        shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer
+        ${selected ? 'ring-4 ring-gray-500 ring-opacity-75 shadow-2xl' : 'shadow-md'}
+        hover:shadow-lg transition-all duration-200 cursor-pointer
         ${expanded ? 'min-w-[280px]' : 'min-w-[200px]'}
       `}
       onClick={() => setExpanded(!expanded)}
     >
       <Handle type='target' position={Position.Top} id='top' className='w-3 h-3' />
 
-      {/* Gray accent strip */}
-      <div className='absolute left-0 top-0 bottom-0 w-1 bg-gray-400 dark:bg-gray-500 rounded-l-lg' />
+      {/* Gray accent strip - thicker when selected */}
+      <div className={`absolute left-0 top-0 bottom-0 ${selected ? 'w-2' : 'w-1'} bg-gray-400 dark:bg-gray-500 rounded-l-lg transition-all duration-200`} />
 
       <div className='p-4 pl-5'>
         <div className='flex items-center justify-between mb-2'>

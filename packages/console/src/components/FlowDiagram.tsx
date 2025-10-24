@@ -208,14 +208,20 @@ const FlowDiagramContent = () => {
       }
     });
 
+    // Mark the selected node
+    const nodesWithSelection = filteredNodes.map(node => ({
+      ...node,
+      selected: selectedNode?.id === node.id
+    }));
+
     // Filter edges to only include those connecting visible nodes
     const filteredNodeIds = new Set(filteredNodes.map(node => node.id));
     const filteredEdges = generatedEdges.filter(edge =>
       filteredNodeIds.has(edge.source) && filteredNodeIds.has(edge.target)
     );
 
-    return { nodes: filteredNodes, edges: filteredEdges };
-  }, [generatedNodes, generatedEdges, searchTerm]);
+    return { nodes: nodesWithSelection, edges: filteredEdges };
+  }, [generatedNodes, generatedEdges, searchTerm, selectedNode]);
 
 
   if (loading) {

@@ -7,11 +7,12 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
+    allowedHosts: ['.ngrok-free.app'],
     proxy: {
       '/api/grafana': {
         target: process.env.VITE_GRAFANA_HOST || 'https://logs-prod-036.grafana.net',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/grafana/, ''),
+        rewrite: path => path.replace(/^\/api\/grafana/, ''),
       },
     },
   },
@@ -22,12 +23,12 @@ export default defineConfig({
     // The console is meant to be served, not imported
     rollupOptions: {
       input: {
-        main: path.resolve(__dirname, 'index.html')
-      }
-    }
+        main: path.resolve(__dirname, 'index.html'),
+      },
+    },
   },
   define: {
     // Properly define process.env.NODE_ENV
-    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production')
-  }
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
+  },
 });
