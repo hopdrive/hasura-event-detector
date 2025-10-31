@@ -1,0 +1,390 @@
+#!/usr/bin/env node
+
+/**
+ * Build script for compiling TypeScript event modules to JavaScript
+ *
+ * This script finds all .ts files in event directories and compiles them to .generated.js
+ * files, making it clear which files are build artifacts vs user source code.
+ *
+ * Usage:
+ *   hasura-event-detector build-events [options]
+ *
+ * Options:
+ *   --functions-dir <dir>  Functions directory (default: "functions")
+ *   --watch               Watch mode for development
+ *   --clean               Remove all .generated.js files
+ *   --verbose             Show detailed output
+ */
+
+const fs = require('fs');
+const path = require('path');
+const { spawnSync } = require('child_process');
+
+class EventModuleBuilder {
+  constructor(options = {}) {
+    this.functionsDir = options.functionsDir || 'functions';
+    this.verbose = options.verbose || false;
+    this.watch = options.watch || false;
+    this.clean = options.clean || false;
+    this.isESM = this.detectESMProject();
+  }
+
+  log(message, level = 'info') {
+    const prefix = {
+      info: '[build-events]',
+      success: '[build-events] ✓',
+      error: '[build-events] ✗',
+      warn: '[build-events] ⚠',
+    }[level];
+    console.log(`${prefix} ${message}`);
+  }
+
+  /**
+   * Detect if the target project is ESM by checking package.json
+   */
+  detectESMProject() {
+    try {
+      const pkgPath = path.resolve(process.cwd(), 'package.json');
+      if (fs.existsSync(pkgPath)) {
+        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+        return pkg.type === 'module';
+      }
+    } catch (error) {
+      // If we can't read package.json, assume CommonJS
+    }
+    return false;
+  }
+
+  /**
+   * Find all event TypeScript files
+   */
+  findEventFiles() {
+    const eventFiles = [];
+
+    if (!fs.existsSync(this.functionsDir)) {
+      this.log(`Functions directory not found: ${this.functionsDir}`, 'warn');
+      return eventFiles;
+    }
+
+    const scanDirectory = (dir) => {
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+
+        if (entry.isDirectory()) {
+          // Check if this is an "events" directory
+          if (entry.name === 'events') {
+            // Find all .ts files in this events directory, excluding generated files and index
+            const tsFiles = fs.readdirSync(fullPath)
+              .filter(file =>
+                file.endsWith('.ts') &&
+                file !== 'index.ts' &&
+                !file.includes('.generated.')
+              )
+              .map(file => path.join(fullPath, file));
+            eventFiles.push(...tsFiles);
+          } else {
+            // Recursively scan subdirectories
+            scanDirectory(fullPath);
+          }
+        }
+      }
+    };
+
+    scanDirectory(this.functionsDir);
+    return eventFiles;
+  }
+
+  /**
+   * Clean all generated files
+   */
+  cleanGeneratedFiles() {
+    this.log('Cleaning generated files...');
+
+    const cleanDirectory = (dir) => {
+      if (!fs.existsSync(dir)) return;
+
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      let cleanedCount = 0;
+
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+
+        if (entry.isDirectory()) {
+          cleanedCount += cleanDirectory(fullPath);
+        } else if (entry.name.endsWith('.generated.cjs') ||
+                   entry.name.endsWith('.generated.js') ||
+                   entry.name.endsWith('.generated.d.ts') ||
+                   entry.name.endsWith('.generated.js.map')) {
+          fs.unlinkSync(fullPath);
+          cleanedCount++;
+          if (this.verbose) {
+            this.log(`Removed: ${fullPath}`);
+          }
+        }
+      }
+
+      return cleanedCount;
+    };
+
+    const count = cleanDirectory(this.functionsDir);
+    this.log(`Cleaned ${count} generated file(s)`, 'success');
+    return count;
+  }
+
+  /**
+   * Compile a single TypeScript file
+   */
+  compileFile(tsFilePath) {
+    const dir = path.dirname(tsFilePath);
+    const baseName = path.basename(tsFilePath, '.ts');
+    const jsFilePath = path.join(dir, `${baseName}.js`);
+
+    // Use .generated.js for ESM projects, .generated.cjs for CommonJS projects
+    const extension = this.isESM ? '.generated.js' : '.generated.cjs';
+    const generatedFilePath = path.join(dir, `${baseName}${extension}`);
+
+    // Use appropriate module format based on project type
+    const moduleFormat = this.isESM ? 'esnext' : 'commonjs';
+    const moduleResolution = this.isESM ? 'bundler' : 'node';
+
+    // Compile using TypeScript
+    // Run tsc from the file's directory to avoid nested output paths
+    const fileName = path.basename(tsFilePath);
+    const result = spawnSync('npx', [
+      'tsc',
+      fileName,
+      '--module', moduleFormat,
+      '--target', 'es2020',
+      '--moduleResolution', moduleResolution,
+      '--esModuleInterop',
+      '--skipLibCheck',
+      '--sourceMap', 'false'
+    ], {
+      cwd: dir,  // Run from the file's directory
+      encoding: 'utf8'
+    });
+
+    if (result.error) {
+      throw new Error(`Failed to compile ${tsFilePath}: ${result.error.message}`);
+    }
+
+    if (result.status !== 0) {
+      // Compilation failed
+      return {
+        success: false,
+        file: tsFilePath,
+        error: result.stderr || result.stdout
+      };
+    }
+
+    // Rename .js to .generated.{js|cjs}
+    if (fs.existsSync(jsFilePath)) {
+      // Read the compiled JS content
+      let jsContent = fs.readFileSync(jsFilePath, 'utf8');
+
+      // For ESM projects, add .js extensions to relative imports
+      // ESM requires explicit file extensions, but TypeScript doesn't add them
+      if (this.isESM) {
+        // Helper function to resolve import paths
+        const resolveImportPath = (importPath) => {
+          // Don't modify if already has extension
+          if (importPath.match(/\.(js|mjs|cjs|json)$/)) {
+            return importPath;
+          }
+
+          // Resolve the full path relative to the current file's directory
+          const fullPath = path.resolve(dir, importPath);
+
+          // Check if it's a directory with an index file
+          if (fs.existsSync(fullPath) && fs.statSync(fullPath).isDirectory()) {
+            // Check for index.js, index.mjs, index.ts
+            if (fs.existsSync(path.join(fullPath, 'index.js')) ||
+                fs.existsSync(path.join(fullPath, 'index.ts'))) {
+              return `${importPath}/index.js`;
+            }
+          }
+
+          // Otherwise, assume it's a file and add .js
+          return `${importPath}.js`;
+        };
+
+        // Match import/export statements with relative paths (starting with ./ or ../)
+        jsContent = jsContent.replace(
+          /^(import\s+.*?\s+from\s+['"])(\.\.?\/[^'"]+)(['"])/gm,
+          (match, prefix, importPath, suffix) => {
+            const resolved = resolveImportPath(importPath);
+            return `${prefix}${resolved}${suffix}`;
+          }
+        );
+        jsContent = jsContent.replace(
+          /^(export\s+.*?\s+from\s+['"])(\.\.?\/[^'"]+)(['"])/gm,
+          (match, prefix, importPath, suffix) => {
+            const resolved = resolveImportPath(importPath);
+            return `${prefix}${resolved}${suffix}`;
+          }
+        );
+      }
+
+      // Add header to generated file
+      const moduleType = this.isESM ? 'ESM' : 'CommonJS';
+      const header = `// Generated by @hopdrive/hasura-event-detector build-events (${moduleType})\n// DO NOT EDIT - Source: ${baseName}.ts\n// Generated: ${new Date().toISOString()}\n\n`;
+      fs.writeFileSync(generatedFilePath, header + jsContent);
+      fs.unlinkSync(jsFilePath);
+    }
+
+    return {
+      success: true,
+      file: tsFilePath,
+      output: generatedFilePath
+    };
+  }
+
+  /**
+   * Build all event modules
+   */
+  build() {
+    this.log('Finding event modules...');
+    const eventFiles = this.findEventFiles();
+
+    if (eventFiles.length === 0) {
+      this.log('No event modules found', 'warn');
+      return { success: true, compiled: 0, failed: 0 };
+    }
+
+    this.log(`Found ${eventFiles.length} event module(s) to compile`);
+
+    const results = {
+      success: true,
+      compiled: 0,
+      failed: 0,
+      errors: []
+    };
+
+    for (const file of eventFiles) {
+      try {
+        if (this.verbose) {
+          this.log(`Compiling: ${file}`);
+        }
+
+        const result = this.compileFile(file);
+
+        if (result.success) {
+          results.compiled++;
+          if (this.verbose) {
+            this.log(`  → ${result.output}`, 'success');
+          }
+        } else {
+          results.failed++;
+          results.success = false;
+          results.errors.push({
+            file: result.file,
+            error: result.error
+          });
+          this.log(`Failed to compile: ${result.file}`, 'error');
+          if (this.verbose) {
+            console.error(result.error);
+          }
+        }
+      } catch (error) {
+        results.failed++;
+        results.success = false;
+        results.errors.push({
+          file,
+          error: error.message
+        });
+        this.log(`Error compiling ${file}: ${error.message}`, 'error');
+      }
+    }
+
+    // Summary
+    if (results.success) {
+      this.log(`Successfully compiled ${results.compiled} event module(s)`, 'success');
+    } else {
+      this.log(`Compiled ${results.compiled} module(s), ${results.failed} failed`, 'error');
+    }
+
+    return results;
+  }
+
+  /**
+   * Watch mode
+   */
+  watchMode() {
+    this.log('Watch mode not yet implemented', 'warn');
+    this.log('Run with --verbose to see detailed output');
+    // TODO: Implement file watching with chokidar
+    process.exit(1);
+  }
+}
+
+// CLI interface
+function main() {
+  const args = process.argv.slice(2);
+
+  const options = {
+    functionsDir: 'functions',
+    verbose: false,
+    watch: false,
+    clean: false
+  };
+
+  // Parse arguments
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+
+    if (arg === '--functions-dir' && args[i + 1]) {
+      options.functionsDir = args[i + 1];
+      i++;
+    } else if (arg === '--verbose') {
+      options.verbose = true;
+    } else if (arg === '--watch') {
+      options.watch = true;
+    } else if (arg === '--clean') {
+      options.clean = true;
+    } else if (arg === '--help' || arg === '-h') {
+      console.log(`
+Usage: hasura-event-detector build-events [options]
+
+Compile TypeScript event modules to .generated.js files
+
+Options:
+  --functions-dir <dir>  Functions directory (default: "functions")
+  --watch               Watch mode for development (not yet implemented)
+  --clean               Remove all .generated.js files
+  --verbose             Show detailed output
+  --help, -h            Show this help message
+
+Examples:
+  hasura-event-detector build-events
+  hasura-event-detector build-events --functions-dir=netlify/functions
+  hasura-event-detector build-events --clean
+  hasura-event-detector build-events --verbose
+      `);
+      process.exit(0);
+    }
+  }
+
+  const builder = new EventModuleBuilder(options);
+
+  if (options.clean) {
+    builder.cleanGeneratedFiles();
+    process.exit(0);
+  }
+
+  if (options.watch) {
+    builder.watchMode();
+    return;
+  }
+
+  const results = builder.build();
+  process.exit(results.success ? 0 : 1);
+}
+
+// Run if called directly
+if (require.main === module) {
+  main();
+}
+
+module.exports = { EventModuleBuilder };

@@ -1,0 +1,22 @@
+{
+  "name": "hasura-event-detector-netlify-example",
+  "version": "1.0.0",
+  "description": "Example Netlify site using Hasura Event Detector",
+  "type": "module",
+  "scripts": {
+    "build": "hasura-event-detector build-events --verbose",
+    "dev": "netlify dev",
+    "deploy": "netlify deploy --prod"
+  },
+  "dependencies": {
+    "@hopdrive/hasura-event-detector": "^2.3.1",
+    "@netlify/functions": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "netlify-cli": "^17.0.0",
+    "typescript": "^5.3.3"
+  },
+  "author": "",
+  "license": "ISC"
+}

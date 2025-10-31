@@ -1,0 +1,272 @@
+#!/usr/bin/env node
+
+/**
+ * Hasura Event Detector CLI
+ *
+ * Command-line interface for managing and testing event detection.
+ */
+
+const { program } = require('commander');
+const path = require('path');
+const fs = require('fs');
+
+// Import CLI commands
+const { createEventCommand } = require('../dist/cjs/cli/create-event.js');
+const { testEventCommand } = require('../dist/cjs/cli/test-event.js');
+const { listEventsCommand } = require('../dist/cjs/cli/list-events.js');
+const { validateConfigCommand } = require('../dist/cjs/cli/validate-config.js');
+const {
+  startConsoleCommand,
+  initConsoleCommand,
+  buildConsoleCommand,
+  addScriptCommand,
+  removeScriptCommand,
+  checkConsoleCommand,
+} = require('../dist/cjs/cli/console.js');
+
+// Set up the CLI program
+program
+  .name('hasura-event-detector')
+  .description('CLI for Hasura Event Detector system')
+  .version(getVersion());
+
+// Add commands
+program
+  .command('create <eventName>')
+  .description('Create a new event module from template')
+  .option('-t, --template <template>', 'Template to use (basic, user-activation)', 'basic')
+  .option('-d, --directory <dir>', 'Events directory', './events')
+  .action(createEventCommand);
+
+program
+  .command('test <eventName>')
+  .description('Test an event module with sample data')
+  .option('-f, --file <file>', 'JSON file with test Hasura event')
+  .option('-d, --directory <dir>', 'Events directory', './events')
+  .option('--dry-run', 'Run detection only, skip job execution')
+  .action(testEventCommand);
+
+program
+  .command('list')
+  .description('List all available event modules')
+  .option('-d, --directory <dir>', 'Events directory', './events')
+  .option('--detailed', 'Show detailed information about each event')
+  .action(listEventsCommand);
+
+program
+  .command('validate')
+  .description('Validate event detector configuration')
+  .option('-c, --config <file>', 'Configuration file', './hasura-event-detector.config.js')
+  .action(validateConfigCommand);
+
+// Console commands
+const consoleCommand = program
+  .command('console')
+  .description('Manage the observability console');
+
+consoleCommand
+  .command('start')
+  .description('Start the observability console')
+  .option('-c, --config <file>', 'Configuration file', './console.config.js')
+  .option('-p, --port <port>', 'Port to run on', '3000')
+  .option('--host <host>', 'Host to bind to', 'localhost')
+  .option('--no-open', 'Do not open browser automatically')
+  .option('--no-watch', 'Disable watch mode')
+  .option('--database-url <url>', 'Database URL')
+  .option('--hasura-endpoint <url>', 'Hasura GraphQL endpoint')
+  .option('--hasura-admin-secret <secret>', 'Hasura admin secret')
+  .option('--env <path>', 'Path to environment file (e.g., file://path/to/.env)')
+  .action(startConsoleCommand);
+
+consoleCommand
+  .command('init')
+  .description('Initialize console configuration')
+  .option('-c, --config <file>', 'Configuration file', './console.config.js')
+  .option('-p, --port <port>', 'Port to run on', '3000')
+  .option('--host <host>', 'Host to bind to', 'localhost')
+  .option('--database-url <url>', 'Database URL')
+  .option('--hasura-endpoint <url>', 'Hasura GraphQL endpoint')
+  .option('--hasura-admin-secret <secret>', 'Hasura admin secret')
+  .option('--add-script', 'Add event-console script to package.json')
+  .action(initConsoleCommand);
+
+consoleCommand
+  .command('build')
+  .description('Build console for production')
+  .option('-c, --config <file>', 'Configuration file', './console.config.js')
+  .option('-o, --output-dir <dir>', 'Output directory')
+  .option('--public-url <url>', 'Public URL for the console')
+  .option('--database-url <url>', 'Database URL')
+  .option('--hasura-endpoint <url>', 'Hasura GraphQL endpoint')
+  .option('--hasura-admin-secret <secret>', 'Hasura admin secret')
+  .action(buildConsoleCommand);
+
+consoleCommand
+  .command('add-script')
+  .description('Add event-console script to package.json')
+  .option('-p, --port <port>', 'Port to run on', '3000')
+  .option('--script-name <name>', 'Script name', 'event-console')
+  .action(addScriptCommand);
+
+consoleCommand
+  .command('remove-script')
+  .description('Remove event-console script from package.json')
+  .action(removeScriptCommand);
+
+consoleCommand
+  .command('check')
+  .description('Check console configuration')
+  .option('-c, --config <file>', 'Configuration file', './console.config.js')
+  .action(checkConsoleCommand);
+
+program
+  .command('verify-setup')
+  .description('Verify event detection setup and configuration')
+  .option('--functions-dir <dir>', 'Functions directory', 'functions')
+  .action((options) => {
+    const { spawn } = require('child_process');
+    const scriptPath = path.join(__dirname, '../scripts/verify-setup.mjs');
+
+    const args = [];
+    if (options.functionsDir) {
+      args.push('--functions-dir', options.functionsDir);
+    }
+
+    const child = spawn('node', [scriptPath, ...args], {
+      stdio: 'inherit',
+      cwd: process.cwd()
+    });
+
+    child.on('exit', (code) => {
+      process.exit(code || 0);
+    });
+  });
+
+program
+  .command('build-events')
+  .description('Compile TypeScript event modules to .generated.js files')
+  .option('--functions-dir <dir>', 'Functions directory', 'functions')
+  .option('--watch', 'Watch mode for development (not yet implemented)')
+  .option('--clean', 'Remove all .generated.js files')
+  .option('--fix-imports', 'Fix ESM imports in compiled JS files (adds .js extensions)')
+  .option('--verbose', 'Show detailed output')
+  .action((options) => {
+    const { EventModuleBuilder } = require('../scripts/build-events.js');
+    const builder = new EventModuleBuilder(options);
+
+    if (options.clean) {
+      builder.cleanGeneratedFiles();
+      process.exit(0);
+    }
+
+    if (options.watch) {
+      builder.watchMode();
+      return;
+    }
+
+    const results = builder.build();
+
+    // Fix ESM imports if requested
+    if (options.fixImports && results.success) {
+      const { fixEsmImports } = require('../scripts/fix-esm-imports.cjs');
+      const functionsDir = path.resolve(options.functionsDir || 'functions');
+      console.log('\nFixing ESM imports...');
+      fixEsmImports(functionsDir, { verbose: options.verbose });
+    }
+
+    process.exit(results.success ? 0 : 1);
+  });
+
+program
+  .command('fix-imports')
+  .description('Fix ESM import paths in compiled JavaScript files')
+  .argument('[directory]', 'Directory to process', 'functions')
+  .option('--verbose', 'Show detailed output', true)
+  .action((directory, options) => {
+    const { fixEsmImports } = require('../scripts/fix-esm-imports.cjs');
+    const result = fixEsmImports(directory, options);
+    process.exit(result.success ? 0 : 1);
+  });
+
+program
+  .command('init')
+  .description('Initialize a new Hasura Event Detector project')
+  .option('--typescript', 'Initialize with TypeScript support')
+  .action(async (options) => {
+    console.log('🚀 Initializing Hasura Event Detector project...');
+
+    // Create events directory
+    const eventsDir = './events';
+    if (!fs.existsSync(eventsDir)) {
+      fs.mkdirSync(eventsDir, { recursive: true });
+      console.log(`✅ Created events directory: ${eventsDir}`);
+    }
+
+    // Create sample event
+    const templateSource = options.typescript
+      ? path.join(__dirname, '../templates/user-activation-event.ts')
+      : path.join(__dirname, '../templates/user-activation-event.js');
+
+    const targetFile = options.typescript ? './events/user-activation.ts' : './events/user-activation.js';
+
+    if (fs.existsSync(templateSource)) {
+      fs.copyFileSync(templateSource, targetFile);
+      console.log(`✅ Created sample event: ${targetFile}`);
+    }
+
+    // Create config file
+    const configTemplate = options.typescript ? 'hasura-event-detector.config.ts' : 'hasura-event-detector.config.js';
+
+    if (!fs.existsSync(configTemplate)) {
+      const configContent = options.typescript
+        ? `
+import type { ListenToOptions } from '@hopdrive/hasura-event-detector';
+
+export const config: Partial<ListenToOptions> = {
+  autoLoadEventModules: true,
+  eventModulesDirectory: './events',
+  observability: {
+    enabled: process.env.NODE_ENV === 'production',
+    // Add your database configuration here
+  }
+};
+
+export default config;
+`
+        : `
+module.exports = {
+  autoLoadEventModules: true,
+  eventModulesDirectory: './events',
+  observability: {
+    enabled: process.env.NODE_ENV === 'production',
+    // Add your database configuration here
+  }
+};
+`;
+
+      fs.writeFileSync(configTemplate, configContent.trim());
+      console.log(`✅ Created config file: ${configTemplate}`);
+    }
+
+    console.log('\n🎉 Project initialized successfully!');
+    console.log('\nNext steps:');
+    console.log('1. Configure your database connection in the config file');
+    console.log('2. Create your first event module: hasura-event-detector create my-event');
+    console.log('3. Test your event: hasura-event-detector test my-event');
+  });
+
+// Parse command line arguments
+program.parse();
+
+/**
+ * Get package version
+ */
+function getVersion() {
+  try {
+    const packagePath = path.join(__dirname, '../package.json');
+    const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+    return packageJson.version || '1.0.0';
+  } catch (error) {
+    return '1.0.0';
+  }
+}

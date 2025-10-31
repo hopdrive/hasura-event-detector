@@ -1,0 +1,11 @@
+# Generated event modules (do not edit or commit)
+# These files are compiled from TypeScript sources by hasura-event-detector build-events
+
+# Generated JavaScript files
+functions/**/events/*.generated.js
+
+# Generated TypeScript declaration files
+functions/**/events/*.generated.d.ts
+
+# Source maps (if enabled)
+functions/**/events/*.generated.js.map

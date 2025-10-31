@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Generated event modules (compiled at build time)
+functions/**/events/*.generated.js
+functions/**/events/*.generated.d.ts
+functions/**/events/*.generated.js.map
+
+# Netlify
+.netlify/
+.env
+.env.local
+
+# Build output
+dist/
+public/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

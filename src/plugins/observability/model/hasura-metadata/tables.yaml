@@ -1,0 +1,258 @@
+# Hasura Metadata Configuration for Event Detector Observability
+# This file defines the tables, relationships, permissions, and computed fields
+# for the observability schema in Hasura GraphQL Engine
+
+- table:
+    name: invocations
+    schema: event_detector_observability
+  configuration:
+    custom_root_fields: {}
+    custom_column_names: {}
+  object_relationships: []
+  array_relationships:
+  - name: event_executions
+    using:
+      foreign_key_constraint_on:
+        column: invocation_id
+        table:
+          name: event_executions
+          schema: event_detector_observability
+  - name: job_executions
+    using:
+      foreign_key_constraint_on:
+        column: invocation_id
+        table:
+          name: job_executions
+          schema: event_detector_observability
+  computed_fields:
+  - name: success_rate
+    definition:
+      function:
+        name: invocation_success_rate
+        schema: event_detector_observability
+  - name: avg_job_duration
+    definition:
+      function:
+        name: invocation_avg_job_duration
+        schema: event_detector_observability
+  select_permissions:
+  - role: user
+    permission:
+      columns:
+      - id
+      - created_at
+      - updated_at
+      - source_function
+      - source_table
+      - source_operation
+      - hasura_event_id
+      - hasura_event_time
+      - hasura_user_email
+      - hasura_user_role
+      - total_duration_ms
+      - events_detected_count
+      - total_jobs_run
+      - total_jobs_succeeded
+      - total_jobs_failed
+      - auto_load_modules
+      - event_modules_directory
+      - status
+      - error_message
+      - context_data
+      filter: {}
+      allow_aggregations: true
+  - role: admin
+    permission:
+      columns: "*"
+      filter: {}
+      allow_aggregations: true
+
+- table:
+    name: event_executions
+    schema: event_detector_observability
+  configuration:
+    custom_root_fields: {}
+    custom_column_names: {}
+  object_relationships:
+  - name: invocation
+    using:
+      foreign_key_constraint_on: invocation_id
+  array_relationships:
+  - name: job_executions
+    using:
+      foreign_key_constraint_on:
+        column: event_execution_id
+        table:
+          name: job_executions
+          schema: event_detector_observability
+  computed_fields:
+  - name: job_success_rate
+    definition:
+      function:
+        name: event_job_success_rate
+        schema: event_detector_observability
+  select_permissions:
+  - role: user
+    permission:
+      columns:
+      - id
+      - invocation_id
+      - created_at
+      - updated_at
+      - event_name
+      - event_module_path
+      - detected
+      - detection_duration_ms
+      - detection_error
+      - handler_duration_ms
+      - handler_error
+      - jobs_count
+      - jobs_succeeded
+      - jobs_failed
+      - status
+      filter: {}
+      allow_aggregations: true
+  - role: admin
+    permission:
+      columns: "*"
+      filter: {}
+      allow_aggregations: true
+
+- table:
+    name: job_executions
+    schema: event_detector_observability
+  configuration:
+    custom_root_fields: {}
+    custom_column_names: {}
+  object_relationships:
+  - name: invocation
+    using:
+      foreign_key_constraint_on: invocation_id
+  - name: event_execution
+    using:
+      foreign_key_constraint_on: event_execution_id
+  array_relationships:
+  - name: logs
+    using:
+      foreign_key_constraint_on:
+        column: job_execution_id
+        table:
+          name: job_logs
+          schema: event_detector_observability
+  select_permissions:
+  - role: user
+    permission:
+      columns:
+      - id
+      - invocation_id
+      - event_execution_id
+      - created_at
+      - updated_at
+      - job_name
+      - job_function_name
+      - job_options
+      - duration_ms
+      - status
+      - result
+      - error_message
+      - console_logs
+      filter: {}
+      allow_aggregations: true
+  - role: admin
+    permission:
+      columns: "*"
+      filter: {}
+      allow_aggregations: true
+
+- table:
+    name: job_logs
+    schema: event_detector_observability
+  configuration:
+    custom_root_fields: {}
+    custom_column_names: {}
+  object_relationships:
+  - name: job_execution
+    using:
+      foreign_key_constraint_on: job_execution_id
+  select_permissions:
+  - role: user
+    permission:
+      columns:
+      - id
+      - job_execution_id
+      - created_at
+      - level
+      - message
+      - data
+      - source
+      - line_number
+      filter: {}
+      allow_aggregations: true
+  - role: admin
+    permission:
+      columns: "*"
+      filter: {}
+      allow_aggregations: true
+
+- table:
+    name: metrics_hourly
+    schema: event_detector_observability
+  configuration:
+    custom_root_fields: {}
+    custom_column_names: {}
+  select_permissions:
+  - role: user
+    permission:
+      columns:
+      - id
+      - hour_bucket
+      - source_function
+      - total_invocations
+      - total_events_detected
+      - total_jobs_run
+      - successful_invocations
+      - failed_invocations
+      - avg_duration_ms
+      - min_duration_ms
+      - max_duration_ms
+      - p95_duration_ms
+      - top_detected_events
+      - most_failed_jobs
+      - created_at
+      filter: {}
+      allow_aggregations: true
+  - role: admin
+    permission:
+      columns: "*"
+      filter: {}
+      allow_aggregations: true
+
+- table:
+    name: dashboard_stats
+    schema: event_detector_observability
+  configuration:
+    custom_root_fields: {}
+    custom_column_names: {}
+  select_permissions:
+  - role: user
+    permission:
+      columns:
+      - hour_bucket
+      - source_function
+      - total_invocations
+      - successful_invocations
+      - failed_invocations
+      - total_events_detected
+      - total_jobs_run
+      - total_jobs_succeeded
+      - avg_duration_ms
+      - min_duration_ms
+      - max_duration_ms
+      - p95_duration_ms
+      filter: {}
+      allow_aggregations: true
+  - role: admin
+    permission:
+      columns: "*"
+      filter: {}
+      allow_aggregations: true

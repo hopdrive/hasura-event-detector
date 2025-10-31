@@ -1,0 +1,35 @@
+# Hasura Functions Configuration for Event Detector Observability
+# This file defines the PostgreSQL functions that are tracked by Hasura
+# for use as computed fields in the GraphQL schema
+
+- function:
+    name: invocation_success_rate
+    schema: event_detector_observability
+  configuration:
+    response:
+      type: numeric
+    session_argument: null
+
+- function:
+    name: invocation_avg_job_duration
+    schema: event_detector_observability
+  configuration:
+    response:
+      type: numeric
+    session_argument: null
+
+- function:
+    name: event_job_success_rate
+    schema: event_detector_observability
+  configuration:
+    response:
+      type: numeric
+    session_argument: null
+
+- function:
+    name: refresh_dashboard_stats
+    schema: event_detector_observability
+  configuration:
+    response:
+      type: void
+    session_argument: null
