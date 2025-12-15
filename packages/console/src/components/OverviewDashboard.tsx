@@ -40,8 +40,13 @@ import DatabaseConnectionStatus from './DatabaseConnectionStatus';
 import { usePolling } from '../contexts/PollingContext';
 import { useSystemStatus } from '../hooks/useSystemStatus';
 
-const KPICard = ({ title, value, change, trend, icon: Icon, color }: any) => {
-  const isPositive = trend === 'up';
+const KPICard = ({ title, value, change, icon: Icon, color }: any) => {
+  // Determine if change is negative by checking if it starts with '-'
+  const isNegative = change && change.startsWith('-');
+  // Remove the sign prefix ('-' or '+') for display
+  const displayChange = change ? change.replace(/^[+-]/, '') : change;
+  // Use red color and down arrow for negative changes
+  const isPositive = !isNegative;
   const TrendIcon = isPositive ? ArrowUpIcon : ArrowDownIcon;
 
   return (
@@ -57,7 +62,7 @@ const KPICard = ({ title, value, change, trend, icon: Icon, color }: any) => {
           {change && (
             <div className='mt-2 flex items-center text-sm'>
               <TrendIcon className={`h-4 w-4 mr-1 ${isPositive ? 'text-green-500' : 'text-red-500'}`} />
-              <span className={isPositive ? 'text-green-600' : 'text-red-600'}>{change}</span>
+              <span className={isPositive ? 'text-green-600' : 'text-red-600'}>{displayChange}</span>
               <span className='ml-2 text-gray-500'>vs last period</span>
             </div>
           )}
@@ -285,23 +290,14 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
           title='Total Invocations'
           value={totalInvocations.toLocaleString()}
           change='+12.5%'
-          trend='up'
           icon={CheckCircleIcon}
           color='blue'
         />
-        <KPICard
-          title='Success Rate'
-          value={`${successRate}%`}
-          change='+2.1%'
-          trend='up'
-          icon={CheckCircleIcon}
-          color='green'
-        />
+        <KPICard title='Success Rate' value={`${successRate}%`} change='+2.1%' icon={CheckCircleIcon} color='green' />
         <KPICard
           title='Avg Duration'
           value={formatDuration(avgDuration)}
           change='-8.3%'
-          trend='up'
           icon={ClockIcon}
           color='purple'
         />
@@ -309,7 +305,6 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
           title='Failed Jobs'
           value={totalJobsFailed.toLocaleString()}
           change='-15.2%'
-          trend='up'
           icon={XCircleIcon}
           color='red'
         />

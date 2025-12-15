@@ -4,11 +4,10 @@ import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink } from '@ap
 import {
   HomeIcon,
   TableCellsIcon,
-  ShareIcon,
   ChartBarIcon,
   Cog6ToothIcon,
   MagnifyingGlassIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
 import OverviewDashboard from './components/OverviewDashboard';
@@ -62,7 +61,6 @@ const client = new ApolloClient({
 const navigation = [
   { name: 'Overview', href: '/', icon: HomeIcon },
   { name: 'Invocations', href: '/invocations', icon: TableCellsIcon },
-  { name: 'Flow Diagram', href: '/flow', icon: ShareIcon },
   { name: 'Analytics', href: '/analytics', icon: ChartBarIcon },
   { name: 'Settings', href: '/settings', icon: Cog6ToothIcon },
 ];
