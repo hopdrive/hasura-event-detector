@@ -38,6 +38,7 @@ import {
 import { NetworkStatus } from '@apollo/client';
 import DatabaseConnectionStatus from './DatabaseConnectionStatus';
 import { usePolling } from '../contexts/PollingContext';
+import { useSystemStatus } from '../hooks/useSystemStatus';
 
 const KPICard = ({ title, value, change, trend, icon: Icon, color }: any) => {
   const isPositive = trend === 'up';
@@ -79,6 +80,7 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
   timeRange: timeRangeOption = '24h',
 }) => {
   const { setIsPolling } = usePolling();
+  const systemStatus = useSystemStatus();
 
   // Calculate the actual time range based on the selected option
   const timeRange = useMemo(() => {
@@ -270,7 +272,12 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
       </div>
 
       {/* Connection Status */}
-      <DatabaseConnectionStatus error={error} loading={isInitialLoading} hasData={totalInvocations > 0} />
+      <DatabaseConnectionStatus
+        error={error}
+        loading={isInitialLoading}
+        hasData={totalInvocations > 0}
+        databaseInfo={systemStatus.databaseInfo}
+      />
 
       {/* KPI Grid */}
       <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>

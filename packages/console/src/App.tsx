@@ -19,6 +19,7 @@ import Settings from './components/Settings';
 import CorrelationSearch from './components/CorrelationSearch';
 import FlowHeader from './components/FlowHeader';
 import { PollingProvider, usePolling } from './contexts/PollingContext';
+import { useSystemStatus } from './hooks/useSystemStatus';
 import './styles/globals.css';
 
 // Apollo Client configuration
@@ -114,6 +115,7 @@ function Layout({
 }) {
   const location = useLocation();
   const { isPolling } = usePolling();
+  const systemStatus = useSystemStatus();
   const isFlowPage = location.pathname === '/flow';
 
   return (
@@ -138,13 +140,75 @@ function Layout({
             ))}
           </nav>
 
-          {/* System Status */}
+          {/* Database Connection Info */}
           <div className='p-4 border-t border-gray-200 dark:border-gray-700'>
-            <div className='flex items-center justify-between text-sm'>
-              <span className='text-gray-600 dark:text-gray-400'>System Status</span>
-              <div className='flex items-center'>
-                <div className='w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2' />
-                <span className='text-green-600 dark:text-green-400'>Healthy</span>
+            <div className='space-y-3'>
+              <div>
+                <span className='text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
+                  Database
+                </span>
+                <div className='mt-1'>
+                  {systemStatus.databaseInfo.host ? (
+                    <div className='text-sm'>
+                      <div
+                        className='text-gray-900 dark:text-gray-100 font-medium truncate'
+                        title={systemStatus.databaseInfo.host}
+                      >
+                        {systemStatus.databaseInfo.host}
+                      </div>
+                      {systemStatus.databaseInfo.databaseName && (
+                        <div
+                          className='text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate'
+                          title={systemStatus.databaseInfo.databaseName}
+                        >
+                          {systemStatus.databaseInfo.databaseName}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div
+                      className='text-sm text-gray-600 dark:text-gray-400 truncate'
+                      title={systemStatus.databaseInfo.endpoint}
+                    >
+                      {systemStatus.databaseInfo.endpoint.replace(/^https?:\/\//, '').replace(/\/v1\/graphql$/, '')}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* System Status */}
+              <div>
+                <div className='flex items-center justify-between text-sm'>
+                  <span className='text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
+                    System Status
+                  </span>
+                  <div className='flex items-center'>
+                    {systemStatus.isLoading ? (
+                      <>
+                        <div className='w-2 h-2 bg-yellow-500 rounded-full animate-pulse mr-2' />
+                        <span className='text-yellow-600 dark:text-yellow-400'>Checking...</span>
+                      </>
+                    ) : systemStatus.isHealthy ? (
+                      <>
+                        <div className='w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2' />
+                        <span className='text-green-600 dark:text-green-400'>Healthy</span>
+                      </>
+                    ) : (
+                      <>
+                        <div className='w-2 h-2 bg-red-500 rounded-full mr-2' />
+                        <span className='text-red-600 dark:text-red-400'>Unhealthy</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                {systemStatus.error && (
+                  <div
+                    className='mt-1 text-xs text-red-600 dark:text-red-400 truncate'
+                    title={systemStatus.error.message}
+                  >
+                    {systemStatus.error.message}
+                  </div>
+                )}
               </div>
             </div>
           </div>
