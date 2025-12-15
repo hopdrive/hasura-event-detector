@@ -401,7 +401,16 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
           <h3 className='text-lg font-semibold text-gray-900 dark:text-white'>Recent Invocations</h3>
         </div>
         <div className='overflow-x-auto'>
-          <table className='w-full'>
+          {/* Scoped fix: remove any ::before/::after pseudo-elements on rows */}
+          <style>{`
+            /* Scope by data attribute so we don't affect other tables */
+            [data-dashboard-table] tbody tr::before,
+            [data-dashboard-table] tbody tr::after {
+              content: none !important;
+              display: none !important;
+            }
+          `}</style>
+          <table className='w-full' data-dashboard-table>
             <thead className='bg-gray-50 dark:bg-gray-700/50'>
               <tr>
                 <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
