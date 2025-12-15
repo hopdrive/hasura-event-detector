@@ -65,7 +65,8 @@
     "lint": "eslint src --ext .ts",
     "prepublishOnly": "npm run build",
     "deploy": "node scripts/deploy-wrapper.js",
-    "deploy-force": "node scripts/modified-deploy.js"
+    "deploy-force": "node scripts/modified-deploy.js",
+    "console": "cd packages/console && npm run dev"
   },
   "repository": {
     "type": "git",
