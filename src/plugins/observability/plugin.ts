@@ -422,6 +422,49 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   }
 
   /**
+   * Check if a value is a non-serializable client object (SDK, Apollo Client, GraphQL client, etc.)
+   * These objects contain circular references and internal state that should not be serialized.
+   */
+  private isNonSerializableClient(value: any): boolean {
+    if (!value || typeof value !== 'object') return false;
+
+    // Apollo Client instance (has queryManager, cache, link)
+    if (value.queryManager && value.cache && value.link) return true;
+
+    // SDK with an Apollo client inside (e.g. @hopdrive/sdk)
+    if (value.apollo && typeof value.apollo === 'object') return true;
+    if (value.config?.apollo_client) return true;
+
+    // GraphQL client with a request method and URL config (e.g. graphql-request)
+    if (value.url && typeof value.request === 'function' && typeof value.rawRequest === 'function') return true;
+
+    // Generic GQL interface (has gql.query and gql.mutation)
+    if (value.gql && typeof value.gql.query === 'function' && typeof value.gql.mutation === 'function') return true;
+
+    return false;
+  }
+
+  /**
+   * Sanitize job options by replacing non-serializable client objects with descriptive placeholders.
+   * Preserves all serializable values (IDs, configs, flags, strings, numbers).
+   */
+  private sanitizeJobOptions(options: any): any {
+    if (!options || typeof options !== 'object') return options;
+
+    const sanitized: any = {};
+    for (const [key, value] of Object.entries(options)) {
+      if (this.isNonSerializableClient(value)) {
+        sanitized[key] = `[${value?.constructor?.name || 'Client'} instance excluded]`;
+      } else if (typeof value === 'function') {
+        sanitized[key] = '[Function excluded]';
+      } else {
+        sanitized[key] = value;
+      }
+    }
+    return sanitized;
+  }
+
+  /**
    * Record job execution
    */
   async recordJobExecution(
@@ -439,7 +482,7 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       correlation_id: data.correlationId,
       job_name: data.jobName,
       job_function_name: data.jobFunctionName,
-      job_options: this.config.captureJobOptions ? data.jobOptions : null,
+      job_options: this.config.captureJobOptions ? this.sanitizeJobOptions(data.jobOptions) : null,
       duration_ms: data.durationMs,
       status: data.status || 'running',
       result: data.result,
