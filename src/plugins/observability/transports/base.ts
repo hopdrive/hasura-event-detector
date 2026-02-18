@@ -12,9 +12,11 @@ export abstract class BaseTransport {
   }
 
   /**
-   * Replace circular references in objects to prevent JSON serialization errors
+   * Replace circular references in objects to prevent JSON serialization errors.
+   * Also enforces a max depth to prevent excessively deep traversal of linked-list
+   * structures (e.g. Apollo AST tokens) that aren't circular but are unbounded.
    */
-  protected replaceCircularReferences(obj: any, path = new Set(), currentPath = ''): any {
+  protected replaceCircularReferences(obj: any, path = new Set(), currentPath = '', depth = 0, maxDepth = 20): any {
     if (obj === null || typeof obj !== 'object') {
       return obj;
     }
@@ -26,11 +28,17 @@ export abstract class BaseTransport {
       };
     }
 
+    if (depth >= maxDepth) {
+      const name = obj?.constructor?.name;
+      if (Array.isArray(obj)) return `[Array(${obj.length}) truncated at depth ${maxDepth}]`;
+      return `[${name || 'Object'}(${Object.keys(obj).length} keys) truncated at depth ${maxDepth}]`;
+    }
+
     path.add(obj);
 
     if (Array.isArray(obj)) {
       const newArray = obj.map((item, index) =>
-        this.replaceCircularReferences(item, new Set(path), currentPath ? `${currentPath}[${index}]` : `[${index}]`)
+        this.replaceCircularReferences(item, new Set(path), currentPath ? `${currentPath}[${index}]` : `[${index}]`, depth + 1, maxDepth)
       );
       path.delete(obj);
       return newArray;
@@ -38,7 +46,7 @@ export abstract class BaseTransport {
 
     const newObj: any = {};
     for (const [key, value] of Object.entries(obj)) {
-      newObj[key] = this.replaceCircularReferences(value, new Set(path), currentPath ? `${currentPath}.${key}` : key);
+      newObj[key] = this.replaceCircularReferences(value, new Set(path), currentPath ? `${currentPath}.${key}` : key, depth + 1, maxDepth);
     }
     path.delete(obj);
     return newObj;
