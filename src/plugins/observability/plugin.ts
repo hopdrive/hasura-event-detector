@@ -422,46 +422,98 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
   }
 
   /**
-   * Check if a value is a non-serializable client object (SDK, Apollo Client, GraphQL client, etc.)
-   * These objects contain circular references and internal state that should not be serialized.
+   * Check if a value is a known non-serializable client object.
+   * Fast duck-typing for common infrastructure objects that contain
+   * circular references and should never be serialized.
    */
-  private isNonSerializableClient(value: any): boolean {
-    if (!value || typeof value !== 'object') return false;
+  /**
+   * Returns a descriptive label if the value is a known non-serializable client, or null if it's not.
+   */
+  private getNonSerializableLabel(value: any): string | null {
+    if (!value || typeof value !== 'object') return null;
+
+    // SDK with an Apollo client inside (e.g. @hopdrive/sdk) — check before Apollo Client since sdk wraps it
+    if (value.apollo && typeof value.apollo === 'object') return 'sdk';
+    if (value.config?.apollo_client) return 'sdk';
+    if (value.gql && typeof value.gql.query === 'function' && typeof value.gql.mutation === 'function') return 'sdk';
 
     // Apollo Client instance (has queryManager, cache, link)
-    if (value.queryManager && value.cache && value.link) return true;
-
-    // SDK with an Apollo client inside (e.g. @hopdrive/sdk)
-    if (value.apollo && typeof value.apollo === 'object') return true;
-    if (value.config?.apollo_client) return true;
+    if (value.queryManager && value.cache && value.link) return 'Apollo Client';
 
     // GraphQL client with a request method and URL config (e.g. graphql-request)
-    if (value.url && typeof value.request === 'function' && typeof value.rawRequest === 'function') return true;
+    if (value.url && typeof value.request === 'function' && typeof value.rawRequest === 'function') return 'GraphQL client';
 
-    // Generic GQL interface (has gql.query and gql.mutation)
-    if (value.gql && typeof value.gql.query === 'function' && typeof value.gql.mutation === 'function') return true;
-
-    return false;
+    return null;
   }
 
   /**
-   * Sanitize job options by replacing non-serializable client objects with descriptive placeholders.
-   * Preserves all serializable values (IDs, configs, flags, strings, numbers).
+   * Safely serialize a value with depth and size limits.
+   * Known non-serializable clients are excluded immediately via duck-typing.
+   * Everything else is walked to maxDepth, then summarized. This provides a
+   * safety net for any unknown circular-reference objects.
+   */
+  private safeSerialize(value: any, depth: number, maxDepth: number, seen: Set<any>): any {
+    // Primitives are always safe
+    if (value === null || value === undefined) return value;
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value;
+
+    // Functions are never serializable
+    if (typeof value === 'function') return '[Function]';
+
+    // Not an object from here down
+    if (typeof value !== 'object') return String(value);
+
+    // Fast path: known non-serializable infrastructure objects
+    const clientLabel = this.getNonSerializableLabel(value);
+    if (clientLabel) {
+      return `[${clientLabel} excluded]`;
+    }
+
+    // Circular reference detection
+    if (seen.has(value)) {
+      return '[Circular]';
+    }
+
+    // Depth limit — summarize instead of walking deeper
+    if (depth >= maxDepth) {
+      const name = value?.constructor?.name;
+      if (Array.isArray(value)) return `[Array(${value.length})]`;
+      const keyCount = Object.keys(value).length;
+      return `[${name || 'Object'}(${keyCount} keys)]`;
+    }
+
+    seen.add(value);
+
+    // Date objects
+    if (value instanceof Date) {
+      seen.delete(value);
+      return value.toISOString();
+    }
+
+    // Arrays
+    if (Array.isArray(value)) {
+      const result = value.map(item => this.safeSerialize(item, depth + 1, maxDepth, seen));
+      seen.delete(value);
+      return result;
+    }
+
+    // Plain objects — only walk own enumerable string keys
+    const result: any = {};
+    for (const [key, val] of Object.entries(value)) {
+      result[key] = this.safeSerialize(val, depth + 1, maxDepth, seen);
+    }
+    seen.delete(value);
+    return result;
+  }
+
+  /**
+   * Sanitize job options for safe serialization.
+   * 1. Duck-typing strips known clients (sdk, Apollo, GraphQL) immediately
+   * 2. Depth limit of 10 acts as a safety net for anything unknown
    */
   private sanitizeJobOptions(options: any): any {
     if (!options || typeof options !== 'object') return options;
-
-    const sanitized: any = {};
-    for (const [key, value] of Object.entries(options)) {
-      if (this.isNonSerializableClient(value)) {
-        sanitized[key] = `[${value?.constructor?.name || 'Client'} instance excluded]`;
-      } else if (typeof value === 'function') {
-        sanitized[key] = '[Function excluded]';
-      } else {
-        sanitized[key] = value;
-      }
-    }
-    return sanitized;
+    return this.safeSerialize(options, 0, 10, new Set());
   }
 
   /**
