@@ -8,6 +8,7 @@ import {
   Cog6ToothIcon,
   MagnifyingGlassIcon,
   ArrowPathIcon,
+  DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
 import OverviewDashboard from './components/OverviewDashboard';
@@ -15,6 +16,7 @@ import InvocationsTable from './components/InvocationsTable';
 import FlowDiagram, { calculateFlowSummary } from './components/FlowDiagram';
 import Analytics from './components/Analytics';
 import Settings from './components/Settings';
+import LogExplorer from './components/LogExplorer';
 import CorrelationSearch from './components/CorrelationSearch';
 import FlowHeader from './components/FlowHeader';
 import { PollingProvider, usePolling } from './contexts/PollingContext';
@@ -62,6 +64,7 @@ const navigation = [
   { name: 'Overview', href: '/', icon: HomeIcon },
   { name: 'Invocations', href: '/invocations', icon: TableCellsIcon },
   { name: 'Analytics', href: '/analytics', icon: ChartBarIcon },
+  { name: 'Logs', href: '/logs', icon: DocumentTextIcon },
   { name: 'Settings', href: '/settings', icon: Cog6ToothIcon },
 ];
 
@@ -318,6 +321,7 @@ function App() {
               <Route path='/invocations' element={<InvocationsTable correlationSearch={correlationSearch} />} />
               <Route path='/flow' element={<FlowDiagram />} />
               <Route path='/analytics' element={<Analytics />} />
+              <Route path='/logs' element={<LogExplorer />} />
               <Route path='/settings' element={<Settings />} />
             </Routes>
           </Layout>

@@ -7,7 +7,7 @@ import { Node } from 'reactflow';
 import { formatDuration } from '../utils/formatDuration';
 import { useInvocationDetailQuery } from '../types/generated';
 import LogsViewer from './LogsViewer';
-import { createGrafanaService } from '../services/GrafanaService';
+import { createGrafanaService, buildInvocationQuery } from '../services/GrafanaService';
 
 interface InvocationDetailDrawerProps {
   node: Node | null;
@@ -823,10 +823,12 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
               }
 
               const invocationId = node.id;
+              const env = import.meta.env.VITE_GRAFANA_ENVIRONMENT || 'test';
 
               return (
                 <LogsViewer
                   queryFn={() => grafanaService.queryInvocationLogs(invocationId, 15)}
+                  queryDisplay={buildInvocationQuery(invocationId, env)}
                   autoRefresh={false}
                   isJobRunning={false}
                   refreshInterval={5000}

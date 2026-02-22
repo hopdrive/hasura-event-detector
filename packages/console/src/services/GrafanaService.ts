@@ -9,6 +9,9 @@ export interface GrafanaConfig {
   host: string;
   userId: string;
   secret: string;
+  serviceAccountToken?: string;
+  lokiDatasourceUid?: string;
+  environment?: string;
 }
 
 export interface LogEntry {
@@ -39,34 +42,22 @@ export interface LogQueryResult {
 /**
  * Build a LogQL query for an invocation node
  */
-export function buildInvocationQuery(invocationId: string): string {
-  return `{app="event-handlers", invocationId="${invocationId}"}`;
+export function buildInvocationQuery(invocationId: string, environment: string): string {
+  return `{environment="${environment}"} | json | invocationId=\`${invocationId}\` | line_format "{{.message}}"`;
 }
 
 /**
  * Build a LogQL query for an event node
  */
-export function buildEventQuery(
-  correlationId: string,
-  eventExecutionId?: string
-): string {
-  if (eventExecutionId) {
-    return `{app="event-handlers", correlationId="${correlationId}", eventExecutionId="${eventExecutionId}"}`;
-  }
-  return `{app="event-handlers", correlationId="${correlationId}"}`;
+export function buildEventQuery(correlationId: string, environment: string): string {
+  return `{environment="${environment}"} | json | correlationId=\`${correlationId}\` | line_format "{{.message}}"`;
 }
 
 /**
  * Build a LogQL query for a job node
  */
-export function buildJobQuery(
-  scopeId: string,
-  jobExecutionId?: string
-): string {
-  if (jobExecutionId) {
-    return `{app="event-handlers", scopeId="${scopeId}", jobExecutionId="${jobExecutionId}"}`;
-  }
-  return `{app="event-handlers", scopeId="${scopeId}"}`;
+export function buildJobQuery(scopeId: string, environment: string): string {
+  return `{environment="${environment}"} | json | scopeId=\`${scopeId}\` | line_format "{{.message}}"`;
 }
 
 /**
@@ -125,10 +116,7 @@ export class GrafanaService {
     this.config = config;
   }
 
-  /**
-   * Query Loki for logs
-   */
-  async queryLogs(params: LogQueryParams): Promise<LogQueryResult> {
+  private buildFetchArgs(lokiPath: string, params: LogQueryParams): { url: string; headers: Record<string, string> } {
     const {
       query,
       start,
@@ -137,7 +125,6 @@ export class GrafanaService {
       direction = 'forward',
     } = params;
 
-    // Build query parameters
     const queryParams = new URLSearchParams({
       query: query,
       limit: limit.toString(),
@@ -152,21 +139,35 @@ export class GrafanaService {
       queryParams.append('end', end.toString());
     }
 
-    // Always use proxy endpoint to avoid CORS issues
-    // The proxy forwards requests to Grafana
-    const url = `/api/grafana/loki/api/v1/query_range?${queryParams.toString()}`;
+    // Use Grafana datasource proxy with service account Bearer auth when available
+    if (this.config.serviceAccountToken && this.config.lokiDatasourceUid) {
+      return {
+        url: `/api/grafana/api/datasources/proxy/uid/${this.config.lokiDatasourceUid}/${lokiPath}?${queryParams.toString()}`,
+        headers: {
+          'Authorization': `Bearer ${this.config.serviceAccountToken}`,
+        },
+      };
+    }
 
-    // Build Basic Auth header
+    // Fallback: direct Loki endpoint with Basic Auth
     const auth = btoa(`${this.config.userId}:${this.config.secret}`);
+    return {
+      url: `/api/grafana/${lokiPath}?${queryParams.toString()}`,
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/json',
+      },
+    };
+  }
+
+  /**
+   * Query Loki for logs
+   */
+  async queryLogs(params: LogQueryParams): Promise<LogQueryResult> {
+    const { url, headers } = this.buildFetchArgs('loki/api/v1/query_range', params);
 
     try {
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Basic ${auth}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch(url, { method: 'GET', headers });
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -189,13 +190,36 @@ export class GrafanaService {
   }
 
   /**
+   * Query logs and return both parsed results and raw Loki response JSON
+   */
+  async queryLogsWithRaw(params: LogQueryParams): Promise<{ parsed: LogQueryResult; raw: any }> {
+    const { url, headers } = this.buildFetchArgs('loki/api/v1/query_range', params);
+
+    const response = await fetch(url, { method: 'GET', headers });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Grafana API error (${response.status}): ${errorText}`);
+    }
+
+    const data = await response.json();
+    const logs = parseLokiResponse(data);
+
+    return {
+      parsed: { logs, stats: data.data?.stats },
+      raw: data,
+    };
+  }
+
+  /**
    * Query logs for a specific invocation
    */
   async queryInvocationLogs(
     invocationId: string,
     timeRangeMinutes: number = 30
   ): Promise<LogQueryResult> {
-    const query = buildInvocationQuery(invocationId);
+    const env = this.config.environment || 'test';
+    const query = buildInvocationQuery(invocationId, env);
     const now = Date.now();
     const start = (now - timeRangeMinutes * 60 * 1000) * 1000000; // Convert to nanoseconds
     const end = (now + timeRangeMinutes * 60 * 1000) * 1000000;
@@ -214,10 +238,10 @@ export class GrafanaService {
    */
   async queryEventLogs(
     correlationId: string,
-    eventExecutionId: string | undefined,
     timeRangeMinutes: number = 30
   ): Promise<LogQueryResult> {
-    const query = buildEventQuery(correlationId, eventExecutionId);
+    const env = this.config.environment || 'test';
+    const query = buildEventQuery(correlationId, env);
     const now = Date.now();
     const start = (now - timeRangeMinutes * 60 * 1000) * 1000000;
     const end = (now + timeRangeMinutes * 60 * 1000) * 1000000;
@@ -236,10 +260,10 @@ export class GrafanaService {
    */
   async queryJobLogs(
     scopeId: string,
-    jobExecutionId: string | undefined,
     timeRangeMinutes: number = 30
   ): Promise<LogQueryResult> {
-    const query = buildJobQuery(scopeId, jobExecutionId);
+    const env = this.config.environment || 'test';
+    const query = buildJobQuery(scopeId, env);
     const now = Date.now();
     const start = (now - timeRangeMinutes * 60 * 1000) * 1000000;
     const end = (now + timeRangeMinutes * 60 * 1000) * 1000000;
@@ -255,15 +279,33 @@ export class GrafanaService {
 }
 
 /**
- * Create a GrafanaService instance from environment variables
+ * Create a GrafanaService instance from environment variables.
+ * Prefers service account token auth (datasource proxy) over direct Loki Basic auth.
  */
 export function createGrafanaService(): GrafanaService | null {
+  const serviceAccountToken = import.meta.env.VITE_GRAFANA_SERVICE;
+  const lokiDatasourceUid = import.meta.env.VITE_GRAFANA_LOKI_UID || 'grafanacloud-logs';
+  const environment = import.meta.env.VITE_GRAFANA_ENVIRONMENT || 'test';
+
   let host = import.meta.env.VITE_GRAFANA_HOST;
   const userId = import.meta.env.VITE_GRAFANA_USER || import.meta.env.VITE_GRAFANA_ID;
   const secret = import.meta.env.VITE_GRAFANA_SECRET;
 
+  // Service account token is sufficient — no need for Loki direct credentials
+  if (serviceAccountToken) {
+    return new GrafanaService({
+      host: host || '',
+      userId: userId || '',
+      secret: secret || '',
+      serviceAccountToken,
+      lokiDatasourceUid,
+      environment,
+    });
+  }
+
   if (!host || !userId || !secret) {
     console.warn('Grafana configuration missing. Logs will not be available.');
+    console.warn('  VITE_GRAFANA_SERVICE:', serviceAccountToken ? '***' : 'missing');
     console.warn('  VITE_GRAFANA_HOST:', host);
     console.warn('  VITE_GRAFANA_USER:', userId);
     console.warn('  VITE_GRAFANA_SECRET:', secret ? '***' : 'missing');
@@ -282,5 +324,6 @@ export function createGrafanaService(): GrafanaService | null {
     host,
     userId,
     secret,
+    environment,
   });
 }

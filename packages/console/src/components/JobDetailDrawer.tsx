@@ -5,7 +5,7 @@ import { JSONTree } from 'react-json-tree';
 import { Node } from 'reactflow';
 import { formatDuration } from '../utils/formatDuration';
 import LogsViewer from './LogsViewer';
-import { createGrafanaService } from '../services/GrafanaService';
+import { createGrafanaService, buildJobQuery } from '../services/GrafanaService';
 
 interface JobDetailDrawerProps {
   node: Node | null;
@@ -363,7 +363,7 @@ const JobDetailDrawer: React.FC<JobDetailDrawerProps> = ({
                 Job Execution Logs
               </h5>
               <p className="text-sm text-blue-600 dark:text-blue-400">
-                Viewing logs from Grafana Loki for this specific job execution. Logs are filtered by scopeId and job execution ID.
+                Viewing logs from Grafana Loki for this specific job execution. Logs are filtered by scopeId.
               </p>
             </div>
 
@@ -381,13 +381,13 @@ const JobDetailDrawer: React.FC<JobDetailDrawerProps> = ({
                 );
               }
 
-              // Get scopeId from jobData or generate from correlation ID + job name
-              const scopeId = jobData.scopeId || `${jobData.correlationId}-${jobData.jobName}`;
-              const jobExecutionId = node.id.replace('job-', '');
+              const scopeId = node.id.replace('job-', '');
+              const env = import.meta.env.VITE_GRAFANA_ENVIRONMENT || 'test';
 
               return (
                 <LogsViewer
-                  queryFn={() => grafanaService.queryJobLogs(scopeId, jobExecutionId, 15)}
+                  queryFn={() => grafanaService.queryJobLogs(scopeId, 15)}
+                  queryDisplay={buildJobQuery(scopeId, env)}
                   autoRefresh={jobData.status === 'running'}
                   isJobRunning={jobData.status === 'running'}
                   refreshInterval={5000}

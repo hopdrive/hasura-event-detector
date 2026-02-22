@@ -4,7 +4,7 @@ import { XMarkIcon, CheckCircleIcon, ExclamationCircleIcon, ClockIcon } from '@h
 import { Node } from 'reactflow';
 import { formatDuration } from '../utils/formatDuration';
 import LogsViewer from './LogsViewer';
-import { createGrafanaService } from '../services/GrafanaService';
+import { createGrafanaService, buildEventQuery } from '../services/GrafanaService';
 
 interface EventDetailDrawerProps {
   node: Node | null;
@@ -411,7 +411,7 @@ export default async function detect(payload, context) {
               </h5>
               <p className="text-sm text-blue-600 dark:text-blue-400">
                 Viewing logs from Grafana Loki for this event execution and all associated jobs.
-                Logs are filtered by correlationId and eventExecutionId.
+                Logs are filtered by correlationId.
               </p>
             </div>
 
@@ -430,11 +430,12 @@ export default async function detect(payload, context) {
               }
 
               const correlationId = eventData.correlationId;
-              const eventExecutionId = node.id.replace('event-', '');
+              const env = import.meta.env.VITE_GRAFANA_ENVIRONMENT || 'test';
 
               return (
                 <LogsViewer
-                  queryFn={() => grafanaService.queryEventLogs(correlationId, eventExecutionId, 15)}
+                  queryFn={() => grafanaService.queryEventLogs(correlationId, 15)}
+                  queryDisplay={buildEventQuery(correlationId, env)}
                   autoRefresh={false}
                   isJobRunning={false}
                   refreshInterval={5000}
