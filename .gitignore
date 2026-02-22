@@ -113,3 +113,5 @@ src/plugins/observability/console/node_modules/
 # New console package location
 packages/console/node_modules/
 packages/console/dist/
+/.idea/
+/hasura-event-detector.iml
