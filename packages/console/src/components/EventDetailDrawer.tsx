@@ -4,7 +4,7 @@ import { XMarkIcon, CheckCircleIcon, ExclamationCircleIcon, ClockIcon } from '@h
 import { Node } from 'reactflow';
 import { formatDuration } from '../utils/formatDuration';
 import LogsViewer from './LogsViewer';
-import { createGrafanaService, buildEventQuery } from '../services/GrafanaService';
+import { createGrafanaService, buildEventQuery, buildGrafanaExploreUrl } from '../services/GrafanaService';
 
 interface EventDetailDrawerProps {
   node: Node | null;
@@ -430,12 +430,16 @@ export default async function detect(payload, context) {
               }
 
               const correlationId = eventData.correlationId;
+              const eventName = eventData.eventName;
+              const createdAt = eventData.createdAt;
               const env = import.meta.env.VITE_GRAFANA_ENVIRONMENT || 'test';
+              const query = buildEventQuery(correlationId, env, eventName);
 
               return (
                 <LogsViewer
-                  queryFn={() => grafanaService.queryEventLogs(correlationId, 15)}
-                  queryDisplay={buildEventQuery(correlationId, env)}
+                  queryFn={() => grafanaService.queryEventLogs(correlationId, 15, eventName, createdAt)}
+                  queryDisplay={query}
+                  grafanaExploreUrl={buildGrafanaExploreUrl(query, createdAt)}
                   autoRefresh={false}
                   isJobRunning={false}
                   refreshInterval={5000}

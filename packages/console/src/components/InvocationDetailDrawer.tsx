@@ -7,7 +7,7 @@ import { Node } from 'reactflow';
 import { formatDuration } from '../utils/formatDuration';
 import { useInvocationDetailQuery } from '../types/generated';
 import LogsViewer from './LogsViewer';
-import { createGrafanaService, buildInvocationQuery } from '../services/GrafanaService';
+import { createGrafanaService, buildInvocationQuery, buildGrafanaExploreUrl } from '../services/GrafanaService';
 
 interface InvocationDetailDrawerProps {
   node: Node | null;
@@ -798,16 +798,6 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
 
         {activeTab === 'logs' && (
           <div className="space-y-4">
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800 mb-4">
-              <h5 className="font-medium text-blue-700 dark:text-blue-400 mb-2">
-                Invocation Logs
-              </h5>
-              <p className="text-sm text-blue-600 dark:text-blue-400">
-                Viewing all logs from Grafana Loki for this entire invocation, including all events and jobs.
-                Logs are filtered by invocationId.
-              </p>
-            </div>
-
             {(() => {
               const grafanaService = createGrafanaService();
 
@@ -823,12 +813,15 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
               }
 
               const invocationId = node.id;
+              const createdAt = invocationDisplayData.createdAt;
               const env = import.meta.env.VITE_GRAFANA_ENVIRONMENT || 'test';
+              const query = buildInvocationQuery(invocationId, env);
 
               return (
                 <LogsViewer
-                  queryFn={() => grafanaService.queryInvocationLogs(invocationId, 15)}
-                  queryDisplay={buildInvocationQuery(invocationId, env)}
+                  queryFn={() => grafanaService.queryInvocationLogs(invocationId, 15, createdAt)}
+                  queryDisplay={query}
+                  grafanaExploreUrl={buildGrafanaExploreUrl(query, createdAt)}
                   autoRefresh={false}
                   isJobRunning={false}
                   refreshInterval={5000}

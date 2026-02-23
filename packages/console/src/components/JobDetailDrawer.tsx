@@ -5,7 +5,7 @@ import { JSONTree } from 'react-json-tree';
 import { Node } from 'reactflow';
 import { formatDuration } from '../utils/formatDuration';
 import LogsViewer from './LogsViewer';
-import { createGrafanaService, buildJobQuery } from '../services/GrafanaService';
+import { createGrafanaService, buildJobQuery, buildGrafanaExploreUrl } from '../services/GrafanaService';
 
 interface JobDetailDrawerProps {
   node: Node | null;
@@ -382,12 +382,15 @@ const JobDetailDrawer: React.FC<JobDetailDrawerProps> = ({
               }
 
               const scopeId = node.id.replace('job-', '');
+              const createdAt = jobData.createdAt;
               const env = import.meta.env.VITE_GRAFANA_ENVIRONMENT || 'test';
+              const query = buildJobQuery(scopeId, env);
 
               return (
                 <LogsViewer
-                  queryFn={() => grafanaService.queryJobLogs(scopeId, 15)}
-                  queryDisplay={buildJobQuery(scopeId, env)}
+                  queryFn={() => grafanaService.queryJobLogs(scopeId, 15, createdAt)}
+                  queryDisplay={query}
+                  grafanaExploreUrl={buildGrafanaExploreUrl(query, createdAt)}
                   autoRefresh={jobData.status === 'running'}
                   isJobRunning={jobData.status === 'running'}
                   refreshInterval={5000}

@@ -79,7 +79,7 @@ const logWithContext = (prefix: string, message: string, context: LogContext, ..
  * Internal log function that uses plugin system when available
  */
 export const log = (prefix: string, message: string, ...args: any[]): void => {
-  logWithContext(prefix, message, { jobName: 'system' as JobName, correlationId: '' as CorrelationId, logType: prefix }, ...args);
+  logWithContext(prefix, message, { jobName: 'system' as JobName, correlationId: '' as CorrelationId, logType: 'system' }, ...args);
 };
 
 /**
@@ -142,7 +142,7 @@ const logErrorWithContext = (
  * Internal error logging function
  */
 export const logError = (prefix: string, message: string, error: Error | null = null, ...args: any[]): void => {
-  logErrorWithContext(prefix, message, error, { jobName: 'system' as JobName, correlationId: '' as CorrelationId, logType: prefix }, ...args);
+  logErrorWithContext(prefix, message, error, { jobName: 'system' as JobName, correlationId: '' as CorrelationId, logType: 'system' }, ...args);
 };
 
 /**
@@ -188,7 +188,7 @@ const logWarnWithContext = (prefix: string, message: string, context: LogContext
  * Internal warning logging function
  */
 export const logWarn = (prefix: string, message: string, ...args: any[]): void => {
-  logWarnWithContext(prefix, message, { jobName: 'system' as JobName, correlationId: '' as CorrelationId, logType: prefix }, ...args);
+  logWarnWithContext(prefix, message, { jobName: 'system' as JobName, correlationId: '' as CorrelationId, logType: 'system' }, ...args);
 };
 
 /**

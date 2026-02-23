@@ -11,6 +11,7 @@ import type { LogEntry, LogQueryResult } from '../services/GrafanaService';
 interface LogsViewerProps {
   queryFn: () => Promise<LogQueryResult>;
   queryDisplay?: string; // LogQL query string shown for debugging
+  grafanaExploreUrl?: string | null; // Link to open query in Grafana Explore
   autoRefresh?: boolean;
   refreshInterval?: number; // milliseconds
   isJobRunning?: boolean;
@@ -21,6 +22,7 @@ type ViewMode = 'text' | 'json' | 'table';
 const LogsViewer: React.FC<LogsViewerProps> = ({
   queryFn,
   queryDisplay,
+  grafanaExploreUrl,
   autoRefresh = false,
   refreshInterval = 5000,
   isJobRunning = false,
@@ -219,16 +221,28 @@ const LogsViewer: React.FC<LogsViewerProps> = ({
         <div className="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">LogQL Query</span>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(queryDisplay);
-                setQueryCopied(true);
-                setTimeout(() => setQueryCopied(false), 2000);
-              }}
-              className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              {queryCopied ? 'Copied!' : 'Copy'}
-            </button>
+            <div className="flex items-center space-x-3">
+              {grafanaExploreUrl && (
+                <a
+                  href={grafanaExploreUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  Open in Grafana
+                </a>
+              )}
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(queryDisplay);
+                  setQueryCopied(true);
+                  setTimeout(() => setQueryCopied(false), 2000);
+                }}
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                {queryCopied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
           </div>
           <pre className="text-xs font-mono text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-all">{queryDisplay}</pre>
         </div>

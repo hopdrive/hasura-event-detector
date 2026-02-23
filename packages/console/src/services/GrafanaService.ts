@@ -40,6 +40,31 @@ export interface LogQueryResult {
 }
 
 /**
+ * Build a Grafana Explore URL for a given LogQL query and time range
+ */
+export function buildGrafanaExploreUrl(query: string, timestamp?: string): string | null {
+  const grafanaUrl = import.meta.env.VITE_GRAFANA_URL;
+  const datasourceUid = import.meta.env.VITE_GRAFANA_LOKI_UID || 'grafanacloud-logs';
+
+  if (!grafanaUrl) return null;
+
+  const normalizedUrl = grafanaUrl.replace(/\/$/, '');
+  const center = timestamp ? new Date(timestamp).getTime() : Date.now();
+  const from = new Date(center - 15 * 60 * 1000).toISOString();
+  const to = new Date(center + 15 * 60 * 1000).toISOString();
+
+  const panes = JSON.stringify({
+    '0': {
+      datasource: datasourceUid,
+      queries: [{ refId: 'A', expr: query }],
+      range: { from, to },
+    },
+  });
+
+  return `${normalizedUrl}/explore?schemaVersion=1&panes=${encodeURIComponent(panes)}&orgId=1`;
+}
+
+/**
  * Build a LogQL query for an invocation node
  */
 export function buildInvocationQuery(invocationId: string, environment: string): string {
@@ -49,8 +74,13 @@ export function buildInvocationQuery(invocationId: string, environment: string):
 /**
  * Build a LogQL query for an event node
  */
-export function buildEventQuery(correlationId: string, environment: string): string {
-  return `{environment="${environment}"} | json | correlationId=\`${correlationId}\` | line_format "{{.message}}"`;
+export function buildEventQuery(correlationId: string, environment: string, eventName?: string): string {
+  let query = `{environment="${environment}"} | json | correlationId=\`${correlationId}\``;
+  if (eventName) {
+    query += ` | logType=\`detector\` | eventName=\`${eventName}\``;
+  }
+  query += ` | line_format "{{.message}}"`;
+  return query;
 }
 
 /**
@@ -216,13 +246,14 @@ export class GrafanaService {
    */
   async queryInvocationLogs(
     invocationId: string,
-    timeRangeMinutes: number = 30
+    timeRangeMinutes: number = 30,
+    timestamp?: string
   ): Promise<LogQueryResult> {
     const env = this.config.environment || 'test';
     const query = buildInvocationQuery(invocationId, env);
-    const now = Date.now();
-    const start = (now - timeRangeMinutes * 60 * 1000) * 1000000; // Convert to nanoseconds
-    const end = (now + timeRangeMinutes * 60 * 1000) * 1000000;
+    const center = timestamp ? new Date(timestamp).getTime() : Date.now();
+    const start = (center - timeRangeMinutes * 60 * 1000) * 1000000; // Convert to nanoseconds
+    const end = (center + timeRangeMinutes * 60 * 1000) * 1000000;
 
     return this.queryLogs({
       query,
@@ -238,13 +269,15 @@ export class GrafanaService {
    */
   async queryEventLogs(
     correlationId: string,
-    timeRangeMinutes: number = 30
+    timeRangeMinutes: number = 30,
+    eventName?: string,
+    timestamp?: string
   ): Promise<LogQueryResult> {
     const env = this.config.environment || 'test';
-    const query = buildEventQuery(correlationId, env);
-    const now = Date.now();
-    const start = (now - timeRangeMinutes * 60 * 1000) * 1000000;
-    const end = (now + timeRangeMinutes * 60 * 1000) * 1000000;
+    const query = buildEventQuery(correlationId, env, eventName);
+    const center = timestamp ? new Date(timestamp).getTime() : Date.now();
+    const start = (center - timeRangeMinutes * 60 * 1000) * 1000000;
+    const end = (center + timeRangeMinutes * 60 * 1000) * 1000000;
 
     return this.queryLogs({
       query,
@@ -260,13 +293,14 @@ export class GrafanaService {
    */
   async queryJobLogs(
     scopeId: string,
-    timeRangeMinutes: number = 30
+    timeRangeMinutes: number = 30,
+    timestamp?: string
   ): Promise<LogQueryResult> {
     const env = this.config.environment || 'test';
     const query = buildJobQuery(scopeId, env);
-    const now = Date.now();
-    const start = (now - timeRangeMinutes * 60 * 1000) * 1000000;
-    const end = (now + timeRangeMinutes * 60 * 1000) * 1000000;
+    const center = timestamp ? new Date(timestamp).getTime() : Date.now();
+    const start = (center - timeRangeMinutes * 60 * 1000) * 1000000;
+    const end = (center + timeRangeMinutes * 60 * 1000) * 1000000;
 
     return this.queryLogs({
       query,
