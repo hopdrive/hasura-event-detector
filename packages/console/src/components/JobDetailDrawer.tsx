@@ -5,12 +5,14 @@ import { JSONTree } from 'react-json-tree';
 import { Node } from 'reactflow';
 import { formatDuration } from '../utils/formatDuration';
 import LogsViewer from './LogsViewer';
+import DrawerBreadcrumb from './DrawerBreadcrumb';
 import { createGrafanaService, buildJobQuery, buildGrafanaExploreUrl } from '../services/GrafanaService';
 
 interface JobDetailDrawerProps {
   node: Node | null;
   isOpen: boolean;
   onClose: () => void;
+  onSelectNode?: (node: Node) => void;
 }
 
 const TabButton = ({ active, onClick, children }: any) => (
@@ -31,7 +33,8 @@ const TabButton = ({ active, onClick, children }: any) => (
 const JobDetailDrawer: React.FC<JobDetailDrawerProps> = ({
   node,
   isOpen,
-  onClose
+  onClose,
+  onSelectNode,
 }) => {
   const [activeTab, setActiveTab] = useState('summary');
 
@@ -80,6 +83,11 @@ const JobDetailDrawer: React.FC<JobDetailDrawerProps> = ({
             <p className="text-sm text-gray-600 dark:text-gray-400 font-mono mt-1">
               {jobData.jobName}
             </p>
+            {jobData.createdAt && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {new Date(jobData.createdAt).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })}
+              </p>
+            )}
           </div>
           <button
             onClick={onClose}
@@ -117,6 +125,11 @@ const JobDetailDrawer: React.FC<JobDetailDrawerProps> = ({
           </TabButton>
         </div>
       </div>
+
+      {/* Breadcrumb */}
+      {onSelectNode && node && (
+        <DrawerBreadcrumb node={node} onSelectNode={onSelectNode} />
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-6">

@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { XMarkIcon, CheckCircleIcon, ExclamationCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, CheckCircleIcon, ExclamationCircleIcon, ClockIcon, PlayIcon } from '@heroicons/react/24/outline';
 import { Node } from 'reactflow';
 import { formatDuration } from '../utils/formatDuration';
 import LogsViewer from './LogsViewer';
+import DrawerBreadcrumb from './DrawerBreadcrumb';
 import { createGrafanaService, buildEventQuery, buildGrafanaExploreUrl } from '../services/GrafanaService';
 
 interface EventDetailDrawerProps {
   node: Node | null;
   isOpen: boolean;
   onClose: () => void;
+  onSelectNode?: (node: Node) => void;
 }
 
 const TabButton = ({ active, onClick, children }: any) => (
@@ -30,13 +32,45 @@ const TabButton = ({ active, onClick, children }: any) => (
 const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
   node,
   isOpen,
-  onClose
+  onClose,
+  onSelectNode,
 }) => {
   const [activeTab, setActiveTab] = useState('summary');
 
   if (!node || node.type !== 'event') return null;
 
   const eventData = node.data;
+
+  const navigateToJob = (job: any) => {
+    if (!onSelectNode) return;
+
+    // Build ancestor for this event node (carries its own ancestors forward)
+    const currentEventAncestor: Node = {
+      id: node.id,
+      type: 'event',
+      position: { x: 0, y: 0 },
+      data: { ...eventData, ancestors: eventData.ancestors || [] },
+    };
+
+    const ancestors = [...(eventData.ancestors || []), currentEventAncestor];
+
+    onSelectNode({
+      id: `job-${job.id}`,
+      type: 'job',
+      position: { x: 0, y: 0 },
+      data: {
+        jobName: job.name,
+        functionName: job.function,
+        correlationId: job.correlationId || eventData.correlationId,
+        status: job.status,
+        duration: job.duration,
+        result: job.result,
+        error: job.error,
+        createdAt: job.createdAt || eventData.createdAt,
+        ancestors,
+      },
+    });
+  };
 
   return (
     <motion.div
@@ -63,6 +97,11 @@ const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
             <p className="text-sm text-gray-600 dark:text-gray-400 font-mono mt-1">
               {eventData.eventName}
             </p>
+            {eventData.createdAt && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {new Date(eventData.createdAt).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })}
+              </p>
+            )}
           </div>
           <button
             onClick={onClose}
@@ -92,6 +131,14 @@ const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
           >
             Performance
           </TabButton>
+          {eventData.jobs && eventData.jobs.length > 0 && (
+            <TabButton
+              active={activeTab === 'jobs'}
+              onClick={() => setActiveTab('jobs')}
+            >
+              Jobs
+            </TabButton>
+          )}
           <TabButton
             active={activeTab === 'logs'}
             onClick={() => setActiveTab('logs')}
@@ -100,6 +147,11 @@ const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
           </TabButton>
         </div>
       </div>
+
+      {/* Breadcrumb */}
+      {onSelectNode && node && (
+        <DrawerBreadcrumb node={node} onSelectNode={onSelectNode} />
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-6">
@@ -205,9 +257,18 @@ const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
                     <h4 className="font-medium text-purple-700 dark:text-purple-400">
                       Jobs Executed
                     </h4>
-                    <p className="text-sm text-purple-600 dark:text-purple-400 mt-1">
-                      {eventData.jobsCount} job{eventData.jobsCount > 1 ? 's' : ''} triggered by this event
-                    </p>
+                    {eventData.jobs && eventData.jobs.length > 0 ? (
+                      <button
+                        onClick={() => setActiveTab('jobs')}
+                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline mt-1"
+                      >
+                        {eventData.jobsCount} job{eventData.jobsCount > 1 ? 's' : ''} triggered &mdash; View Jobs &rarr;
+                      </button>
+                    ) : (
+                      <p className="text-sm text-purple-600 dark:text-purple-400 mt-1">
+                        {eventData.jobsCount} job{eventData.jobsCount > 1 ? 's' : ''} triggered by this event
+                      </p>
+                    )}
                   </div>
                   <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                     {eventData.jobsCount}
@@ -400,6 +461,74 @@ export default async function detect(payload, context) {
                 </ul>
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'jobs' && eventData.jobs && (
+          <div className="space-y-3">
+            {eventData.jobs.map((job: any, index: number) => (
+              <div
+                key={job.id || index}
+                className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border-l-4 border-l-purple-400"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2">
+                      <PlayIcon className="h-4 w-4 text-purple-500" />
+                      {onSelectNode ? (
+                        <button
+                          className="font-medium text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                          onClick={() => navigateToJob(job)}
+                        >
+                          {job.name}
+                        </button>
+                      ) : (
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {job.name}
+                        </p>
+                      )}
+                    </div>
+                    <div className="ml-6 mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                      <div className="flex items-center space-x-4">
+                        <span>Duration: {formatDuration(job.duration)}</span>
+                        {job.function && <span>Function: {job.function}</span>}
+                      </div>
+                      {job.error && (
+                        <p className="text-red-600 dark:text-red-400 mt-2">
+                          Error: {job.error}
+                        </p>
+                      )}
+                      {job.result && (
+                        <details className="mt-2">
+                          <summary className="cursor-pointer text-blue-600 dark:text-blue-400 hover:underline">
+                            View Result
+                          </summary>
+                          <pre className="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs overflow-auto">
+                            {JSON.stringify(job.result, null, 2)}
+                          </pre>
+                        </details>
+                      )}
+                      {job.triggersInvocation && (
+                        <div className="mt-2 p-2 bg-purple-50 dark:bg-purple-900/20 rounded border border-purple-200 dark:border-purple-800">
+                          <span className="text-xs text-purple-700 dark:text-purple-400">Recursive Chain Trigger</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <span className={`
+                    ml-4 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium flex-shrink-0
+                    ${job.status === 'completed'
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                      : job.status === 'failed'
+                      ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                      : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                    }
+                  `}>
+                    {job.status}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 

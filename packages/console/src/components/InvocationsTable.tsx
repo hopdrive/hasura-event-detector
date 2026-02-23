@@ -27,6 +27,8 @@ import {
   CircleStackIcon,
 } from '@heroicons/react/24/outline';
 import InvocationDetailDrawer from './InvocationDetailDrawer';
+import EventDetailDrawer from './EventDetailDrawer';
+import JobDetailDrawer from './JobDetailDrawer';
 import { useInvocationsListQuery } from '../types/generated';
 import { Node } from 'reactflow';
 import { formatRelativeTime } from '../utils/formatTime';
@@ -621,7 +623,32 @@ const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch =
 
       <AnimatePresence>
         {drawerOpen && selectedInvocation && (
-          <InvocationDetailDrawer node={selectedInvocation} isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+          <>
+            {selectedInvocation.type === 'invocation' && (
+              <InvocationDetailDrawer
+                node={selectedInvocation}
+                isOpen={drawerOpen}
+                onClose={() => setDrawerOpen(false)}
+                onSelectNode={(node) => setSelectedInvocation(node)}
+              />
+            )}
+            {selectedInvocation.type === 'event' && (
+              <EventDetailDrawer
+                node={selectedInvocation}
+                isOpen={drawerOpen}
+                onClose={() => setDrawerOpen(false)}
+                onSelectNode={(node) => setSelectedInvocation(node)}
+              />
+            )}
+            {selectedInvocation.type === 'job' && (
+              <JobDetailDrawer
+                node={selectedInvocation}
+                isOpen={drawerOpen}
+                onClose={() => setDrawerOpen(false)}
+                onSelectNode={(node) => setSelectedInvocation(node)}
+              />
+            )}
+          </>
         )}
       </AnimatePresence>
     </div>

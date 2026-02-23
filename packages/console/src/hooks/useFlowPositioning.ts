@@ -262,6 +262,18 @@ export const useFlowPositioning = (invocations: Invocation[], config: Positionin
               hasFailedJobs: (event.job_executions || []).some((job: JobExecution) => job.status === 'failed'),
               createdAt: event.created_at,
               updatedAt: event.updated_at,
+              jobs: (event.job_executions || []).map((job: JobExecution) => ({
+                id: job.id,
+                name: job.job_name,
+                status: job.status,
+                duration: job.duration_ms || 0,
+                function: job.job_function_name,
+                result: job.result,
+                error: job.error_message,
+                correlationId: job.correlation_id,
+                createdAt: job.created_at,
+                triggersInvocation: job.triggered_invocations && job.triggered_invocations.length > 0,
+              })),
             },
           };
           nodes.push(eventNode);

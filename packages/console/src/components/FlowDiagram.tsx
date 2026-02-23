@@ -163,8 +163,33 @@ const FlowDiagramContent = () => {
     }
   }, [generatedNodes.length, reactFlowInstance]);
 
-  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+  // Compute logical ancestor chain from graph edges (Invocation > Event > Job)
+  const computeAncestors = useCallback((targetNode: Node): Node[] => {
+    if (targetNode.type === 'invocation') return [];
+
+    const incomingEdge = generatedEdges.find(e => e.target === targetNode.id);
+    if (!incomingEdge) return [];
+
+    const parentNode = generatedNodes.find(n => n.id === incomingEdge.source);
+    if (!parentNode) return [];
+
+    const parentAncestors = computeAncestors(parentNode);
+    const parentWithAncestors = {
+      ...parentNode,
+      data: { ...parentNode.data, ancestors: parentAncestors },
+    };
+
+    return [...parentAncestors, parentWithAncestors];
+  }, [generatedNodes, generatedEdges]);
+
+  const handleSelectNode = useCallback((node: Node) => {
     setSelectedNode(node);
+  }, []);
+
+  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+    // Enrich node with logical ancestors from graph structure
+    const ancestors = computeAncestors(node);
+    setSelectedNode({ ...node, data: { ...node.data, ancestors } });
     setDrawerOpen(true);
 
     // Center and zoom on the selected node, accounting for the 600px drawer on the right
@@ -204,7 +229,7 @@ const FlowDiagramContent = () => {
         }
       }
     }, 100);
-  }, [reactFlowInstance]);
+  }, [reactFlowInstance, computeAncestors]);
 
   const onPaneClick = useCallback(() => {
     setSelectedNode(null);
@@ -353,13 +378,13 @@ const FlowDiagramContent = () => {
         {drawerOpen && selectedNode && (
           <>
             {selectedNode.type === 'invocation' && (
-              <InvocationDetailDrawer node={selectedNode} isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+              <InvocationDetailDrawer node={selectedNode} isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} onSelectNode={handleSelectNode} />
             )}
             {selectedNode.type === 'job' && (
-              <JobDetailDrawer node={selectedNode} isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+              <JobDetailDrawer node={selectedNode} isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} onSelectNode={handleSelectNode} />
             )}
             {selectedNode.type === 'event' && (
-              <EventDetailDrawer node={selectedNode} isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+              <EventDetailDrawer node={selectedNode} isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} onSelectNode={handleSelectNode} />
             )}
             {selectedNode.type === 'groupedEvents' && (
               <UndetectedEventsDetailDrawer node={selectedNode} isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
