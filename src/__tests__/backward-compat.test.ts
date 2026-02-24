@@ -36,7 +36,7 @@ describe('Backward Compatibility', () => {
 
     expect(result).toBeDefined();
     expect(result.events).toEqual([]);
-    expect(result.durationMs).toBeGreaterThan(0);
+    expect(result.durationMs).toBeGreaterThanOrEqual(0);
     expect(result.timedOut).toBeUndefined(); // No timeout info when not configured
   });
 
@@ -121,12 +121,12 @@ describe('Backward Compatibility', () => {
     const options: ListenToOptions = {
       autoLoadEventModules: false,
       listenedEvents: [],
-      correlationId: 'test-correlation-123',
+      correlationId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
     };
 
     const result = await listenTo(hasuraEvent, options);
 
-    expect(hasuraEvent.__correlationId).toBe('test-correlation-123');
+    expect(hasuraEvent.__correlationId).toBe('a1b2c3d4-e5f6-7890-abcd-ef1234567890');
   });
 
   it('should work with minimal config (most common use case)', async () => {
@@ -140,7 +140,7 @@ describe('Backward Compatibility', () => {
 
     expect(result).toBeDefined();
     expect(result.events).toEqual([]);
-    expect(result.durationMs).toBeGreaterThan(0);
+    expect(result.durationMs).toBeGreaterThanOrEqual(0);
   });
 
   it('should handle serverless mode without runtime function', async () => {

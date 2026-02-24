@@ -24,6 +24,11 @@ const config = {
     ...(env === 'production' ? config_prod.graphql : null),
   },
 
+  auth: {
+    enabled: import.meta.env.VITE_AUTH_ENABLED !== 'false',
+    password: import.meta.env.VITE_CONSOLE_PASSWORD || '',
+  },
+
   logging: {
     environment: import.meta.env.VITE_GRAFANA_ENVIRONMENT || env,
     grafana: {

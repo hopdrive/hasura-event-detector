@@ -18,11 +18,19 @@ import Settings from './components/Settings';
 import LogExplorer from './components/LogExplorer';
 import CorrelationSearch from './components/CorrelationSearch';
 import FlowHeader from './components/FlowHeader';
+import LoginPage from './components/LoginPage';
+import ProtectedRoute from './components/ProtectedRoute';
 import { PollingProvider, usePolling } from './contexts/PollingContext';
 import { LogProviderProvider } from './contexts/LogProviderContext';
+import { AuthProviderWrapper } from './contexts/AuthContext';
+import { NoopAuthProvider, PasswordAuthProvider } from './providers';
 import { useSystemStatus } from './hooks/useSystemStatus';
 import config from './config';
 import './styles/globals.css';
+
+const authProvider = config.auth.enabled
+  ? new PasswordAuthProvider(config.auth.password)
+  : new NoopAuthProvider();
 
 // Apollo Client configuration
 const httpLink = createHttpLink({
@@ -301,6 +309,7 @@ function App() {
 
   return (
     <ApolloProvider client={client}>
+      <AuthProviderWrapper provider={authProvider}>
       <LogProviderProvider>
       <PollingProvider>
         <Router
@@ -309,27 +318,38 @@ function App() {
             v7_relativeSplatPath: true,
           }}
         >
-          <Layout
-            correlationSearch={correlationSearch}
-            setCorrelationSearch={setCorrelationSearch}
-            timeRange={timeRange}
-            setTimeRange={setTimeRange}
-          >
-            <Routes>
-              <Route
-                path='/'
-                element={<OverviewDashboard correlationSearch={correlationSearch} timeRange={timeRange} />}
-              />
-              <Route path='/invocations' element={<InvocationsTable correlationSearch={correlationSearch} />} />
-              <Route path='/flow' element={<FlowDiagram />} />
-              <Route path='/analytics' element={<Analytics timeRange={timeRange} />} />
-              <Route path='/logs' element={<LogExplorer />} />
-              <Route path='/settings' element={<Settings />} />
-            </Routes>
-          </Layout>
+          <Routes>
+            <Route path='/login' element={<LoginPage />} />
+            <Route
+              path='*'
+              element={
+                <ProtectedRoute>
+                  <Layout
+                    correlationSearch={correlationSearch}
+                    setCorrelationSearch={setCorrelationSearch}
+                    timeRange={timeRange}
+                    setTimeRange={setTimeRange}
+                  >
+                    <Routes>
+                      <Route
+                        path='/'
+                        element={<OverviewDashboard correlationSearch={correlationSearch} timeRange={timeRange} />}
+                      />
+                      <Route path='/invocations' element={<InvocationsTable correlationSearch={correlationSearch} />} />
+                      <Route path='/flow' element={<FlowDiagram />} />
+                      <Route path='/analytics' element={<Analytics timeRange={timeRange} />} />
+                      <Route path='/logs' element={<LogExplorer />} />
+                      <Route path='/settings' element={<Settings />} />
+                    </Routes>
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
         </Router>
       </PollingProvider>
       </LogProviderProvider>
+      </AuthProviderWrapper>
     </ApolloProvider>
   );
 }

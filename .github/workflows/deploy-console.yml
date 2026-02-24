@@ -1,0 +1,41 @@
+name: Deploy Console to Netlify
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'packages/console/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/console
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: packages/console/package-lock.json
+
+      - run: npm install
+
+      - run: npm run build
+        env:
+          VITE_GRAPHQL_ENDPOINT: ${{ secrets.VITE_GRAPHQL_ENDPOINT }}
+          VITE_HASURA_ADMIN_SECRET: ${{ secrets.VITE_HASURA_ADMIN_SECRET }}
+          VITE_AUTH_ENABLED: 'true'
+          VITE_GRAFANA_HOST: ${{ secrets.VITE_GRAFANA_HOST }}
+          VITE_GRAFANA_URL: ${{ secrets.VITE_GRAFANA_URL }}
+          VITE_GRAFANA_ID: ${{ secrets.VITE_GRAFANA_ID }}
+          VITE_GRAFANA_SECRET: ${{ secrets.VITE_GRAFANA_SECRET }}
+          VITE_GRAFANA_ENVIRONMENT: ${{ secrets.VITE_GRAFANA_ENVIRONMENT }}
+
+      - run: npx netlify-cli deploy --prod --dir=dist --functions=netlify/functions
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
