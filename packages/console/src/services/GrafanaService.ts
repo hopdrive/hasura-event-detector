@@ -221,28 +221,6 @@ export class GrafanaService {
   }
 
   /**
-   * Query logs and return both parsed results and raw Loki response JSON
-   */
-  async queryLogsWithRaw(params: LogQueryParams): Promise<{ parsed: LogQueryResult; raw: any }> {
-    const { url, headers } = this.buildFetchArgs('loki/api/v1/query_range', params);
-
-    const response = await fetch(url, { method: 'GET', headers });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Grafana API error (${response.status}): ${errorText}`);
-    }
-
-    const data = await response.json();
-    const logs = parseLokiResponse(data);
-
-    return {
-      parsed: { logs, stats: data.data?.stats },
-      raw: data,
-    };
-  }
-
-  /**
    * Query logs for a specific invocation
    */
   async queryInvocationLogs(
@@ -313,52 +291,3 @@ export class GrafanaService {
   }
 }
 
-/**
- * Create a GrafanaService instance from environment variables.
- * Prefers service account token auth (datasource proxy) over direct Loki Basic auth.
- */
-export function createGrafanaService(): GrafanaService | null {
-  const { grafana, environment } = config.logging;
-  const serviceAccountToken = grafana.serviceAccountToken;
-  const lokiDatasourceUid = grafana.lokiDatasourceUid;
-
-  let host = grafana.host;
-  const userId = grafana.userId;
-  const secret = grafana.secret;
-
-  // Service account token is sufficient — no need for Loki direct credentials
-  if (serviceAccountToken) {
-    return new GrafanaService({
-      host: host || '',
-      userId: userId || '',
-      secret: secret || '',
-      serviceAccountToken,
-      lokiDatasourceUid,
-      environment,
-    });
-  }
-
-  if (!host || !userId || !secret) {
-    console.warn('Grafana configuration missing. Logs will not be available.');
-    console.warn('  VITE_GRAFANA_SERVICE:', serviceAccountToken ? '***' : 'missing');
-    console.warn('  VITE_GRAFANA_HOST:', host);
-    console.warn('  VITE_GRAFANA_USER:', userId);
-    console.warn('  VITE_GRAFANA_SECRET:', secret ? '***' : 'missing');
-    return null;
-  }
-
-  // Ensure host starts with https:// or http://
-  if (!host.startsWith('http://') && !host.startsWith('https://')) {
-    host = `https://${host}`;
-  }
-
-  // Remove trailing slash if present
-  host = host.replace(/\/$/, '');
-
-  return new GrafanaService({
-    host,
-    userId,
-    secret,
-    environment,
-  });
-}

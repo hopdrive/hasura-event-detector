@@ -1,6 +1,6 @@
-query AnalyticsPerformance($timeRange: timestamptz!) {
+query AnalyticsPerformance($timeRange: timestamptz!, $timeRangeEnd: timestamptz!) {
   dashboard_stats(
-    where: { hour_bucket: { _gte: $timeRange } }
+    where: { hour_bucket: { _gte: $timeRange, _lte: $timeRangeEnd } }
     order_by: { hour_bucket: asc }
   ) {
     hour_bucket
@@ -15,7 +15,7 @@ query AnalyticsPerformance($timeRange: timestamptz!) {
 
   all_invocations: invocations(
     where: {
-      created_at: { _gte: $timeRange }
+      created_at: { _gte: $timeRange, _lte: $timeRangeEnd }
       status: { _eq: "completed" }
     }
   ) {
@@ -25,7 +25,7 @@ query AnalyticsPerformance($timeRange: timestamptz!) {
 
   slowest_jobs: job_executions(
     where: {
-      created_at: { _gte: $timeRange }
+      created_at: { _gte: $timeRange, _lte: $timeRangeEnd }
       status: { _neq: "failed" }
     }
     order_by: { duration_ms: desc }
@@ -43,14 +43,14 @@ query AnalyticsPerformance($timeRange: timestamptz!) {
 
   invocations_durations: invocations(
     where: {
-      created_at: { _gte: $timeRange }
+      created_at: { _gte: $timeRange, _lte: $timeRangeEnd }
       status: { _eq: "completed" }
     }
   ) {
     total_duration_ms
   }
 
-  invocations_aggregate(where: { created_at: { _gte: $timeRange } }) {
+  invocations_aggregate(where: { created_at: { _gte: $timeRange, _lte: $timeRangeEnd } }) {
     aggregate {
       count
       avg {
@@ -63,9 +63,9 @@ query AnalyticsPerformance($timeRange: timestamptz!) {
   }
 }
 
-query AnalyticsJobsEvents($timeRange: timestamptz!) {
+query AnalyticsJobsEvents($timeRange: timestamptz!, $timeRangeEnd: timestamptz!) {
   all_jobs: job_executions(
-    where: { created_at: { _gte: $timeRange } }
+    where: { created_at: { _gte: $timeRange, _lte: $timeRangeEnd } }
   ) {
     job_name
     status
@@ -74,7 +74,7 @@ query AnalyticsJobsEvents($timeRange: timestamptz!) {
   }
 
   all_events: event_executions(
-    where: { created_at: { _gte: $timeRange } }
+    where: { created_at: { _gte: $timeRange, _lte: $timeRangeEnd } }
   ) {
     event_name
     detected
@@ -89,7 +89,7 @@ query AnalyticsJobsEvents($timeRange: timestamptz!) {
 
   recent_failures: job_executions(
     where: {
-      created_at: { _gte: $timeRange }
+      created_at: { _gte: $timeRange, _lte: $timeRangeEnd }
       status: { _eq: "failed" }
     }
     order_by: { created_at: desc }
@@ -110,7 +110,7 @@ query AnalyticsJobsEvents($timeRange: timestamptz!) {
     }
   }
 
-  job_executions_aggregate(where: { created_at: { _gte: $timeRange } }) {
+  job_executions_aggregate(where: { created_at: { _gte: $timeRange, _lte: $timeRangeEnd } }) {
     aggregate {
       count
       avg {
@@ -119,19 +119,19 @@ query AnalyticsJobsEvents($timeRange: timestamptz!) {
     }
   }
 
-  event_executions_aggregate(where: { created_at: { _gte: $timeRange } }) {
+  event_executions_aggregate(where: { created_at: { _gte: $timeRange, _lte: $timeRangeEnd } }) {
     aggregate {
       count
     }
   }
 }
 
-query JobExecutionSamples($jobName: String!, $timeRange: timestamptz!) {
+query JobExecutionSamples($jobName: String!, $timeRange: timestamptz!, $timeRangeEnd: timestamptz!) {
   failed: job_executions(
     where: {
       job_name: { _eq: $jobName }
       status: { _eq: "failed" }
-      created_at: { _gte: $timeRange }
+      created_at: { _gte: $timeRange, _lte: $timeRangeEnd }
     }
     order_by: { created_at: desc }
     limit: 5
@@ -155,7 +155,7 @@ query JobExecutionSamples($jobName: String!, $timeRange: timestamptz!) {
     where: {
       job_name: { _eq: $jobName }
       status: { _eq: "completed" }
-      created_at: { _gte: $timeRange }
+      created_at: { _gte: $timeRange, _lte: $timeRangeEnd }
     }
     order_by: { created_at: desc }
     limit: 5
@@ -175,9 +175,9 @@ query JobExecutionSamples($jobName: String!, $timeRange: timestamptz!) {
   }
 }
 
-query AnalyticsSources($timeRange: timestamptz!) {
+query AnalyticsSources($timeRange: timestamptz!, $timeRangeEnd: timestamptz!) {
   invocations_by_source: invocations(
-    where: { created_at: { _gte: $timeRange } }
+    where: { created_at: { _gte: $timeRange, _lte: $timeRangeEnd } }
   ) {
     source_function
     source_table

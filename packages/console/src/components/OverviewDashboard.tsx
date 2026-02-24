@@ -19,17 +19,8 @@ import {
 } from 'recharts';
 import { useOverviewDashboardQuery } from '../types/generated';
 import { formatDuration } from '../utils/formatDuration';
-import {
-  sub,
-  addHours,
-  addMinutes,
-  format,
-  startOfHour,
-  eachHourOfInterval,
-  eachDayOfInterval,
-  startOfDay,
-  eachMinuteOfInterval,
-} from 'date-fns';
+import { resolveTimeRange } from '../utils/resolveTimeRange';
+import { format } from 'date-fns';
 import { NetworkStatus } from '@apollo/client';
 import DatabaseConnectionStatus from './DatabaseConnectionStatus';
 import { usePolling } from '../contexts/PollingContext';
@@ -82,37 +73,18 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
   const { setIsPolling } = usePolling();
   const systemStatus = useSystemStatus();
 
-  // Calculate the actual time range based on the selected option
-  const timeRange = useMemo(() => {
-    const now = new Date();
-    let startDate: Date;
-
-    switch (timeRangeOption) {
-      case '1h':
-        startDate = sub(now, { hours: 1 });
-        break;
-      case '6h':
-        startDate = sub(now, { hours: 6 });
-        break;
-      case '24h':
-        startDate = sub(now, { hours: 24 });
-        break;
-      case '7d':
-        startDate = sub(now, { days: 7 });
-        break;
-      default:
-        startDate = sub(now, { hours: 24 });
-    }
-
-    return startDate.toISOString();
-  }, [timeRangeOption]);
+  // Resolve time range using shared utility
+  const resolved = useMemo(() => resolveTimeRange(timeRangeOption), [timeRangeOption]);
 
   const { data, loading, error, networkStatus } = useOverviewDashboardQuery({
-    variables: { timeRange },
-    fetchPolicy: 'cache-and-network', // Use cache first, but fetch in background
+    variables: {
+      timeRange: resolved.start,
+      timeRangeEnd: resolved.end,
+    },
+    fetchPolicy: 'cache-and-network',
     errorPolicy: 'all',
-    notifyOnNetworkStatusChange: true, // Enable to track refetch status
-    pollInterval: 5000, // Poll every 5 seconds
+    notifyOnNetworkStatusChange: true,
+    pollInterval: resolved.isCustom ? 0 : 5000,
   });
 
   // Track polling status for the Layout indicator
@@ -132,70 +104,8 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
   // Process hourly metrics for charts from invocations data
   // Generate all intervals in the selected range, filling in zeros for intervals with no data
   const hourlyMetrics = useMemo(() => {
-    // Use chart-specific data (all records, minimal fields)
     const invocations = data?.invocations_chart || [];
-    const now = new Date();
-    let startDate: Date;
-    let intervals: Date[];
-    let formatKey: (date: Date) => string;
-    let getIntervalStart: (date: Date) => Date;
-
-    // Determine the start date and interval strategy based on time range
-    switch (timeRangeOption) {
-      case '1h':
-        // For 1 hour, show 12 five-minute intervals
-        startDate = sub(now, { hours: 1 });
-        // Round start to nearest 5-minute boundary
-        const startMinutes = startDate.getMinutes();
-        const roundedStartMinutes = Math.floor(startMinutes / 5) * 5;
-        const roundedStart = new Date(startDate);
-        roundedStart.setMinutes(roundedStartMinutes, 0, 0);
-        // Include the current 5-minute interval by adding 5 minutes to now before rounding down
-        const endTime = addMinutes(now, 5);
-        const endMinutes = endTime.getMinutes();
-        const roundedEndMinutes = Math.floor(endMinutes / 5) * 5;
-        const roundedEnd = new Date(endTime);
-        roundedEnd.setMinutes(roundedEndMinutes, 0, 0);
-        intervals = eachMinuteOfInterval({ start: roundedStart, end: roundedEnd }, { step: 5 });
-        formatKey = date => format(date, 'HH:mm');
-        getIntervalStart = date => {
-          const minutes = date.getMinutes();
-          const roundedMinutes = Math.floor(minutes / 5) * 5;
-          const rounded = new Date(date);
-          rounded.setMinutes(roundedMinutes, 0, 0);
-          return rounded;
-        };
-        break;
-      case '6h':
-        // For 6 hours, show hourly intervals
-        startDate = sub(now, { hours: 6 });
-        // Include the current hour by adding 1 hour to now before rounding down
-        intervals = eachHourOfInterval({ start: startOfHour(startDate), end: startOfHour(addHours(now, 1)) });
-        formatKey = date => format(date, 'HH:mm');
-        getIntervalStart = startOfHour;
-        break;
-      case '24h':
-        // For 24 hours, show hourly intervals
-        startDate = sub(now, { hours: 24 });
-        // Include the current hour by adding 1 hour to now before rounding down
-        intervals = eachHourOfInterval({ start: startOfHour(startDate), end: startOfHour(addHours(now, 1)) });
-        formatKey = date => format(date, 'HH:mm');
-        getIntervalStart = startOfHour;
-        break;
-      case '7d':
-        // For 7 days, show daily intervals
-        startDate = sub(now, { days: 7 });
-        intervals = eachDayOfInterval({ start: startOfDay(startDate), end: startOfDay(now) });
-        formatKey = date => format(date, 'MMM d');
-        getIntervalStart = startOfDay;
-        break;
-      default:
-        // Default to 24 hours
-        startDate = sub(now, { hours: 24 });
-        intervals = eachHourOfInterval({ start: startOfHour(startDate), end: startOfHour(now) });
-        formatKey = date => format(date, 'HH:mm');
-        getIntervalStart = startOfHour;
-    }
+    const { intervals, formatKey, getIntervalStart, bucketStrategy } = resolved;
 
     // Initialize all intervals with zero values
     const intervalMap = new Map<string, { hour: string; total: number; successful: number; failed: number }>();
@@ -218,16 +128,14 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
     });
 
     return Array.from(intervalMap.values()).sort((a, b) => {
-      // For date strings like "MMM d", we need to parse them, but for "HH:mm" we can compare directly
-      if (timeRangeOption === '7d') {
-        // Parse dates for proper sorting
+      if (bucketStrategy === 'daily') {
         const dateA = new Date(a.hour);
         const dateB = new Date(b.hour);
         return dateA.getTime() - dateB.getTime();
       }
       return a.hour.localeCompare(b.hour);
     });
-  }, [data?.invocations_chart, timeRangeOption]);
+  }, [data?.invocations_chart, resolved]);
 
   // Get recent invocations for table (limited to 10 records)
   const recentInvocations = data?.invocations_table || [];

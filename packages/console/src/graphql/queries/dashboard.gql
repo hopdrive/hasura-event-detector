@@ -1,13 +1,13 @@
-query OverviewDashboard($timeRange: timestamptz!) {
+query OverviewDashboard($timeRange: timestamptz!, $timeRangeEnd: timestamptz!) {
   # Chart data: fetch all invocations but only fields needed for chart (created_at, status)
-  invocations_chart: invocations(where: { created_at: { _gte: $timeRange } }, order_by: { created_at: desc }) {
+  invocations_chart: invocations(where: { created_at: { _gte: $timeRange, _lte: $timeRangeEnd } }, order_by: { created_at: desc }) {
     created_at
     status
   }
 
   # Table data: fetch only top 10 invocations with all fields needed for table display
   invocations_table: invocations(
-    where: { created_at: { _gte: $timeRange } }
+    where: { created_at: { _gte: $timeRange, _lte: $timeRangeEnd } }
     order_by: { created_at: desc }
     limit: 10
   ) {
@@ -25,7 +25,7 @@ query OverviewDashboard($timeRange: timestamptz!) {
     source_user_role
   }
 
-  invocations_aggregate(where: { created_at: { _gte: $timeRange } }) {
+  invocations_aggregate(where: { created_at: { _gte: $timeRange, _lte: $timeRangeEnd } }) {
     aggregate {
       count
       avg {
@@ -39,7 +39,7 @@ query OverviewDashboard($timeRange: timestamptz!) {
     }
   }
 
-  event_executions_aggregate(where: { detected: { _eq: true }, created_at: { _gte: $timeRange } }) {
+  event_executions_aggregate(where: { detected: { _eq: true }, created_at: { _gte: $timeRange, _lte: $timeRangeEnd } }) {
     aggregate {
       count
     }

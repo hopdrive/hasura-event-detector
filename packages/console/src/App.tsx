@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink } from '@apollo/client';
+import { setContext } from '@apollo/client/link/context';
 import {
   HomeIcon,
   TableCellsIcon,
   ChartBarIcon,
   Cog6ToothIcon,
   ArrowPathIcon,
-  DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
 import OverviewDashboard from './components/OverviewDashboard';
@@ -15,9 +15,9 @@ import InvocationsTable from './components/InvocationsTable';
 import FlowDiagram from './components/FlowDiagram';
 import Analytics from './components/Analytics';
 import Settings from './components/Settings';
-import LogExplorer from './components/LogExplorer';
 import CorrelationSearch from './components/CorrelationSearch';
 import FlowHeader from './components/FlowHeader';
+import TimeRangeSelector from './components/TimeRangeSelector';
 import LoginPage from './components/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { PollingProvider, usePolling } from './contexts/PollingContext';
@@ -25,25 +25,32 @@ import { LogProviderProvider } from './contexts/LogProviderContext';
 import { AuthProviderWrapper } from './contexts/AuthContext';
 import { NoopAuthProvider, PasswordAuthProvider } from './providers';
 import { useSystemStatus } from './hooks/useSystemStatus';
-import config from './config';
+import config, { getSensitiveConfig } from './config';
 import './styles/globals.css';
 
 const authProvider = config.auth.enabled
-  ? new PasswordAuthProvider(config.auth.password)
+  ? new PasswordAuthProvider()
   : new NoopAuthProvider();
 
 // Apollo Client configuration
 const httpLink = createHttpLink({
   uri: config.graphql.endpoint,
-  headers: {
-    ...(config.graphql.adminSecret && {
-      'x-hasura-admin-secret': config.graphql.adminSecret,
-    }),
-  },
+});
+
+const authLink = setContext((_, { headers }) => {
+  const sensitive = getSensitiveConfig();
+  return {
+    headers: {
+      ...headers,
+      ...(sensitive?.hasuraAdminSecret && {
+        'x-hasura-admin-secret': sensitive.hasuraAdminSecret,
+      }),
+    },
+  };
 });
 
 const client = new ApolloClient({
-  link: httpLink,
+  link: authLink.concat(httpLink),
   cache: new InMemoryCache({
     typePolicies: {
       Query: {
@@ -73,7 +80,6 @@ const navigation = [
   { name: 'Overview', href: '/', icon: HomeIcon },
   { name: 'Invocations', href: '/invocations', icon: TableCellsIcon },
   { name: 'Analytics', href: '/analytics', icon: ChartBarIcon },
-  { name: 'Logs', href: '/logs', icon: DocumentTextIcon },
   { name: 'Settings', href: '/settings', icon: Cog6ToothIcon },
 ];
 
@@ -243,16 +249,7 @@ function Layout({
 
                 {/* Time Range & Sync Indicator */}
                 <div className='flex items-center space-x-4 ml-6'>
-                  <select
-                    value={timeRange}
-                    onChange={e => setTimeRange(e.target.value)}
-                    className='px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100'
-                  >
-                    <option value='1h'>Last 1 hour</option>
-                    <option value='6h'>Last 6 hours</option>
-                    <option value='24h'>Last 24 hours</option>
-                    <option value='7d'>Last 7 days</option>
-                  </select>
+                  <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
 
                   <div className='flex items-center'>
                     <ArrowPathIcon
@@ -310,7 +307,6 @@ function App() {
   return (
     <ApolloProvider client={client}>
       <AuthProviderWrapper provider={authProvider}>
-      <LogProviderProvider>
       <PollingProvider>
         <Router
           future={{
@@ -324,6 +320,7 @@ function App() {
               path='*'
               element={
                 <ProtectedRoute>
+                  <LogProviderProvider>
                   <Layout
                     correlationSearch={correlationSearch}
                     setCorrelationSearch={setCorrelationSearch}
@@ -338,17 +335,16 @@ function App() {
                       <Route path='/invocations' element={<InvocationsTable correlationSearch={correlationSearch} />} />
                       <Route path='/flow' element={<FlowDiagram />} />
                       <Route path='/analytics' element={<Analytics timeRange={timeRange} />} />
-                      <Route path='/logs' element={<LogExplorer />} />
                       <Route path='/settings' element={<Settings />} />
                     </Routes>
                   </Layout>
+                  </LogProviderProvider>
                 </ProtectedRoute>
               }
             />
           </Routes>
         </Router>
       </PollingProvider>
-      </LogProviderProvider>
       </AuthProviderWrapper>
     </ApolloProvider>
   );

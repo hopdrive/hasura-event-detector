@@ -37,15 +37,8 @@ import {
   useJobExecutionSamplesLazyQuery,
 } from '../types/generated';
 import { formatDuration } from '../utils/formatDuration';
-import {
-  sub,
-  format,
-  startOfHour,
-  startOfDay,
-  eachHourOfInterval,
-  eachDayOfInterval,
-  addHours,
-} from 'date-fns';
+import { resolveTimeRange } from '../utils/resolveTimeRange';
+import { format } from 'date-fns';
 import { NetworkStatus } from '@apollo/client';
 import { usePolling } from '../contexts/PollingContext';
 
@@ -214,41 +207,34 @@ const Analytics: React.FC<AnalyticsProps> = ({ timeRange: timeRangeOption = '24h
   const { setIsPolling } = usePolling();
   const [activeTab, setActiveTab] = useState<TabKey>('jobs-events');
 
-  const timeRange = useMemo(() => {
-    const now = new Date();
-    switch (timeRangeOption) {
-      case '1h':
-        return sub(now, { hours: 1 }).toISOString();
-      case '6h':
-        return sub(now, { hours: 6 }).toISOString();
-      case '7d':
-        return sub(now, { days: 7 }).toISOString();
-      default:
-        return sub(now, { hours: 24 }).toISOString();
-    }
-  }, [timeRangeOption]);
+  const resolved = useMemo(() => resolveTimeRange(timeRangeOption), [timeRangeOption]);
+  const queryVars = useMemo(
+    () => ({ timeRange: resolved.start, timeRangeEnd: resolved.end }),
+    [resolved.start, resolved.end],
+  );
+  const pollInterval = resolved.isCustom ? 0 : 5000;
 
   // Always fetch jobs-events (provides KPI data + default tab)
   const jobsEvents = useAnalyticsJobsEventsQuery({
-    variables: { timeRange },
+    variables: queryVars,
     fetchPolicy: 'cache-and-network',
-    pollInterval: 5000,
+    pollInterval,
     notifyOnNetworkStatusChange: true,
   });
 
   const performance = useAnalyticsPerformanceQuery({
-    variables: { timeRange },
+    variables: queryVars,
     skip: activeTab !== 'performance',
     fetchPolicy: 'cache-and-network',
-    pollInterval: 5000,
+    pollInterval,
     notifyOnNetworkStatusChange: true,
   });
 
   const sources = useAnalyticsSourcesQuery({
-    variables: { timeRange },
+    variables: queryVars,
     skip: activeTab !== 'sources',
     fetchPolicy: 'cache-and-network',
-    pollInterval: 5000,
+    pollInterval,
     notifyOnNetworkStatusChange: true,
   });
 
@@ -315,35 +301,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ timeRange: timeRangeOption = '24h
 
     if (topFailingJobs.length === 0) return { data: [], jobs: [] as string[] };
 
-    const now = new Date();
-    let intervals: Date[];
-    let formatKey: (d: Date) => string;
-    let getInterval: (d: Date) => Date;
-
-    switch (timeRangeOption) {
-      case '1h':
-      case '6h':
-      case '24h':
-        intervals = eachHourOfInterval({
-          start: startOfHour(new Date(timeRange)),
-          end: startOfHour(addHours(now, 1)),
-        });
-        formatKey = d => format(d, 'HH:mm');
-        getInterval = startOfHour;
-        break;
-      case '7d':
-        intervals = eachDayOfInterval({ start: startOfDay(new Date(timeRange)), end: startOfDay(now) });
-        formatKey = d => format(d, 'MMM d');
-        getInterval = startOfDay;
-        break;
-      default:
-        intervals = eachHourOfInterval({
-          start: startOfHour(new Date(timeRange)),
-          end: startOfHour(addHours(now, 1)),
-        });
-        formatKey = d => format(d, 'HH:mm');
-        getInterval = startOfHour;
-    }
+    const { intervals, formatKey, getIntervalStart } = resolved;
 
     // bucket: { time, [jobName]: failureRate }
     type Bucket = { time: string; [key: string]: number | string };
@@ -361,7 +319,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ timeRange: timeRangeOption = '24h
 
     allJobs.forEach(j => {
       if (!topFailingJobs.includes(j.job_name)) return;
-      const key = formatKey(getInterval(new Date(j.created_at)));
+      const key = formatKey(getIntervalStart(new Date(j.created_at)));
       const b = bucketMap.get(key);
       if (!b) return;
       b.totals[j.job_name] = (b.totals[j.job_name] || 0) + 1;
@@ -378,7 +336,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ timeRange: timeRangeOption = '24h
     });
 
     return { data, jobs: topFailingJobs };
-  }, [allJobs, timeRange, timeRangeOption]);
+  }, [allJobs, resolved]);
 
   const eventDetectionData = useMemo(() => {
     const allEvents = jobsEvents.data?.all_events || [];
@@ -552,7 +510,8 @@ const Analytics: React.FC<AnalyticsProps> = ({ timeRange: timeRangeOption = '24h
           jobFailureTable={jobFailureTable}
           jobFailureOverTime={jobFailureOverTime}
           eventDetectionData={eventDetectionData}
-          timeRange={timeRange}
+          timeRange={resolved.start}
+          timeRangeEnd={resolved.end}
           recentFailures={(jobsEvents.data?.recent_failures || []).map(f => ({
             id: f.id,
             invocation_id: f.invocation_id,
@@ -616,6 +575,7 @@ function JobsEventsTab({
   eventDetectionData,
   recentFailures,
   timeRange,
+  timeRangeEnd,
 }: {
   jobFrequency: { name: string; count: number }[];
   jobFailureTable: {
@@ -629,6 +589,7 @@ function JobsEventsTab({
   eventDetectionData: { name: string; detected: number; not_detected: number }[];
   recentFailures: RecentFailureRow[];
   timeRange: string;
+  timeRangeEnd: string;
 }) {
   return (
     <div className='space-y-6'>
@@ -651,7 +612,7 @@ function JobsEventsTab({
 
       {/* Systemic Job Failure Rate Table */}
       <ChartCard title='Systemic Job Failure Rate' subtitle='Jobs with failures, sorted by failure rate (worst first)'>
-        <FailureRateAccordion data={jobFailureTable} timeRange={timeRange} />
+        <FailureRateAccordion data={jobFailureTable} timeRange={timeRange} timeRangeEnd={timeRangeEnd} />
       </ChartCard>
 
       {/* Job Failure Rate Over Time */}
@@ -766,9 +727,11 @@ function RecentFailuresTable({ data }: { data: RecentFailureRow[] }) {
 function FailureRateAccordion({
   data,
   timeRange,
+  timeRangeEnd,
 }: {
   data: JobFailureRow[];
   timeRange: string;
+  timeRangeEnd: string;
 }) {
   const [expandedJob, setExpandedJob] = useState<string | null>(null);
 
@@ -834,7 +797,7 @@ function FailureRateAccordion({
               {expandedJob === row.name && (
                 <tr>
                   <td colSpan={6} className='p-0'>
-                    <FailureRateDetail jobName={row.name} timeRange={timeRange} />
+                    <FailureRateDetail jobName={row.name} timeRange={timeRange} timeRangeEnd={timeRangeEnd} />
                   </td>
                 </tr>
               )}
@@ -846,13 +809,13 @@ function FailureRateAccordion({
   );
 }
 
-function FailureRateDetail({ jobName, timeRange }: { jobName: string; timeRange: string }) {
+function FailureRateDetail({ jobName, timeRange, timeRangeEnd }: { jobName: string; timeRange: string; timeRangeEnd: string }) {
   const navigate = useNavigate();
   const [fetchSamples, { data, loading }] = useJobExecutionSamplesLazyQuery();
 
   useEffect(() => {
-    fetchSamples({ variables: { jobName, timeRange } });
-  }, [jobName, timeRange, fetchSamples]);
+    fetchSamples({ variables: { jobName, timeRange, timeRangeEnd } });
+  }, [jobName, timeRange, timeRangeEnd, fetchSamples]);
 
   const handleClick = (invocationId: string) => {
     navigate(`/flow?invocationId=${invocationId}&autoFocus=true`);

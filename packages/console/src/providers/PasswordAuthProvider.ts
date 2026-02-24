@@ -1,27 +1,29 @@
 import type { AuthProvider, AuthState, LoginField } from './auth-provider.types';
+import { loadSensitiveConfig, clearSensitiveConfig } from '../config';
 
-const SESSION_KEY = 'hed-console-auth';
+const TOKEN_KEY = 'hed-console-token';
 
 export class PasswordAuthProvider implements AuthProvider {
   readonly name = 'password';
   readonly requiresLogin = true;
 
-  private password: string;
-
-  constructor(password: string) {
-    this.password = password;
-  }
-
   async initialize(): Promise<AuthState> {
-    const session = localStorage.getItem(SESSION_KEY);
-    if (session === 'authenticated') {
-      return {
-        isAuthenticated: true,
-        user: null,
-        token: null,
-        loading: false,
-        error: null,
-      };
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (token) {
+      try {
+        await loadSensitiveConfig(token);
+        return {
+          isAuthenticated: true,
+          user: null,
+          token,
+          loading: false,
+          error: null,
+        };
+      } catch {
+        // Token expired or invalid — clear and require re-login
+        localStorage.removeItem(TOKEN_KEY);
+        clearSensitiveConfig();
+      }
     }
     return {
       isAuthenticated: false,
@@ -33,28 +35,49 @@ export class PasswordAuthProvider implements AuthProvider {
   }
 
   async login(credentials: Record<string, string>): Promise<AuthState> {
-    if (credentials.password === this.password) {
-      localStorage.setItem(SESSION_KEY, 'authenticated');
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: credentials.password }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return {
+          isAuthenticated: false,
+          user: null,
+          token: null,
+          loading: false,
+          error: data.error || 'Invalid password',
+        };
+      }
+
+      const { token } = await res.json();
+      localStorage.setItem(TOKEN_KEY, token);
+      await loadSensitiveConfig(token);
+
       return {
         isAuthenticated: true,
         user: null,
-        token: null,
+        token,
         loading: false,
         error: null,
       };
+    } catch (err: any) {
+      return {
+        isAuthenticated: false,
+        user: null,
+        token: null,
+        loading: false,
+        error: err.message || 'Login failed',
+      };
     }
-
-    return {
-      isAuthenticated: false,
-      user: null,
-      token: null,
-      loading: false,
-      error: 'Invalid password',
-    };
   }
 
   async logout(): Promise<void> {
-    localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(TOKEN_KEY);
+    clearSensitiveConfig();
   }
 
   getLoginFields(): LoginField[] {

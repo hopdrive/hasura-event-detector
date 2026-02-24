@@ -6,7 +6,7 @@ import {
   buildJobQuery,
   buildGrafanaExploreUrl,
 } from '../services/GrafanaService';
-import config from '../config';
+import config, { getSensitiveConfig } from '../config';
 
 export class GrafanaLokiProvider implements LogProvider {
   readonly name = 'Grafana Loki';
@@ -18,20 +18,25 @@ export class GrafanaLokiProvider implements LogProvider {
 
   constructor() {
     const { grafana, environment } = config.logging;
+    const sensitive = getSensitiveConfig();
+    const serviceAccountToken = sensitive?.grafanaServiceAccountToken || '';
+    const userId = sensitive?.grafanaUserId || '';
+    const secret = sensitive?.grafanaSecret || '';
+
     this.environment = environment;
     this.grafanaUrl = grafana.url;
     this.lokiDatasourceUid = grafana.lokiDatasourceUid;
 
-    if (grafana.serviceAccountToken) {
+    if (serviceAccountToken) {
       this.service = new GrafanaService({
         host: grafana.host,
-        userId: grafana.userId,
-        secret: grafana.secret,
-        serviceAccountToken: grafana.serviceAccountToken,
+        userId,
+        secret,
+        serviceAccountToken,
         lokiDatasourceUid: grafana.lokiDatasourceUid,
         environment,
       });
-    } else if (grafana.host && grafana.userId && grafana.secret) {
+    } else if (grafana.host && userId && secret) {
       let host = grafana.host;
       if (!host.startsWith('http://') && !host.startsWith('https://')) {
         host = `https://${host}`;
@@ -40,8 +45,8 @@ export class GrafanaLokiProvider implements LogProvider {
 
       this.service = new GrafanaService({
         host,
-        userId: grafana.userId,
-        secret: grafana.secret,
+        userId,
+        secret,
         environment,
       });
     } else {
@@ -54,7 +59,7 @@ export class GrafanaLokiProvider implements LogProvider {
   }
 
   getConfigurationHint(): string {
-    return 'Configure Grafana credentials in your .env file (VITE_GRAFANA_SERVICE or VITE_GRAFANA_HOST + VITE_GRAFANA_ID + VITE_GRAFANA_SECRET).';
+    return 'Configure Grafana credentials as server-side env vars (GRAFANA_SERVICE or GRAFANA_HOST + GRAFANA_ID + GRAFANA_SECRET). These are loaded after login.';
   }
 
   getService(): GrafanaService | null {
