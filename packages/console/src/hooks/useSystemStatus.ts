@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, gql } from '@apollo/client';
+import config from '../config';
 
 const HEALTH_CHECK_QUERY = gql`
   query HealthCheck {
@@ -63,7 +64,7 @@ function extractDatabaseInfo(endpoint: string): {
 }
 
 export function useSystemStatus(): SystemStatus {
-  const graphqlEndpoint = import.meta.env.VITE_GRAPHQL_ENDPOINT || 'http://localhost:8080/v1/graphql';
+  const graphqlEndpoint = config.graphql.endpoint;
   
   const { data, loading, error } = useQuery(HEALTH_CHECK_QUERY, {
     fetchPolicy: 'network-only',

@@ -5,7 +5,7 @@ import { Node } from 'reactflow';
 import { formatDuration } from '../utils/formatDuration';
 import LogsViewer from './LogsViewer';
 import DrawerBreadcrumb from './DrawerBreadcrumb';
-import { createGrafanaService, buildEventQuery, buildGrafanaExploreUrl } from '../services/GrafanaService';
+import { useLogProvider } from '../contexts/LogProviderContext';
 
 interface EventDetailDrawerProps {
   node: Node | null;
@@ -29,9 +29,58 @@ const TabButton = ({ active, onClick, children }: any) => (
   </button>
 );
 
+const EventLogsTab: React.FC<{ eventData: any }> = ({ eventData }) => {
+  const logProvider = useLogProvider();
+
+  if (!logProvider.isConfigured()) {
+    return (
+      <div className="space-y-4">
+        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+          <p>{logProvider.name} is not configured.</p>
+          <p className="text-sm mt-1">
+            {logProvider.getConfigurationHint?.() || 'Configure your log provider.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const { queryFn, queryDisplay, exploreUrl, exploreLinkLabel } = logProvider.getLogQuery({
+    type: 'event',
+    invocationId: eventData.invocationId,
+    eventName: eventData.eventName,
+    createdAt: eventData.createdAt,
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800 mb-4">
+        <h5 className="font-medium text-blue-700 dark:text-blue-400 mb-2">
+          Event Execution Logs
+        </h5>
+        <p className="text-sm text-blue-600 dark:text-blue-400">
+          Viewing logs from {logProvider.name} for this event execution and all associated jobs.
+          Logs are filtered by invocationId.
+        </p>
+      </div>
+
+      <LogsViewer
+        queryFn={queryFn}
+        queryDisplay={queryDisplay}
+        exploreUrl={exploreUrl}
+        exploreLinkLabel={exploreLinkLabel}
+        queryLanguageLabel={logProvider.queryLanguageLabel}
+        autoRefresh={false}
+        isJobRunning={false}
+        refreshInterval={5000}
+      />
+    </div>
+  );
+};
+
 const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
   node,
-  isOpen,
+  isOpen: _isOpen,
   onClose,
   onSelectNode,
 }) => {
@@ -533,49 +582,7 @@ export default async function detect(payload, context) {
         )}
 
         {activeTab === 'logs' && (
-          <div className="space-y-4">
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800 mb-4">
-              <h5 className="font-medium text-blue-700 dark:text-blue-400 mb-2">
-                Event Execution Logs
-              </h5>
-              <p className="text-sm text-blue-600 dark:text-blue-400">
-                Viewing logs from Grafana Loki for this event execution and all associated jobs.
-                Logs are filtered by correlationId.
-              </p>
-            </div>
-
-            {(() => {
-              const grafanaService = createGrafanaService();
-
-              if (!grafanaService) {
-                return (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                    <p>Grafana is not configured.</p>
-                    <p className="text-sm mt-1">
-                      Set VITE_GRAFANA_HOST, VITE_GRAFANA_ID, and VITE_GRAFANA_SECRET environment variables.
-                    </p>
-                  </div>
-                );
-              }
-
-              const correlationId = eventData.correlationId;
-              const eventName = eventData.eventName;
-              const createdAt = eventData.createdAt;
-              const env = import.meta.env.VITE_GRAFANA_ENVIRONMENT || 'test';
-              const query = buildEventQuery(correlationId, env, eventName);
-
-              return (
-                <LogsViewer
-                  queryFn={() => grafanaService.queryEventLogs(correlationId, 15, eventName, createdAt)}
-                  queryDisplay={query}
-                  grafanaExploreUrl={buildGrafanaExploreUrl(query, createdAt)}
-                  autoRefresh={false}
-                  isJobRunning={false}
-                  refreshInterval={5000}
-                />
-              );
-            })()}
-          </div>
+          <EventLogsTab eventData={eventData} />
         )}
       </div>
     </motion.div>

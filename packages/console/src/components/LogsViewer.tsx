@@ -6,21 +6,25 @@ import {
   ArrowPathIcon,
   ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
-import type { LogEntry, LogQueryResult } from '../services/GrafanaService';
+import type { LogEntry, LogQueryResult } from '../providers';
 
 interface LogsViewerProps {
   queryFn: () => Promise<LogQueryResult>;
-  queryDisplay?: string; // LogQL query string shown for debugging
-  grafanaExploreUrl?: string | null; // Link to open query in Grafana Explore
+  queryDisplay?: string;
+  exploreUrl?: string | null;
+  exploreLinkLabel?: string;
+  queryLanguageLabel?: string;
   autoRefresh?: boolean;
-  refreshInterval?: number; // milliseconds
+  refreshInterval?: number;
   isJobRunning?: boolean;
 }
 
 const LogsViewer: React.FC<LogsViewerProps> = ({
   queryFn,
   queryDisplay,
-  grafanaExploreUrl,
+  exploreUrl,
+  exploreLinkLabel = 'Open in Explorer',
+  queryLanguageLabel = 'Query',
   autoRefresh = false,
   refreshInterval = 5000,
   isJobRunning = false,
@@ -203,14 +207,48 @@ const LogsViewer: React.FC<LogsViewerProps> = ({
 
   if (logs.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 text-center">
-        <div className="text-gray-400 text-6xl mb-3">📋</div>
-        <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-          No Logs Found
-        </h4>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          No logs are available for this node in the selected time range.
-        </p>
+      <div className="space-y-4">
+        {/* Show query even when no logs found so user can debug */}
+        {queryDisplay && (
+          <div className="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{queryLanguageLabel} Query</span>
+              <div className="flex items-center space-x-3">
+                {exploreUrl && (
+                  <a
+                    href={exploreUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    {exploreLinkLabel}
+                  </a>
+                )}
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(queryDisplay);
+                    setQueryCopied(true);
+                    setTimeout(() => setQueryCopied(false), 2000);
+                  }}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  {queryCopied ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+            </div>
+            <pre className="text-xs font-mono text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-all">{queryDisplay}</pre>
+          </div>
+        )}
+
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <div className="text-gray-400 text-6xl mb-3">📋</div>
+          <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            No Logs Found
+          </h4>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            No logs are available for this node in the selected time range.
+          </p>
+        </div>
       </div>
     );
   }
@@ -221,16 +259,16 @@ const LogsViewer: React.FC<LogsViewerProps> = ({
       {queryDisplay && (
         <div className="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">LogQL Query</span>
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{queryLanguageLabel} Query</span>
             <div className="flex items-center space-x-3">
-              {grafanaExploreUrl && (
+              {exploreUrl && (
                 <a
-                  href={grafanaExploreUrl}
+                  href={exploreUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                 >
-                  Open in Grafana
+                  {exploreLinkLabel}
                 </a>
               )}
               <button
@@ -353,7 +391,6 @@ const LogsViewer: React.FC<LogsViewerProps> = ({
                     theme={jsonTreeTheme}
                     invertTheme={false}
                     hideRoot
-                    shouldExpandNode={(keyName, data, level) => level < 2}
                   />
                 </div>
               )}

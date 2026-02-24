@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import LogsViewer from './LogsViewer';
 import { createGrafanaService } from '../services/GrafanaService';
 import type { LogQueryResult } from '../services/GrafanaService';
+import config from '../config';
 
 const DEFAULT_QUERY = `{environment="test"} | json | invocationId=\`db-lanes-1771668078808-azlh78h-2a713d63\` | line_format "{{.message}}"`;
 
@@ -26,12 +27,12 @@ const LogExplorer: React.FC = () => {
   const [showRaw, setShowRaw] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const grafanaHost = import.meta.env.VITE_GRAFANA_HOST;
-  const grafanaId = import.meta.env.VITE_GRAFANA_USER || import.meta.env.VITE_GRAFANA_ID;
-  const grafanaSecret = import.meta.env.VITE_GRAFANA_SECRET;
-  const grafanaServiceToken = import.meta.env.VITE_GRAFANA_SERVICE;
-  const lokiUid = import.meta.env.VITE_GRAFANA_LOKI_UID || 'grafanacloud-logs';
-  const grafanaEnvironment = import.meta.env.VITE_GRAFANA_ENVIRONMENT;
+  const grafanaHost = config.logging.grafana.host;
+  const grafanaId = config.logging.grafana.userId;
+  const grafanaSecret = config.logging.grafana.secret;
+  const grafanaServiceToken = config.logging.grafana.serviceAccountToken;
+  const lokiUid = config.logging.grafana.lokiDatasourceUid;
+  const grafanaEnvironment = config.logging.environment;
 
   const service = createGrafanaService();
 

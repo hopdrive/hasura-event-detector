@@ -4,6 +4,7 @@
  * Provides integration with Grafana Loki for fetching logs
  * from the event detector system.
  */
+import config from '../config';
 
 export interface GrafanaConfig {
   host: string;
@@ -42,20 +43,20 @@ export interface LogQueryResult {
 /**
  * Build a Grafana Explore URL for a given LogQL query and time range
  */
-export function buildGrafanaExploreUrl(query: string, timestamp?: string): string | null {
-  const grafanaUrl = import.meta.env.VITE_GRAFANA_URL;
-  const datasourceUid = import.meta.env.VITE_GRAFANA_LOKI_UID || 'grafanacloud-logs';
+export function buildGrafanaExploreUrl(query: string, timestamp?: string, grafanaUrl?: string, datasourceUid?: string): string | null {
+  const url = grafanaUrl || config.logging.grafana.url;
+  const uid = datasourceUid || config.logging.grafana.lokiDatasourceUid;
 
-  if (!grafanaUrl) return null;
+  if (!url) return null;
 
-  const normalizedUrl = grafanaUrl.replace(/\/$/, '');
+  const normalizedUrl = url.replace(/\/$/, '');
   const center = timestamp ? new Date(timestamp).getTime() : Date.now();
   const from = new Date(center - 15 * 60 * 1000).toISOString();
   const to = new Date(center + 15 * 60 * 1000).toISOString();
 
   const panes = JSON.stringify({
     '0': {
-      datasource: datasourceUid,
+      datasource: uid,
       queries: [{ refId: 'A', expr: query }],
       range: { from, to },
     },
@@ -74,8 +75,8 @@ export function buildInvocationQuery(invocationId: string, environment: string):
 /**
  * Build a LogQL query for an event node
  */
-export function buildEventQuery(correlationId: string, environment: string, eventName?: string): string {
-  let query = `{environment="${environment}"} | json | correlationId=\`${correlationId}\``;
+export function buildEventQuery(invocationId: string, environment: string, eventName?: string): string {
+  let query = `{environment="${environment}"} | json | invocationId=\`${invocationId}\``;
   if (eventName) {
     query += ` | logType=\`detector\` | eventName=\`${eventName}\``;
   }
@@ -268,13 +269,13 @@ export class GrafanaService {
    * Query logs for a specific event
    */
   async queryEventLogs(
-    correlationId: string,
+    invocationId: string,
     timeRangeMinutes: number = 30,
     eventName?: string,
     timestamp?: string
   ): Promise<LogQueryResult> {
     const env = this.config.environment || 'test';
-    const query = buildEventQuery(correlationId, env, eventName);
+    const query = buildEventQuery(invocationId, env, eventName);
     const center = timestamp ? new Date(timestamp).getTime() : Date.now();
     const start = (center - timeRangeMinutes * 60 * 1000) * 1000000;
     const end = (center + timeRangeMinutes * 60 * 1000) * 1000000;
@@ -317,13 +318,13 @@ export class GrafanaService {
  * Prefers service account token auth (datasource proxy) over direct Loki Basic auth.
  */
 export function createGrafanaService(): GrafanaService | null {
-  const serviceAccountToken = import.meta.env.VITE_GRAFANA_SERVICE;
-  const lokiDatasourceUid = import.meta.env.VITE_GRAFANA_LOKI_UID || 'grafanacloud-logs';
-  const environment = import.meta.env.VITE_GRAFANA_ENVIRONMENT || 'test';
+  const { grafana, environment } = config.logging;
+  const serviceAccountToken = grafana.serviceAccountToken;
+  const lokiDatasourceUid = grafana.lokiDatasourceUid;
 
-  let host = import.meta.env.VITE_GRAFANA_HOST;
-  const userId = import.meta.env.VITE_GRAFANA_USER || import.meta.env.VITE_GRAFANA_ID;
-  const secret = import.meta.env.VITE_GRAFANA_SECRET;
+  let host = grafana.host;
+  const userId = grafana.userId;
+  const secret = grafana.secret;
 
   // Service account token is sufficient — no need for Loki direct credentials
   if (serviceAccountToken) {

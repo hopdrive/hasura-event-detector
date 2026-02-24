@@ -9,10 +9,6 @@ import {
   ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -32,7 +28,6 @@ import {
   eachHourOfInterval,
   eachDayOfInterval,
   startOfDay,
-  startOfMinute,
   eachMinuteOfInterval,
 } from 'date-fns';
 import { NetworkStatus } from '@apollo/client';
@@ -81,7 +76,7 @@ interface OverviewDashboardProps {
 }
 
 const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
-  correlationSearch = '',
+  correlationSearch: _correlationSearch = '',
   timeRange: timeRangeOption = '24h',
 }) => {
   const { setIsPolling } = usePolling();

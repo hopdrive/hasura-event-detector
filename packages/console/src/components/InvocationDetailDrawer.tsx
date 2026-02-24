@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { XMarkIcon, ChevronRightIcon, ChevronDownIcon, PlayIcon } from '@heroicons/react/24/outline';
 import { JSONTree } from 'react-json-tree';
-import { create, formatters } from 'jsondiffpatch';
+import { create } from 'jsondiffpatch';
 import { Node } from 'reactflow';
 import { formatDuration } from '../utils/formatDuration';
 import { useInvocationDetailQuery } from '../types/generated';
 import LogsViewer from './LogsViewer';
 import DrawerBreadcrumb from './DrawerBreadcrumb';
-import { createGrafanaService, buildInvocationQuery, buildGrafanaExploreUrl } from '../services/GrafanaService';
+import { useLogProvider } from '../contexts/LogProviderContext';
 
 interface InvocationDetailDrawerProps {
   node: Node | null;
@@ -267,9 +267,47 @@ const EventTreeNode = ({ event, eventIndex, expandedEvents, toggleEvent, onJobCl
   );
 };
 
+const InvocationLogsTab: React.FC<{ invocationId: string; createdAt?: string }> = ({ invocationId, createdAt }) => {
+  const logProvider = useLogProvider();
+
+  if (!logProvider.isConfigured()) {
+    return (
+      <div className="space-y-4">
+        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+          <p>{logProvider.name} is not configured.</p>
+          <p className="text-sm mt-1">
+            {logProvider.getConfigurationHint?.() || 'Configure your log provider.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const { queryFn, queryDisplay, exploreUrl, exploreLinkLabel } = logProvider.getLogQuery({
+    type: 'invocation',
+    invocationId,
+    createdAt,
+  });
+
+  return (
+    <div className="space-y-4">
+      <LogsViewer
+        queryFn={queryFn}
+        queryDisplay={queryDisplay}
+        exploreUrl={exploreUrl}
+        exploreLinkLabel={exploreLinkLabel}
+        queryLanguageLabel={logProvider.queryLanguageLabel}
+        autoRefresh={false}
+        isJobRunning={false}
+        refreshInterval={5000}
+      />
+    </div>
+  );
+};
+
 const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
   node,
-  isOpen,
+  isOpen: _isOpen,
   onClose,
   onSelectNode,
 }) => {
@@ -342,7 +380,6 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
   const jsondiff = create({
     objectHash: (obj: any) => obj.id || obj._id || JSON.stringify(obj),
     arrays: { detectMove: true },
-    textDiff: { minLength: 60 }
   });
 
   // Extract old and new payloads from source_event_payload
@@ -372,8 +409,7 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
                            invocation.source_user_role ||
                            'system';
 
-  // Try to get delivery info if available
-  const deliveryInfo = hasuraEvent?.delivery_info || {};
+  // Delivery info available via hasuraEvent?.delivery_info if needed
   const triggerId = hasuraEvent?.id || invocation.source_event_id;
   const triggerName = hasuraEvent?.trigger?.name || '';
 
@@ -459,6 +495,7 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
       position: { x: 0, y: 0 },
       data: {
         eventName: parentEvent.name,
+        invocationId: invocation.id,
         correlationId: invocationDisplayData.correlationId,
         detected: parentEvent.detected,
         status: parentEvent.detected ? 'completed' : 'not_detected',
@@ -505,6 +542,7 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
       position: { x: 0, y: 0 },
       data: {
         eventName: event.name,
+        invocationId: invocation.id,
         correlationId: invocationDisplayData.correlationId,
         detected: event.detected,
         status: event.detected ? 'completed' : 'not_detected',
@@ -554,7 +592,7 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
               {node.type === 'invocation' ? 'Invocation' : node.type === 'event' ? 'Event' : 'Job'} Details
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 font-mono mt-1">
-              {invocationDisplayData.correlationId}
+              {invocation.id}
             </p>
             {invocationDisplayData.createdAt && (
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -793,7 +831,7 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
                         theme={jsonTreeTheme}
                         invertTheme={false}
                         hideRoot
-                        shouldExpandNode={(keyName, data, level) => level < 2}
+
                         sortObjectKeys
                       />
                     </div>
@@ -813,7 +851,7 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
                         theme={jsonTreeTheme}
                         invertTheme={false}
                         hideRoot
-                        shouldExpandNode={(keyName, data, level) => level < 2}
+
                         sortObjectKeys
                       />
                     </div>
@@ -835,7 +873,6 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
                       theme={jsonTreeTheme}
                       invertTheme={false}
                       hideRoot
-                      shouldExpandNode={(keyName, data, level) => level < 2}
                       sortObjectKeys
                     />
                   </div>
@@ -981,38 +1018,7 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
         )}
 
         {activeTab === 'logs' && (
-          <div className="space-y-4">
-            {(() => {
-              const grafanaService = createGrafanaService();
-
-              if (!grafanaService) {
-                return (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                    <p>Grafana is not configured.</p>
-                    <p className="text-sm mt-1">
-                      Set VITE_GRAFANA_HOST, VITE_GRAFANA_ID, and VITE_GRAFANA_SECRET environment variables.
-                    </p>
-                  </div>
-                );
-              }
-
-              const invocationId = node.id;
-              const createdAt = invocationDisplayData.createdAt;
-              const env = import.meta.env.VITE_GRAFANA_ENVIRONMENT || 'test';
-              const query = buildInvocationQuery(invocationId, env);
-
-              return (
-                <LogsViewer
-                  queryFn={() => grafanaService.queryInvocationLogs(invocationId, 15, createdAt)}
-                  queryDisplay={query}
-                  grafanaExploreUrl={buildGrafanaExploreUrl(query, createdAt)}
-                  autoRefresh={false}
-                  isJobRunning={false}
-                  refreshInterval={5000}
-                />
-              );
-            })()}
-          </div>
+          <InvocationLogsTab invocationId={invocation.id} createdAt={invocationDisplayData.createdAt} />
         )}
       </div>
     </motion.div>

@@ -70,7 +70,7 @@ const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch =
     loading,
     error,
   } = useInvocationsListQuery({
-    variables: { limit: 1000, offset: 0, order_by: [{ created_at: 'desc' }] },
+    variables: { limit: 1000, offset: 0, order_by: [{ created_at: 'desc' as any }] },
     fetchPolicy: 'cache-first',
     errorPolicy: 'all',
     notifyOnNetworkStatusChange: false,
@@ -96,7 +96,7 @@ const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch =
       status: inv.status as 'completed' | 'failed' | 'running',
       createdAt: inv.created_at,
       //{ "id": "7e981c1b-cad5-4970-afc3-41d78adb5805", "event": { "op": "UPDATE", "data": { "new": { "i
-      recordId: `${inv?.source_table?.split('.')[1]}:${inv.source_event_payload?.event?.data?.new?.id}`,
+      recordId: `${inv?.source_table?.split('.')[1]}:${(inv.source_event_payload as any)?.event?.data?.new?.id}`,
     }));
   }, [queryData]);
 
@@ -183,7 +183,7 @@ const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch =
     }
   };
 
-  const columns = useMemo<ColumnDef<Invocation>[]>(
+  const columns = useMemo<ColumnDef<Invocation, any>[]>(
     () => [
       columnHelper.accessor('sourceFunction', {
         id: 'sourceFunction',

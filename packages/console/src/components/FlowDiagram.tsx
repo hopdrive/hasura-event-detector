@@ -1,16 +1,14 @@
-import React, { useCallback, useState, useEffect, useRef, useMemo } from 'react';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { nodeTypes } from './nodes';
 import { useFlowPositioning } from '../hooks/useFlowPositioning';
 import ReactFlow, {
   Node,
-  Edge,
   Controls,
   Background,
   MiniMap,
   MarkerType,
   useReactFlow,
-  NodeProps,
   ReactFlowProvider,
   ConnectionMode,
 } from 'reactflow';
@@ -81,7 +79,7 @@ export const calculateFlowSummary = (invocations: any[]) => {
 
 // Inner component that uses ReactFlow hooks
 const FlowDiagramContent = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams, _setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const reactFlowInstance = useReactFlow();
 
@@ -109,7 +107,7 @@ const FlowDiagramContent = () => {
   const invocations = data?.invocations_by_pk
     ? [data.invocations_by_pk, ...(data.invocations_by_pk.correlated_invocations || [])]
     : [];
-  const { nodes: generatedNodes, edges: generatedEdges } = useFlowPositioning(invocations);
+  const { nodes: generatedNodes, edges: generatedEdges } = useFlowPositioning(invocations as any);
 
 
   // Auto-focus functionality
@@ -186,7 +184,7 @@ const FlowDiagramContent = () => {
     setSelectedNode(node);
   }, []);
 
-  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+  const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
     // Enrich node with logical ancestors from graph structure
     const ancestors = computeAncestors(node);
     setSelectedNode({ ...node, data: { ...node.data, ancestors } });
@@ -201,7 +199,7 @@ const FlowDiagramContent = () => {
           const drawerWidth = 600;
           const zoom = 1.5;
           const totalWidth = flowBounds.width;
-          const visibleWidth = totalWidth - drawerWidth;
+          void (totalWidth - drawerWidth);
 
           // FLIPPED: To shift the viewport so the node appears LEFT (in visible area),
           // we actually need to move the CENTER POINT to the RIGHT in flow coordinates

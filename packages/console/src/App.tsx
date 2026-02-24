@@ -1,34 +1,35 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useLocation, useSearchParams } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink } from '@apollo/client';
 import {
   HomeIcon,
   TableCellsIcon,
   ChartBarIcon,
   Cog6ToothIcon,
-  MagnifyingGlassIcon,
   ArrowPathIcon,
   DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
 import OverviewDashboard from './components/OverviewDashboard';
 import InvocationsTable from './components/InvocationsTable';
-import FlowDiagram, { calculateFlowSummary } from './components/FlowDiagram';
+import FlowDiagram from './components/FlowDiagram';
 import Analytics from './components/Analytics';
 import Settings from './components/Settings';
 import LogExplorer from './components/LogExplorer';
 import CorrelationSearch from './components/CorrelationSearch';
 import FlowHeader from './components/FlowHeader';
 import { PollingProvider, usePolling } from './contexts/PollingContext';
+import { LogProviderProvider } from './contexts/LogProviderContext';
 import { useSystemStatus } from './hooks/useSystemStatus';
+import config from './config';
 import './styles/globals.css';
 
 // Apollo Client configuration
 const httpLink = createHttpLink({
-  uri: import.meta.env.VITE_GRAPHQL_ENDPOINT || 'http://localhost:8080/v1/graphql',
+  uri: config.graphql.endpoint,
   headers: {
-    ...(import.meta.env.VITE_HASURA_ADMIN_SECRET && {
-      'x-hasura-admin-secret': import.meta.env.VITE_HASURA_ADMIN_SECRET,
+    ...(config.graphql.adminSecret && {
+      'x-hasura-admin-secret': config.graphql.adminSecret,
     }),
   },
 });
@@ -40,7 +41,7 @@ const client = new ApolloClient({
       Query: {
         fields: {
           invocations: {
-            merge(existing = [], incoming) {
+            merge(_existing = [], incoming) {
               return incoming;
             },
           },
@@ -300,6 +301,7 @@ function App() {
 
   return (
     <ApolloProvider client={client}>
+      <LogProviderProvider>
       <PollingProvider>
         <Router
           future={{
@@ -320,13 +322,14 @@ function App() {
               />
               <Route path='/invocations' element={<InvocationsTable correlationSearch={correlationSearch} />} />
               <Route path='/flow' element={<FlowDiagram />} />
-              <Route path='/analytics' element={<Analytics />} />
+              <Route path='/analytics' element={<Analytics timeRange={timeRange} />} />
               <Route path='/logs' element={<LogExplorer />} />
               <Route path='/settings' element={<Settings />} />
             </Routes>
           </Layout>
         </Router>
       </PollingProvider>
+      </LogProviderProvider>
     </ApolloProvider>
   );
 }
