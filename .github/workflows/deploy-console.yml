@@ -2,7 +2,9 @@ name: Deploy Console to Netlify
 
 on:
   push:
-    branches: [master]
+    branches:
+      - master
+      - logger-upgrade
     paths:
       - 'packages/console/**'
 
