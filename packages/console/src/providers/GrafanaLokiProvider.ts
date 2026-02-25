@@ -35,6 +35,7 @@ export class GrafanaLokiProvider implements LogProvider {
         serviceAccountToken,
         lokiDatasourceUid: grafana.lokiDatasourceUid,
         environment: this.environment,
+        grafanaUrl: grafana.url,
       });
     } else if (grafana.host && userId && secret) {
       let host = grafana.host;

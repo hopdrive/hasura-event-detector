@@ -13,6 +13,7 @@ export interface GrafanaConfig {
   serviceAccountToken?: string;
   lokiDatasourceUid?: string;
   environment?: string;
+  grafanaUrl?: string;
 }
 
 export interface LogEntry {
@@ -147,6 +148,14 @@ export class GrafanaService {
     this.config = config;
   }
 
+  private normalizeUrl(url: string): string {
+    if (!url) return '';
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = `https://${url}`;
+    }
+    return url.replace(/\/$/, '');
+  }
+
   private buildFetchArgs(lokiPath: string, params: LogQueryParams): { url: string; headers: Record<string, string> } {
     const {
       query,
@@ -172,8 +181,10 @@ export class GrafanaService {
 
     // Use Grafana datasource proxy with service account Bearer auth when available
     if (this.config.serviceAccountToken && this.config.lokiDatasourceUid) {
+      const grafanaBase = this.normalizeUrl(this.config.grafanaUrl || '');
+      const path = `api/datasources/proxy/uid/${this.config.lokiDatasourceUid}/${lokiPath}`;
       return {
-        url: `/api/grafana/api/datasources/proxy/uid/${this.config.lokiDatasourceUid}/${lokiPath}?${queryParams.toString()}`,
+        url: grafanaBase ? `${grafanaBase}/${path}?${queryParams.toString()}` : `/api/grafana/${path}?${queryParams.toString()}`,
         headers: {
           'Authorization': `Bearer ${this.config.serviceAccountToken}`,
         },
@@ -181,9 +192,10 @@ export class GrafanaService {
     }
 
     // Fallback: direct Loki endpoint with Basic Auth
+    const lokiBase = this.normalizeUrl(this.config.host);
     const auth = btoa(`${this.config.userId}:${this.config.secret}`);
     return {
-      url: `/api/grafana/${lokiPath}?${queryParams.toString()}`,
+      url: lokiBase ? `${lokiBase}/${lokiPath}?${queryParams.toString()}` : `/api/grafana/${lokiPath}?${queryParams.toString()}`,
       headers: {
         'Authorization': `Basic ${auth}`,
         'Content-Type': 'application/json',

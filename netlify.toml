@@ -11,12 +11,6 @@
   NODE_VERSION = "20"
 
 [[redirects]]
-  from = "/api/grafana/*"
-  to = "https://hopdrive.grafana.net/:splat"
-  status = 200
-  force = true
-
-[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
