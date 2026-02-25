@@ -87,8 +87,13 @@ const client = new ApolloClient({
 function EnvironmentSync() {
   const { environment } = useEnvironment();
   const apolloClient = useApolloClient();
+  const isFirstRender = React.useRef(true);
 
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     apolloClient.resetStore();
   }, [environment, apolloClient]);
 
