@@ -72,7 +72,7 @@ export class GrafanaLokiProvider implements LogProvider {
   }
 
   getConfigurationHint(): string {
-    return 'Configure Grafana credentials as server-side env vars (GRAFANA_SERVICE or GRAFANA_LOKI_HOST + GRAFANA_ID + GRAFANA_SECRET). These are loaded after login.';
+    return 'Configure Grafana credentials as server-side env vars (GRAFANA_SECRET + GRAFANA_ID). These are loaded after login.';
   }
 
   getService(): GrafanaService | null {

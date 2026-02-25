@@ -63,7 +63,7 @@ let _sensitiveConfig: SensitiveConfig | null = !config.auth.enabled
       },
       shared: {
         grafanaSecret: import.meta.env.VITE_GRAFANA_SECRET || '',
-        grafanaServiceAccountToken: import.meta.env.VITE_GRAFANA_SERVICE || '',
+        grafanaServiceAccountToken: import.meta.env.VITE_GRAFANA_SECRET || '',
         grafanaUserId: import.meta.env.VITE_GRAFANA_USER || import.meta.env.VITE_GRAFANA_ID || '',
       },
     }

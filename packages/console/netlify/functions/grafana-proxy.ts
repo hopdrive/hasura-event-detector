@@ -83,16 +83,14 @@ export default async (req: Request) => {
 
   // --- Build Grafana Loki URL ---
   // Note: VITE_* vars are also available to Netlify functions at runtime
-  const grafanaServiceToken = process.env.GRAFANA_SERVICE || '';
+  const grafanaServiceToken = process.env.GRAFANA_SECRET || '';
   const grafanaId = process.env.GRAFANA_ID || '';
-  const grafanaSecret = process.env.GRAFANA_SECRET || '';
   const lokiDatasourceUid = process.env.GRAFANA_LOKI_UID || process.env.VITE_GRAFANA_LOKI_UID || 'grafanacloud-logs';
   const grafanaUrl = (process.env.GRAFANA_URL || process.env.VITE_GRAFANA_URL || '').replace(/\/$/, '');
 
-  console.log(`[grafana-proxy] Env check: GRAFANA_SERVICE=${grafanaServiceToken ? `set (${grafanaServiceToken.length} chars)` : 'EMPTY'}`);
+  console.log(`[grafana-proxy] Env check: GRAFANA_SECRET=${grafanaServiceToken ? `set (${grafanaServiceToken.length} chars)` : 'EMPTY'}`);
   console.log(`[grafana-proxy] Env check: GRAFANA_URL=${grafanaUrl || 'EMPTY'}, VITE_GRAFANA_URL=${process.env.VITE_GRAFANA_URL || 'EMPTY'}`);
-  console.log(`[grafana-proxy] Env check: GRAFANA_ID=${grafanaId ? 'set' : 'EMPTY'}, GRAFANA_SECRET=${grafanaSecret ? `set (${grafanaSecret.length} chars)` : 'EMPTY'}`);
-  console.log(`[grafana-proxy] Env check: lokiDatasourceUid=${lokiDatasourceUid}`);
+  console.log(`[grafana-proxy] Env check: GRAFANA_ID=${grafanaId ? 'set' : 'EMPTY'}, lokiDatasourceUid=${lokiDatasourceUid}`);
 
   let lokiUrl: string;
   const headers: Record<string, string> = {};
@@ -100,27 +98,26 @@ export default async (req: Request) => {
   if (grafanaServiceToken && grafanaUrl) {
     // Primary: service account token via Grafana datasource proxy
     lokiUrl = `${grafanaUrl}/api/datasources/proxy/uid/${lokiDatasourceUid}/loki/api/v1/query_range?${queryParams.toString()}`;
-    headers['Authorization'] = `Bearer ${grafanaServiceToken.slice(0, 8)}...`;
     console.log(`[grafana-proxy] PATH: service-account-token via Grafana datasource proxy`);
     console.log(`[grafana-proxy] Loki URL: ${lokiUrl}`);
-    // Set real token (after logging redacted version)
+    console.log(`[grafana-proxy] Token prefix: ${grafanaServiceToken.slice(0, 8)}...`);
     headers['Authorization'] = `Bearer ${grafanaServiceToken}`;
-  } else if (grafanaId && grafanaSecret) {
-    // Fallback: basic auth direct to Loki
+  } else if (grafanaId && grafanaServiceToken) {
+    // Fallback: basic auth direct to Loki (GRAFANA_ID + token as password)
     const lokiHost = (process.env.GRAFANA_LOKI_HOST || process.env.VITE_GRAFANA_LOKI_HOST || '').replace(/\/$/, '');
-    console.log(`[grafana-proxy] Env check: GRAFANA_LOKI_HOST=${lokiHost || 'EMPTY'}, VITE_GRAFANA_LOKI_HOST=${process.env.VITE_GRAFANA_LOKI_HOST || 'EMPTY'}`);
+    console.log(`[grafana-proxy] Env check: GRAFANA_LOKI_HOST=${lokiHost || 'EMPTY'}`);
     if (!lokiHost) {
       console.log('[grafana-proxy] REJECT: no GRAFANA_LOKI_HOST');
       return Response.json({ error: 'Grafana not configured' }, { status: 500 });
     }
     const normalizedHost = lokiHost.startsWith('http') ? lokiHost : `https://${lokiHost}`;
     lokiUrl = `${normalizedHost}/loki/api/v1/query_range?${queryParams.toString()}`;
-    headers['Authorization'] = `Basic ${Buffer.from(`${grafanaId}:${grafanaSecret}`).toString('base64')}`;
+    headers['Authorization'] = `Basic ${Buffer.from(`${grafanaId}:${grafanaServiceToken}`).toString('base64')}`;
     headers['Content-Type'] = 'application/json';
     console.log(`[grafana-proxy] PATH: basic-auth direct to Loki`);
     console.log(`[grafana-proxy] Loki URL: ${lokiUrl}`);
   } else {
-    console.log('[grafana-proxy] REJECT: neither service-token+url nor id+secret configured');
+    console.log(`[grafana-proxy] REJECT: grafanaServiceToken=${grafanaServiceToken ? 'set' : 'EMPTY'}, grafanaUrl=${grafanaUrl || 'EMPTY'}, grafanaId=${grafanaId || 'EMPTY'}`);
     return Response.json({ error: 'Grafana not configured' }, { status: 500 });
   }
 

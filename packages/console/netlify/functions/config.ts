@@ -38,7 +38,7 @@ export default async (req: Request) => {
     },
     shared: {
       grafanaSecret: process.env.GRAFANA_SECRET || '',
-      grafanaServiceAccountToken: process.env.GRAFANA_SERVICE || '',
+      grafanaServiceAccountToken: process.env.GRAFANA_SECRET || '',
       grafanaUserId: process.env.GRAFANA_ID || '',
     },
   });
