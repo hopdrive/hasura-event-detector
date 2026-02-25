@@ -21,7 +21,7 @@ import TimeRangeSelector from './components/TimeRangeSelector';
 import LoginPage from './components/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import EnvironmentSwitcher from './components/EnvironmentSwitcher';
-import { PollingProvider, usePolling } from './contexts/PollingContext';
+import { PollingProvider, usePolling, POLLING_INTERVALS, type PollingInterval } from './contexts/PollingContext';
 import { LogProviderProvider } from './contexts/LogProviderContext';
 import { AuthProviderWrapper } from './contexts/AuthContext';
 import { EnvironmentProvider, useEnvironment } from './contexts/EnvironmentContext';
@@ -154,7 +154,8 @@ function Layout({
   setTimeRange: (value: string) => void;
 }) {
   const location = useLocation();
-  const { isPolling } = usePolling();
+  const { isPolling, enabled, setEnabled, interval, setInterval } = usePolling();
+  const [pollingMenuOpen, setPollingMenuOpen] = useState(false);
   const systemStatus = useSystemStatus();
   const isFlowPage = location.pathname === '/flow';
   const { environment } = useEnvironment();
@@ -285,13 +286,55 @@ function Layout({
                 </div>
                 <div className='flex items-center space-x-4 ml-6'>
                   <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
-                  <div className='flex items-center'>
-                    <ArrowPathIcon
-                      className={`h-5 w-5 ${isPolling ? 'animate-spin text-blue-600' : 'text-gray-400'}`}
-                    />
-                    <span className='ml-2 text-sm text-gray-600 dark:text-gray-400'>
-                      {isPolling ? 'Syncing...' : 'Auto-refresh'}
-                    </span>
+                  <div className='relative'>
+                    <button
+                      onClick={() => setPollingMenuOpen(!pollingMenuOpen)}
+                      className='flex items-center px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors'
+                    >
+                      <ArrowPathIcon
+                        className={`h-4 w-4 ${isPolling ? 'animate-spin text-blue-600' : enabled ? 'text-gray-500' : 'text-gray-300'}`}
+                      />
+                      <span className='ml-2 text-sm text-gray-600 dark:text-gray-400'>
+                        {!enabled ? 'Paused' : isPolling ? 'Syncing...' : `Auto-refresh (${POLLING_INTERVALS.find(p => p.value === interval)?.label})`}
+                      </span>
+                    </button>
+                    {pollingMenuOpen && (
+                      <>
+                        <div className='fixed inset-0 z-30' onClick={() => setPollingMenuOpen(false)} />
+                        <div className='absolute right-0 top-full mt-2 z-40 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3 space-y-3'>
+                          <div className='flex items-center justify-between'>
+                            <span className='text-sm font-medium text-gray-700 dark:text-gray-300'>Auto-refresh</span>
+                            <button
+                              onClick={() => setEnabled(!enabled)}
+                              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${enabled ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'}`}
+                            >
+                              <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${enabled ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
+                            </button>
+                          </div>
+                          <div>
+                            <span className='text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>Interval</span>
+                            <div className='mt-1.5 flex gap-1.5'>
+                              {POLLING_INTERVALS.map(opt => (
+                                <button
+                                  key={opt.value}
+                                  onClick={() => setInterval(opt.value as PollingInterval)}
+                                  disabled={!enabled}
+                                  className={`flex-1 px-2 py-1 text-xs font-medium rounded transition-colors ${
+                                    interval === opt.value && enabled
+                                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400'
+                                      : enabled
+                                      ? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                      : 'bg-gray-50 text-gray-300 dark:bg-gray-700/50 dark:text-gray-600 cursor-not-allowed'
+                                  }`}
+                                >
+                                  {opt.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

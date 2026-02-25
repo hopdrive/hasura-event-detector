@@ -204,7 +204,7 @@ interface AnalyticsProps {
 }
 
 const Analytics: React.FC<AnalyticsProps> = ({ timeRange: timeRangeOption = '24h' }) => {
-  const { setIsPolling } = usePolling();
+  const { setIsPolling, getEffectivePollInterval } = usePolling();
   const [activeTab, setActiveTab] = useState<TabKey>('jobs-events');
 
   const resolved = useMemo(() => resolveTimeRange(timeRangeOption), [timeRangeOption]);
@@ -212,7 +212,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ timeRange: timeRangeOption = '24h
     () => ({ timeRange: resolved.start, timeRangeEnd: resolved.end }),
     [resolved.start, resolved.end],
   );
-  const pollInterval = resolved.isCustom ? 0 : 5000;
+  const pollInterval = getEffectivePollInterval(resolved.isCustom);
 
   // Always fetch jobs-events (provides KPI data + default tab)
   const jobsEvents = useAnalyticsJobsEventsQuery({

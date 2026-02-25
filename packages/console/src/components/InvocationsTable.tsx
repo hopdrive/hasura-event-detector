@@ -122,7 +122,7 @@ const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch =
       id: inv.id,
       sourceFunction: inv.source_function || '',
       correlationId: inv.correlation_id || '',
-      userEmail: inv.source_user_email || '',
+      userEmail: inv.source_user_email || 'system',
       sourceOperation: inv.source_operation || '',
       sourceJobId: inv.source_job_id || undefined,
       totalDuration: inv.total_duration_ms || 0,

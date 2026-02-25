@@ -1,5 +1,6 @@
 import React, { useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import {
   ArrowUpIcon,
   ArrowDownIcon,
@@ -70,7 +71,8 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
   correlationSearch: _correlationSearch = '',
   timeRange: timeRangeOption = '24h',
 }) => {
-  const { setIsPolling } = usePolling();
+  const navigate = useNavigate();
+  const { setIsPolling, getEffectivePollInterval } = usePolling();
   const systemStatus = useSystemStatus();
 
   // Resolve time range using shared utility
@@ -84,7 +86,7 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
     fetchPolicy: 'cache-and-network',
     errorPolicy: 'all',
     notifyOnNetworkStatusChange: true,
-    pollInterval: resolved.isCustom ? 0 : 5000,
+    pollInterval: getEffectivePollInterval(resolved.isCustom),
   });
 
   // Track polling status for the Layout indicator
@@ -340,7 +342,11 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
             </thead>
             <tbody className='divide-y divide-gray-200 dark:divide-gray-700'>
               {recentInvocations.map(invocation => (
-                <tr key={invocation.id} className='hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer'>
+                <tr
+                  key={invocation.id}
+                  className='hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer'
+                  onClick={() => navigate(`/flow?invocationId=${invocation.id}&autoFocus=true`)}
+                >
                   <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100'>
                     {invocation.source_function}
                   </td>
@@ -348,7 +354,7 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
                     {invocation.correlation_id || 'N/A'}
                   </td>
                   <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400'>
-                    {invocation.source_user_email || 'N/A'}
+                    {invocation.source_user_email || 'system'}
                   </td>
                   <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400'>
                     {invocation.total_duration_ms || 0}ms
