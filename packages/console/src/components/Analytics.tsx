@@ -361,9 +361,10 @@ const Analytics: React.FC<AnalyticsProps> = ({ timeRange: timeRangeOption = '24h
     setIsPolling(isRefetching);
   }, [baseQuery.networkStatus, performance.networkStatus, sources.networkStatus, setIsPolling]);
 
-  // --- Phase 2: Dynamic aggregate query (per-name counts) ---
+  // --- Phase 2 + 3: Chained aggregate + timeline fetch (single async flow) ---
   const [aggregateData, setAggregateData] = useState<Record<string, any> | null>(null);
-  const phase2Ref = useRef(0);
+  const [timelineData, setTimelineData] = useState<any[]>([]);
+  const fetchSeqRef = useRef(0);
 
   useEffect(() => {
     const data = baseQuery.data;
@@ -374,18 +375,54 @@ const Analytics: React.FC<AnalyticsProps> = ({ timeRange: timeRangeOption = '24h
 
     if (jobNames.length === 0 && eventNames.length === 0) {
       setAggregateData({});
+      setTimelineData([]);
       return;
     }
 
-    const { query, variables } = buildAggregateQuery(jobNames, eventNames);
-    const seq = ++phase2Ref.current;
+    const seq = ++fetchSeqRef.current;
 
-    client
-      .query({ query, variables: { ...queryVars, ...variables }, fetchPolicy: 'network-only' })
-      .then(result => {
-        if (seq === phase2Ref.current) setAggregateData(result.data);
-      })
-      .catch(() => {});
+    (async () => {
+      try {
+        // Phase 2: per-name aggregate counts
+        const { query, variables } = buildAggregateQuery(jobNames, eventNames);
+        const aggResult = await client.query({
+          query,
+          variables: { ...queryVars, ...variables },
+          fetchPolicy: 'network-only',
+        });
+        if (seq !== fetchSeqRef.current) return;
+
+        const aggData = aggResult.data;
+        setAggregateData(aggData);
+
+        // Compute top failing jobs from Phase 2 result (no render cycle needed)
+        const failures: { name: string; failed: number }[] = [];
+        jobNames.forEach((name, i) => {
+          const failed = aggData?.[`job_${i}_failed`]?.aggregate?.count || 0;
+          if (failed > 0) failures.push({ name, failed });
+        });
+        const topFailing = failures
+          .sort((a, b) => b.failed - a.failed)
+          .slice(0, 5)
+          .map(f => f.name);
+
+        if (topFailing.length === 0) {
+          setTimelineData([]);
+          return;
+        }
+
+        // Phase 3: failure timeline for top failing jobs
+        const tlResult = await client.query({
+          query: FAILURE_TIMELINE_QUERY,
+          variables: { ...queryVars, jobNames: topFailing },
+          fetchPolicy: 'network-only',
+        });
+        if (seq !== fetchSeqRef.current) return;
+        setTimelineData(tlResult.data?.failure_timeline_jobs || []);
+      } catch {
+        // silently handle
+      }
+    })();
   }, [baseQuery.data, client, queryVars]);
 
   // True while Phase 1 has loaded but Phase 2 hasn't completed yet
@@ -455,7 +492,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ timeRange: timeRangeOption = '24h
       .slice(0, 15);
   }, [aggregateData, distinctEventNames]);
 
-  // --- Phase 3: Failure timeline for top failing jobs ---
+  // Top failing jobs (derived from aggregate data, used for timeline chart)
   const topFailingJobs = useMemo(() => {
     if (!aggregateData) return [];
     const failures: { name: string; failed: number }[] = [];
@@ -468,28 +505,6 @@ const Analytics: React.FC<AnalyticsProps> = ({ timeRange: timeRangeOption = '24h
       .slice(0, 5)
       .map(f => f.name);
   }, [aggregateData, distinctJobNames]);
-
-  const [timelineData, setTimelineData] = useState<any[]>([]);
-  const phase3Ref = useRef(0);
-
-  useEffect(() => {
-    if (topFailingJobs.length === 0) {
-      setTimelineData([]);
-      return;
-    }
-
-    const seq = ++phase3Ref.current;
-    client
-      .query({
-        query: FAILURE_TIMELINE_QUERY,
-        variables: { ...queryVars, jobNames: topFailingJobs },
-        fetchPolicy: 'network-only',
-      })
-      .then(result => {
-        if (seq === phase3Ref.current) setTimelineData(result.data?.failure_timeline_jobs || []);
-      })
-      .catch(() => {});
-  }, [topFailingJobs, client, queryVars]);
 
   const jobFailureOverTime = useMemo(() => {
     if (topFailingJobs.length === 0 || timelineData.length === 0) {
