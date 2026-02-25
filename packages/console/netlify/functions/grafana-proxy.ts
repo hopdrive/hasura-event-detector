@@ -42,11 +42,12 @@ export default async (req: Request) => {
   }
 
   // Build Grafana Loki URL
+  // Note: VITE_* vars are also available to Netlify functions at runtime
   const grafanaServiceToken = process.env.GRAFANA_SERVICE || '';
   const grafanaId = process.env.GRAFANA_ID || '';
   const grafanaSecret = process.env.GRAFANA_SECRET || '';
-  const lokiDatasourceUid = process.env.GRAFANA_LOKI_UID || 'grafanacloud-logs';
-  const grafanaUrl = (process.env.GRAFANA_URL || '').replace(/\/$/, '');
+  const lokiDatasourceUid = process.env.GRAFANA_LOKI_UID || process.env.VITE_GRAFANA_LOKI_UID || 'grafanacloud-logs';
+  const grafanaUrl = (process.env.GRAFANA_URL || process.env.VITE_GRAFANA_URL || '').replace(/\/$/, '');
 
   let lokiUrl: string;
   const headers: Record<string, string> = {};
@@ -57,7 +58,7 @@ export default async (req: Request) => {
     headers['Authorization'] = `Bearer ${grafanaServiceToken}`;
   } else if (grafanaId && grafanaSecret) {
     // Fallback: basic auth direct to Loki
-    const lokiHost = (process.env.GRAFANA_HOST || '').replace(/\/$/, '');
+    const lokiHost = (process.env.GRAFANA_HOST || process.env.VITE_GRAFANA_HOST || '').replace(/\/$/, '');
     if (!lokiHost) {
       return Response.json({ error: 'Grafana not configured' }, { status: 500 });
     }
