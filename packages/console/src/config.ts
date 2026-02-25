@@ -19,7 +19,7 @@ const config = {
   logging: {
     environment: import.meta.env.VITE_GRAFANA_ENVIRONMENT || env,
     grafana: {
-      host: import.meta.env.VITE_GRAFANA_HOST || '',
+      host: import.meta.env.VITE_GRAFANA_LOKI_HOST || '',
       lokiDatasourceUid: import.meta.env.VITE_GRAFANA_LOKI_UID || 'grafanacloud-logs',
       url: import.meta.env.VITE_GRAFANA_URL || '',
     },

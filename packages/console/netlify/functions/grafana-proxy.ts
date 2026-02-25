@@ -58,7 +58,7 @@ export default async (req: Request) => {
     headers['Authorization'] = `Bearer ${grafanaServiceToken}`;
   } else if (grafanaId && grafanaSecret) {
     // Fallback: basic auth direct to Loki
-    const lokiHost = (process.env.GRAFANA_HOST || process.env.VITE_GRAFANA_HOST || '').replace(/\/$/, '');
+    const lokiHost = (process.env.GRAFANA_LOKI_HOST || process.env.VITE_GRAFANA_LOKI_HOST || '').replace(/\/$/, '');
     if (!lokiHost) {
       return Response.json({ error: 'Grafana not configured' }, { status: 500 });
     }
