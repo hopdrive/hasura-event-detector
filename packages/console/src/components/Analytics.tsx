@@ -388,6 +388,9 @@ const Analytics: React.FC<AnalyticsProps> = ({ timeRange: timeRangeOption = '24h
       .catch(() => {});
   }, [baseQuery.data, client, queryVars]);
 
+  // True while Phase 1 has loaded but Phase 2 hasn't completed yet
+  const aggregateLoading = !!baseQuery.data && !aggregateData;
+
   // --- KPI computations (from base query) ---
   const totalJobs = baseQuery.data?.job_executions_aggregate?.aggregate?.count || 0;
   const avgJobDuration = Math.round(
@@ -685,6 +688,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ timeRange: timeRangeOption = '24h
       {/* Tab Content */}
       {activeTab === 'jobs-events' && (
         <JobsEventsTab
+          aggregateLoading={aggregateLoading}
           jobFrequency={jobFrequency}
           jobFailureTable={jobFailureTable}
           jobFailureOverTime={jobFailureOverTime}
@@ -748,6 +752,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ timeRange: timeRangeOption = '24h
 // ---------- Events & Jobs Tab ----------
 
 function JobsEventsTab({
+  aggregateLoading,
   jobFrequency,
   jobFailureTable,
   jobFailureOverTime,
@@ -756,6 +761,7 @@ function JobsEventsTab({
   timeRange,
   timeRangeEnd,
 }: {
+  aggregateLoading: boolean;
   jobFrequency: { name: string; count: number }[];
   jobFailureTable: {
     name: string;
@@ -774,7 +780,9 @@ function JobsEventsTab({
     <div className='space-y-6'>
       {/* Job Frequency Ranking */}
       <ChartCard title='Job Frequency Ranking' subtitle='Top 15 jobs by execution count'>
-        {jobFrequency.length === 0 ? (
+        {aggregateLoading ? (
+          <ChartSkeleton rows={8} />
+        ) : jobFrequency.length === 0 ? (
           <EmptyState message='No job executions in this time range' />
         ) : (
           <ResponsiveContainer width='100%' height={Math.max(300, jobFrequency.length * 32)}>
@@ -791,40 +799,50 @@ function JobsEventsTab({
 
       {/* Systemic Job Failure Rate Table */}
       <ChartCard title='Systemic Job Failure Rate' subtitle='Jobs with failures, sorted by failure rate (worst first)'>
-        <FailureRateAccordion data={jobFailureTable} timeRange={timeRange} timeRangeEnd={timeRangeEnd} />
+        {aggregateLoading ? (
+          <ChartSkeleton rows={5} />
+        ) : (
+          <FailureRateAccordion data={jobFailureTable} timeRange={timeRange} timeRangeEnd={timeRangeEnd} />
+        )}
       </ChartCard>
 
       {/* Job Failure Rate Over Time */}
-      {jobFailureOverTime.jobs.length > 0 && (
+      {(aggregateLoading || jobFailureOverTime.jobs.length > 0) && (
         <ChartCard
           title='Job Failure Rate Over Time'
           subtitle='Failure rate % for top failing jobs'
         >
-          <ResponsiveContainer width='100%' height={300}>
-            <LineChart data={jobFailureOverTime.data}>
-              <CartesianGrid strokeDasharray='3 3' stroke='#374151' />
-              <XAxis dataKey='time' stroke='#6b7280' />
-              <YAxis stroke='#6b7280' unit='%' domain={[0, 100]} />
-              <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => `${v}%`} />
-              <Legend />
-              {jobFailureOverTime.jobs.map((job, i) => (
-                <Line
-                  key={job}
-                  type='monotone'
-                  dataKey={job}
-                  stroke={LINE_COLORS[i % LINE_COLORS.length]}
-                  strokeWidth={2}
-                  dot={false}
-                />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
+          {aggregateLoading ? (
+            <ChartSkeleton rows={6} />
+          ) : (
+            <ResponsiveContainer width='100%' height={300}>
+              <LineChart data={jobFailureOverTime.data}>
+                <CartesianGrid strokeDasharray='3 3' stroke='#374151' />
+                <XAxis dataKey='time' stroke='#6b7280' />
+                <YAxis stroke='#6b7280' unit='%' domain={[0, 100]} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => `${v}%`} />
+                <Legend />
+                {jobFailureOverTime.jobs.map((job, i) => (
+                  <Line
+                    key={job}
+                    type='monotone'
+                    dataKey={job}
+                    stroke={LINE_COLORS[i % LINE_COLORS.length]}
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </ChartCard>
       )}
 
       {/* Event Detection Rates */}
       <ChartCard title='Event Detection Rates' subtitle='Detected vs not detected per event'>
-        {eventDetectionData.length === 0 ? (
+        {aggregateLoading ? (
+          <ChartSkeleton rows={8} />
+        ) : eventDetectionData.length === 0 ? (
           <EmptyState message='No event data available' />
         ) : (
           <ResponsiveContainer width='100%' height={Math.max(300, eventDetectionData.length * 32)}>
@@ -1310,6 +1328,25 @@ function EmptyState({ message }: { message: string }) {
   return (
     <div className='flex items-center justify-center h-32 text-gray-400 dark:text-gray-500 text-sm'>
       {message}
+    </div>
+  );
+}
+
+function ChartSkeleton({ rows = 6 }: { rows?: number }) {
+  return (
+    <div className='space-y-3 animate-pulse'>
+      {Array.from({ length: rows }, (_, i) => (
+        <div key={i} className='flex items-center gap-3'>
+          <div
+            className='h-4 bg-gray-200 dark:bg-gray-700 rounded'
+            style={{ width: `${80 + ((i * 17 + 7) % 5) * 10}px` }}
+          />
+          <div
+            className='h-4 bg-gray-200 dark:bg-gray-700 rounded'
+            style={{ width: `${25 + ((rows - i) * 13 + 3) % 50}%` }}
+          />
+        </div>
+      ))}
     </div>
   );
 }
