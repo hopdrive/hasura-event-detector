@@ -48,12 +48,14 @@ const ANALYTICS_BASE_QUERY = gql`
     distinct_jobs: job_executions(
       distinct_on: [job_name]
       where: { created_at: { _gte: $timeRange, _lte: $timeRangeEnd } }
+      order_by: { job_name: asc }
     ) {
       job_name
     }
     distinct_events: event_executions(
       distinct_on: [event_name]
       where: { created_at: { _gte: $timeRange, _lte: $timeRangeEnd } }
+      order_by: { event_name: asc }
     ) {
       event_name
     }
@@ -362,7 +364,10 @@ const Analytics: React.FC<AnalyticsProps> = ({ timeRange: timeRangeOption = '24h
   }, [baseQuery.networkStatus, performance.networkStatus, sources.networkStatus, setIsPolling]);
 
   // --- Phase 2 + 3: Chained aggregate + timeline fetch (single async flow) ---
-  const [aggregateData, setAggregateData] = useState<Record<string, any> | null>(null);
+  const [aggregateData, setAggregateData] = useState<{
+    jobMap: Record<string, { total: number; failed: number; avgDuration: number }>;
+    eventMap: Record<string, { detected: number; notDetected: number }>;
+  } | null>(null);
   const [timelineData, setTimelineData] = useState<any[]>([]);
   const fetchSeqRef = useRef(0);
 
@@ -374,7 +379,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ timeRange: timeRangeOption = '24h
     const eventNames: string[] = (data.distinct_events || []).map((e: any) => e.event_name);
 
     if (jobNames.length === 0 && eventNames.length === 0) {
-      setAggregateData({});
+      setAggregateData({ jobMap: {}, eventMap: {} });
       setTimelineData([]);
       return;
     }
@@ -393,13 +398,30 @@ const Analytics: React.FC<AnalyticsProps> = ({ timeRange: timeRangeOption = '24h
         if (seq !== fetchSeqRef.current) return;
 
         const aggData = aggResult.data;
-        setAggregateData(aggData);
+
+        // Transform into name-keyed maps using the same jobNames/eventNames
+        // arrays that built the query, guaranteeing index alignment
+        const jobMap: Record<string, { total: number; failed: number; avgDuration: number }> = {};
+        jobNames.forEach((name, i) => {
+          jobMap[name] = {
+            total: aggData[`job_${i}_total`]?.aggregate?.count || 0,
+            failed: aggData[`job_${i}_failed`]?.aggregate?.count || 0,
+            avgDuration: Math.round(aggData[`job_${i}_total`]?.aggregate?.avg?.duration_ms || 0),
+          };
+        });
+        const eventMap: Record<string, { detected: number; notDetected: number }> = {};
+        eventNames.forEach((name, i) => {
+          eventMap[name] = {
+            detected: aggData[`event_${i}_detected`]?.aggregate?.count || 0,
+            notDetected: aggData[`event_${i}_not_detected`]?.aggregate?.count || 0,
+          };
+        });
+        setAggregateData({ jobMap, eventMap });
 
         // Compute top failing jobs from Phase 2 result (no render cycle needed)
         const failures: { name: string; failed: number }[] = [];
-        jobNames.forEach((name, i) => {
-          const failed = aggData?.[`job_${i}_failed`]?.aggregate?.count || 0;
-          if (failed > 0) failures.push({ name, failed });
+        Object.entries(jobMap).forEach(([name, d]) => {
+          if (d.failed > 0) failures.push({ name, failed: d.failed });
         });
         const topFailing = failures
           .sort((a, b) => b.failed - a.failed)
@@ -438,73 +460,51 @@ const Analytics: React.FC<AnalyticsProps> = ({ timeRange: timeRangeOption = '24h
   const jobSuccessRate =
     totalJobs > 0 ? Math.round(((totalJobs - failedJobCount) / totalJobs) * 100) : 100;
 
-  // --- Derived chart data from Phase 2 aggregates ---
-  const distinctJobNames: string[] = useMemo(
-    () => (baseQuery.data?.distinct_jobs || []).map((j: any) => j.job_name),
-    [baseQuery.data],
-  );
-  const distinctEventNames: string[] = useMemo(
-    () => (baseQuery.data?.distinct_events || []).map((e: any) => e.event_name),
-    [baseQuery.data],
-  );
+  // --- Derived chart data from Phase 2 aggregates (name-keyed maps) ---
 
   const jobFrequency = useMemo(() => {
     if (!aggregateData) return [];
-    return distinctJobNames
-      .map((name, i) => ({
-        name,
-        count: aggregateData[`job_${i}_total`]?.aggregate?.count || 0,
-      }))
+    return Object.entries(aggregateData.jobMap)
+      .map(([name, d]) => ({ name, count: d.total }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 15);
-  }, [aggregateData, distinctJobNames]);
+  }, [aggregateData]);
 
   const jobFailureTable = useMemo(() => {
     if (!aggregateData) return [];
-    return distinctJobNames
-      .map((name, i) => {
-        const total = aggregateData[`job_${i}_total`]?.aggregate?.count || 0;
-        const failed = aggregateData[`job_${i}_failed`]?.aggregate?.count || 0;
-        const avgDuration = Math.round(
-          aggregateData[`job_${i}_total`]?.aggregate?.avg?.duration_ms || 0,
-        );
-        return {
-          name,
-          total,
-          failed,
-          failureRate: total > 0 ? (failed / total) * 100 : 0,
-          avgDuration,
-        };
-      })
+    return Object.entries(aggregateData.jobMap)
+      .map(([name, d]) => ({
+        name,
+        total: d.total,
+        failed: d.failed,
+        failureRate: d.total > 0 ? (d.failed / d.total) * 100 : 0,
+        avgDuration: d.avgDuration,
+      }))
       .filter(row => row.failureRate > 0)
       .sort((a, b) => b.failureRate - a.failureRate);
-  }, [aggregateData, distinctJobNames]);
+  }, [aggregateData]);
 
   const eventDetectionData = useMemo(() => {
     if (!aggregateData) return [];
-    return distinctEventNames
-      .map((name, i) => ({
+    return Object.entries(aggregateData.eventMap)
+      .map(([name, d]) => ({
         name,
-        detected: aggregateData[`event_${i}_detected`]?.aggregate?.count || 0,
-        not_detected: aggregateData[`event_${i}_not_detected`]?.aggregate?.count || 0,
+        detected: d.detected,
+        not_detected: d.notDetected,
       }))
       .sort((a, b) => b.detected + b.not_detected - (a.detected + a.not_detected))
       .slice(0, 15);
-  }, [aggregateData, distinctEventNames]);
+  }, [aggregateData]);
 
   // Top failing jobs (derived from aggregate data, used for timeline chart)
   const topFailingJobs = useMemo(() => {
     if (!aggregateData) return [];
-    const failures: { name: string; failed: number }[] = [];
-    distinctJobNames.forEach((name, i) => {
-      const failed = aggregateData[`job_${i}_failed`]?.aggregate?.count || 0;
-      if (failed > 0) failures.push({ name, failed });
-    });
-    return failures
-      .sort((a, b) => b.failed - a.failed)
+    return Object.entries(aggregateData.jobMap)
+      .filter(([_, d]) => d.failed > 0)
+      .sort((a, b) => b[1].failed - a[1].failed)
       .slice(0, 5)
-      .map(f => f.name);
-  }, [aggregateData, distinctJobNames]);
+      .map(([name]) => name);
+  }, [aggregateData]);
 
   const jobFailureOverTime = useMemo(() => {
     if (topFailingJobs.length === 0 || timelineData.length === 0) {
@@ -1026,7 +1026,7 @@ function FailureRateDetail({ jobName, timeRange, timeRangeEnd }: { jobName: stri
   const [fetchSamples, { data, loading }] = useJobExecutionSamplesLazyQuery();
 
   useEffect(() => {
-    fetchSamples({ variables: { jobName, timeRange, timeRangeEnd } });
+    fetchSamples({ variables: { jobName, timeRange, timeRangeEnd }, fetchPolicy: 'network-only' });
   }, [jobName, timeRange, timeRangeEnd, fetchSamples]);
 
   const handleClick = (invocationId: string) => {
