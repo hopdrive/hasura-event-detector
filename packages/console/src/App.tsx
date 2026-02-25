@@ -361,7 +361,7 @@ function App() {
                         path='/'
                         element={<OverviewDashboard correlationSearch={correlationSearch} timeRange={timeRange} />}
                       />
-                      <Route path='/invocations' element={<InvocationsTable correlationSearch={correlationSearch} />} />
+                      <Route path='/invocations' element={<InvocationsTable correlationSearch={correlationSearch} timeRange={timeRange} />} />
                       <Route path='/flow' element={<FlowDiagram />} />
                       <Route path='/analytics' element={<Analytics timeRange={timeRange} />} />
                       <Route path='/settings' element={<Settings />} />

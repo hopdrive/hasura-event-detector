@@ -101,10 +101,9 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
   const totalJobsFailed = data?.invocations_aggregate?.aggregate?.sum?.total_jobs_failed || 0;
   const successRate = totalJobsRun > 0 ? Math.round((totalJobsSucceeded / totalJobsRun) * 100) : 100;
 
-  // Process hourly metrics for charts from invocations data
-  // Generate all intervals in the selected range, filling in zeros for intervals with no data
+  // Process chart data from pre-aggregated dashboard_stats
   const hourlyMetrics = useMemo(() => {
-    const invocations = data?.invocations_chart || [];
+    const stats = data?.dashboard_stats || [];
     const { intervals, formatKey, getIntervalStart, bucketStrategy } = resolved;
 
     // Initialize all intervals with zero values
@@ -114,16 +113,17 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
       intervalMap.set(intervalKey, { hour: intervalKey, total: 0, successful: 0, failed: 0 });
     });
 
-    // Fill in actual data
-    invocations.forEach(inv => {
-      const invDate = new Date(inv.created_at);
-      const intervalStart = getIntervalStart(invDate);
+    // Aggregate pre-computed stats into display intervals
+    stats.forEach(stat => {
+      if (!stat.hour_bucket) return;
+      const statDate = new Date(stat.hour_bucket);
+      const intervalStart = getIntervalStart(statDate);
       const intervalKey = formatKey(intervalStart);
       if (intervalMap.has(intervalKey)) {
         const entry = intervalMap.get(intervalKey)!;
-        entry.total += 1;
-        if (inv.status === 'completed') entry.successful += 1;
-        if (inv.status === 'failed') entry.failed += 1;
+        entry.total += stat.total_invocations ?? 0;
+        entry.successful += stat.successful_invocations ?? 0;
+        entry.failed += stat.failed_invocations ?? 0;
       }
     });
 
@@ -135,7 +135,7 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
       }
       return a.hour.localeCompare(b.hour);
     });
-  }, [data?.invocations_chart, resolved]);
+  }, [data?.dashboard_stats, resolved]);
 
   // Get recent invocations for table (limited to 10 records)
   const recentInvocations = data?.invocations_table || [];

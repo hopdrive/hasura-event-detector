@@ -37,7 +37,7 @@ export function resolveTimeRange(timeRangeOption: string): ResolvedTimeRange {
     case '1h':  startDate = sub(now, { hours: 1 });  break;
     case '6h':  startDate = sub(now, { hours: 6 });  break;
     case '24h': startDate = sub(now, { hours: 24 }); break;
-    case '7d':  startDate = sub(now, { days: 7 });   break;
+    case '3d':  startDate = sub(now, { days: 3 });   break;
     default:    startDate = sub(now, { hours: 24 });
   }
 

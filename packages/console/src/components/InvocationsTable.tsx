@@ -7,21 +7,13 @@ import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
   useReactTable,
   ColumnDef,
-  SortingState,
-  ColumnFiltersState,
   VisibilityState,
 } from '@tanstack/react-table';
 import {
   MagnifyingGlassIcon,
   AdjustmentsHorizontalIcon,
-  ChevronUpDownIcon,
-  ChevronUpIcon,
-  ChevronDownIcon,
   ChevronRightIcon,
   ExclamationTriangleIcon,
   CircleStackIcon,
@@ -30,6 +22,7 @@ import InvocationDetailDrawer from './InvocationDetailDrawer';
 import EventDetailDrawer from './EventDetailDrawer';
 import JobDetailDrawer from './JobDetailDrawer';
 import { useInvocationsListQuery } from '../types/generated';
+import { resolveTimeRange } from '../utils/resolveTimeRange';
 import { Node } from 'reactflow';
 import { formatRelativeTime } from '../utils/formatTime';
 
@@ -57,27 +50,74 @@ const columnHelper = createColumnHelper<Invocation>();
 
 interface InvocationsTableProps {
   correlationSearch?: string;
+  timeRange?: string;
 }
 
-const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch = '' }) => {
+const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch = '', timeRange: timeRangeOption = '24h' }) => {
   const navigate = useNavigate();
   const [selectedInvocation, setSelectedInvocation] = useState<Node | null>(null);
   const [hideZeroDetectedEvents, setHideZeroDetectedEvents] = useState(true);
   const [hideChildInvocations, setHideChildInvocations] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [globalFilter, setGlobalFilter] = useState('');
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 50 });
+
+  // Resolve time range
+  const resolved = useMemo(() => resolveTimeRange(timeRangeOption), [timeRangeOption]);
+
+  // Build server-side where clause
+  const where = useMemo(() => {
+    const conditions: any[] = [
+      { created_at: { _gte: resolved.start, _lte: resolved.end } },
+    ];
+
+    if (hideZeroDetectedEvents) {
+      conditions.push({ events_detected_count: { _gt: 0 } });
+    }
+
+    if (hideChildInvocations) {
+      conditions.push({ source_job_id: { _is_null: true } });
+    }
+
+    if (statusFilter !== 'all') {
+      conditions.push({ status: { _eq: statusFilter } });
+    }
+
+    return { _and: conditions };
+  }, [resolved.start, resolved.end, hideZeroDetectedEvents, hideChildInvocations, statusFilter]);
+
+  // Reset to first page when filters change
+  React.useEffect(() => {
+    setPagination(prev => ({ ...prev, pageIndex: 0 }));
+  }, [where, globalFilter]);
 
   const {
     data: queryData,
     loading,
     error,
+    previousData,
   } = useInvocationsListQuery({
-    variables: { limit: 1000, offset: 0, order_by: [{ created_at: 'desc' as any }] },
-    fetchPolicy: 'cache-first',
+    variables: {
+      limit: pagination.pageSize,
+      offset: pagination.pageIndex * pagination.pageSize,
+      where,
+      order_by: [{ created_at: 'desc' as any }],
+    },
+    fetchPolicy: 'cache-and-network',
     errorPolicy: 'all',
-    notifyOnNetworkStatusChange: false,
   });
 
+  // Use previousData while loading to prevent flash
+  const data = queryData || previousData;
+
+  const totalCount = data?.invocations_aggregate?.aggregate?.count || 0;
+  const pageCount = Math.ceil(totalCount / pagination.pageSize);
+
   const invocationsData = useMemo(() => {
-    const invocations = queryData?.invocations || [];
+    const invocations = data?.invocations || [];
     return invocations.map(inv => ({
       id: inv.id,
       sourceFunction: inv.source_function || '',
@@ -95,31 +135,9 @@ const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch =
       totalJobsRun: inv.total_jobs_run || 0,
       status: inv.status as 'completed' | 'failed' | 'running',
       createdAt: inv.created_at,
-      //{ "id": "7e981c1b-cad5-4970-afc3-41d78adb5805", "event": { "op": "UPDATE", "data": { "new": { "i
       recordId: `${inv?.source_table?.split('.')[1]}:${(inv.source_event_payload as any)?.event?.data?.new?.id}`,
     }));
-  }, [queryData]);
-
-  const filteredInvocationsData = useMemo(() => {
-    let filtered = invocationsData;
-
-    if (hideZeroDetectedEvents) {
-      filtered = filtered.filter(inv => inv.eventsDetectedCount > 0);
-    }
-
-    if (hideChildInvocations) {
-      filtered = filtered.filter(inv => !inv.sourceJobId);
-    }
-
-    return filtered;
-  }, [invocationsData, hideZeroDetectedEvents, hideChildInvocations]);
-
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'createdAt', desc: true }]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const [globalFilter, setGlobalFilter] = useState('');
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 50 });
+  }, [data]);
 
   // Update global filter when correlationSearch changes
   React.useEffect(() => {
@@ -372,22 +390,18 @@ const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch =
   );
 
   const table = useReactTable({
-    data: filteredInvocationsData,
+    data: invocationsData,
     columns,
-    state: { sorting, columnFilters, columnVisibility, globalFilter, pagination },
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
+    state: { columnVisibility, pagination },
     onColumnVisibilityChange: setColumnVisibility,
-    onGlobalFilterChange: setGlobalFilter,
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    manualPagination: true,
+    pageCount,
     debugTable: false,
   });
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <div className='h-full flex flex-col'>
         <div className='bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4'>
@@ -429,7 +443,7 @@ const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch =
           <div>
             <h2 className='text-xl font-semibold text-gray-900 dark:text-white'>Invocations</h2>
             <p className='mt-1 text-sm text-gray-600 dark:text-gray-400'>
-              {table.getFilteredRowModel().rows.length} of {filteredInvocationsData.length} invocations
+              {totalCount.toLocaleString()} invocations{loading ? ' (updating...)' : ''}
             </p>
           </div>
 
@@ -445,11 +459,8 @@ const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch =
             </div>
 
             <select
-              value={(table.getColumn('status')?.getFilterValue() as string) ?? 'all'}
-              onChange={e => {
-                const value = e.target.value;
-                table.getColumn('status')?.setFilterValue(value === 'all' ? undefined : value);
-              }}
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
               className='px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100'
             >
               <option value='all'>All Status</option>
@@ -505,39 +516,14 @@ const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch =
           <thead className='bg-gray-50 dark:bg-gray-700/50'>
             {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id}>
-                {headerGroup.headers.map(header => {
-                  const canSort = header.column.getCanSort();
-                  const sorted = header.column.getIsSorted();
-
-                  return (
-                    <th
-                      key={header.id}
-                      className='sticky top-0 z-10 bg-gray-50 dark:bg-gray-700/50 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
-                    >
-                      {header.isPlaceholder ? null : (
-                        <div
-                          className={`flex items-center space-x-1 ${
-                            canSort ? 'cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200' : ''
-                          }`}
-                          onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
-                        >
-                          <span>{flexRender(header.column.columnDef.header, header.getContext())}</span>
-                          {canSort && (
-                            <span className='ml-1'>
-                              {sorted === false ? (
-                                <ChevronUpDownIcon className='h-4 w-4' />
-                              ) : sorted === 'asc' ? (
-                                <ChevronUpIcon className='h-4 w-4' />
-                              ) : (
-                                <ChevronDownIcon className='h-4 w-4' />
-                              )}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </th>
-                  );
-                })}
+                {headerGroup.headers.map(header => (
+                  <th
+                    key={header.id}
+                    className='sticky top-0 z-10 bg-gray-50 dark:bg-gray-700/50 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
+                  >
+                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                  </th>
+                ))}
               </tr>
             ))}
           </thead>
@@ -575,16 +561,13 @@ const InvocationsTable: React.FC<InvocationsTableProps> = ({ correlationSearch =
           <div className='text-sm text-gray-700 dark:text-gray-300'>
             Showing{' '}
             <span className='font-medium'>
-              {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}
+              {totalCount > 0 ? pagination.pageIndex * pagination.pageSize + 1 : 0}
             </span>{' '}
             to{' '}
             <span className='font-medium'>
-              {Math.min(
-                (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-                table.getFilteredRowModel().rows.length
-              )}
+              {Math.min((pagination.pageIndex + 1) * pagination.pageSize, totalCount)}
             </span>{' '}
-            of <span className='font-medium'>{table.getFilteredRowModel().rows.length}</span> results
+            of <span className='font-medium'>{totalCount.toLocaleString()}</span> results
           </div>
           <div className='flex items-center space-x-2'>
             <select

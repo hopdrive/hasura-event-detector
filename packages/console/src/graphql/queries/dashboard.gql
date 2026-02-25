@@ -1,8 +1,13 @@
 query OverviewDashboard($timeRange: timestamptz!, $timeRangeEnd: timestamptz!) {
-  # Chart data: fetch all invocations but only fields needed for chart (created_at, status)
-  invocations_chart: invocations(where: { created_at: { _gte: $timeRange, _lte: $timeRangeEnd } }, order_by: { created_at: desc }) {
-    created_at
-    status
+  # Chart data: use pre-aggregated hourly stats instead of fetching every row
+  dashboard_stats(
+    where: { hour_bucket: { _gte: $timeRange, _lte: $timeRangeEnd } }
+    order_by: { hour_bucket: asc }
+  ) {
+    hour_bucket
+    total_invocations
+    successful_invocations
+    failed_invocations
   }
 
   # Table data: fetch only top 10 invocations with all fields needed for table display
