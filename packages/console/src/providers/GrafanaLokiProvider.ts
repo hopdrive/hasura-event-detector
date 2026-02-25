@@ -27,7 +27,18 @@ export class GrafanaLokiProvider implements LogProvider {
     this.grafanaUrl = grafana.url;
     this.lokiDatasourceUid = grafana.lokiDatasourceUid;
 
-    if (serviceAccountToken) {
+    // Priority 1: Use server-side proxy when console auth token is available (production)
+    const consoleAuthToken = localStorage.getItem('hed-console-token');
+    if (consoleAuthToken) {
+      this.service = new GrafanaService({
+        host: '',
+        userId: '',
+        secret: '',
+        consoleAuthToken,
+        environment: this.environment,
+      });
+    } else if (serviceAccountToken) {
+      // Priority 2: Direct Grafana service account token (local dev with credentials)
       this.service = new GrafanaService({
         host: grafana.host,
         userId,
@@ -38,6 +49,7 @@ export class GrafanaLokiProvider implements LogProvider {
         grafanaUrl: grafana.url,
       });
     } else if (grafana.host && userId && secret) {
+      // Priority 3: Direct Loki basic auth (local dev fallback)
       let host = grafana.host;
       if (!host.startsWith('http://') && !host.startsWith('https://')) {
         host = `https://${host}`;

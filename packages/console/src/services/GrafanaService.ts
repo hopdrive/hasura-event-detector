@@ -14,6 +14,7 @@ export interface GrafanaConfig {
   lokiDatasourceUid?: string;
   environment?: string;
   grafanaUrl?: string;
+  consoleAuthToken?: string;
 }
 
 export interface LogEntry {
@@ -179,7 +180,18 @@ export class GrafanaService {
       queryParams.append('end', end.toString());
     }
 
-    // Use Grafana datasource proxy with service account Bearer auth when available
+    // Priority 1: Server-side proxy (production) — browser sends console auth token,
+    // Netlify function forwards to Grafana with server-side credentials
+    if (this.config.consoleAuthToken) {
+      return {
+        url: `/api/grafana-proxy?${queryParams.toString()}`,
+        headers: {
+          'Authorization': `Bearer ${this.config.consoleAuthToken}`,
+        },
+      };
+    }
+
+    // Priority 2: Grafana datasource proxy with service account Bearer auth (local dev)
     if (this.config.serviceAccountToken && this.config.lokiDatasourceUid) {
       const grafanaBase = this.normalizeUrl(this.config.grafanaUrl || '');
       const path = `api/datasources/proxy/uid/${this.config.lokiDatasourceUid}/${lokiPath}`;
