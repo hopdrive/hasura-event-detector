@@ -26,7 +26,6 @@ export default async (req: Request) => {
     return Response.json({ error: 'Password required' }, { status: 400 });
   }
 
-  // Timing-safe comparison
   const { timingSafeEqual } = await import('node:crypto');
   const a = Buffer.from(password);
   const b = Buffer.from(consolePassword);
@@ -35,9 +34,7 @@ export default async (req: Request) => {
   }
 
   const secret = process.env.AUTH_TOKEN_SECRET || consolePassword;
-  console.log('[auth] password match, building token with secret length:', secret.length);
   const token = buildToken(secret);
-  console.log('[auth] token:', token.substring(0, 30) + '...');
 
   return Response.json({ token });
 };

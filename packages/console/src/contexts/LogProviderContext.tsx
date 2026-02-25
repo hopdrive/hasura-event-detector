@@ -1,6 +1,7 @@
-import { createContext, useContext, ReactNode } from 'react';
+import { createContext, useContext, useMemo, ReactNode } from 'react';
 import type { LogProvider } from '../providers';
 import { GrafanaLokiProvider } from '../providers';
+import { useEnvironment } from './EnvironmentContext';
 
 const LogProviderContext = createContext<LogProvider | undefined>(undefined);
 
@@ -11,7 +12,11 @@ export function LogProviderProvider({
   provider?: LogProvider;
   children: ReactNode;
 }) {
-  const value = provider ?? new GrafanaLokiProvider();
+  const { environment } = useEnvironment();
+
+  const value = useMemo(() => {
+    return provider ?? new GrafanaLokiProvider(environment);
+  }, [provider, environment]);
 
   return (
     <LogProviderContext.Provider value={value}>

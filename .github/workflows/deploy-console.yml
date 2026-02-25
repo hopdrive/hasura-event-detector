@@ -28,16 +28,11 @@ jobs:
 
       - run: npm run build
         env:
-          VITE_GRAPHQL_ENDPOINT: ${{ secrets.VITE_GRAPHQL_ENDPOINT }}
-          VITE_HASURA_ADMIN_SECRET: ${{ secrets.VITE_HASURA_ADMIN_SECRET }}
           VITE_AUTH_ENABLED: 'true'
-          VITE_GRAFANA_HOST: ${{ secrets.VITE_GRAFANA_HOST }}
-          VITE_GRAFANA_URL: ${{ secrets.VITE_GRAFANA_URL }}
-          VITE_GRAFANA_ID: ${{ secrets.VITE_GRAFANA_ID }}
-          VITE_GRAFANA_SECRET: ${{ secrets.VITE_GRAFANA_SECRET }}
-          VITE_GRAFANA_ENVIRONMENT: ${{ secrets.VITE_GRAFANA_ENVIRONMENT }}
 
+      # All env vars (VITE_* and server-side secrets) are configured
+      # in the Netlify dashboard under Site > Environment variables
       - run: npx netlify-cli deploy --prod --dir=dist --functions=netlify/functions
         env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}

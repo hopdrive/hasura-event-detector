@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink } from '@apollo/client';
+import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink, useApolloClient } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
 import {
   HomeIcon,
@@ -20,30 +20,37 @@ import FlowHeader from './components/FlowHeader';
 import TimeRangeSelector from './components/TimeRangeSelector';
 import LoginPage from './components/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import EnvironmentSwitcher from './components/EnvironmentSwitcher';
 import { PollingProvider, usePolling } from './contexts/PollingContext';
 import { LogProviderProvider } from './contexts/LogProviderContext';
 import { AuthProviderWrapper } from './contexts/AuthContext';
+import { EnvironmentProvider, useEnvironment } from './contexts/EnvironmentContext';
 import { NoopAuthProvider, PasswordAuthProvider } from './providers';
 import { useSystemStatus } from './hooks/useSystemStatus';
-import config, { getSensitiveConfig } from './config';
+import config, { getEnvConfig, activeEnvironmentRef } from './config';
 import './styles/globals.css';
 
 const authProvider = config.auth.enabled
   ? new PasswordAuthProvider()
   : new NoopAuthProvider();
 
-// Apollo Client configuration
+// Apollo Client — custom fetch reads the active env's endpoint at request time
 const httpLink = createHttpLink({
   uri: config.graphql.endpoint,
+  fetch: (_uri, options) => {
+    const envConfig = getEnvConfig(activeEnvironmentRef.current);
+    const actualUri = envConfig?.graphqlEndpoint || config.graphql.endpoint;
+    return fetch(actualUri, options);
+  },
 });
 
 const authLink = setContext((_, { headers }) => {
-  const sensitive = getSensitiveConfig();
+  const envConfig = getEnvConfig(activeEnvironmentRef.current);
   return {
     headers: {
       ...headers,
-      ...(sensitive?.hasuraAdminSecret && {
-        'x-hasura-admin-secret': sensitive.hasuraAdminSecret,
+      ...(envConfig?.hasuraAdminSecret && {
+        'x-hasura-admin-secret': envConfig.hasuraAdminSecret,
       }),
     },
   };
@@ -75,6 +82,18 @@ const client = new ApolloClient({
     },
   },
 });
+
+// Syncs environment changes → clears Apollo cache so queries re-fetch from new endpoint
+function EnvironmentSync() {
+  const { environment } = useEnvironment();
+  const apolloClient = useApolloClient();
+
+  useEffect(() => {
+    apolloClient.resetStore();
+  }, [environment, apolloClient]);
+
+  return null;
+}
 
 const navigation = [
   { name: 'Overview', href: '/', icon: HomeIcon },
@@ -133,11 +152,16 @@ function Layout({
   const { isPolling } = usePolling();
   const systemStatus = useSystemStatus();
   const isFlowPage = location.pathname === '/flow';
+  const { environment } = useEnvironment();
 
   return (
     <div className='h-screen flex bg-gray-50 dark:bg-gray-900'>
       {/* Sidebar */}
-      <div className='w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700'>
+      <div className={`w-64 bg-white dark:bg-gray-800 border-r ${
+        environment === 'prod'
+          ? 'border-red-300 dark:border-red-800'
+          : 'border-gray-200 dark:border-gray-700'
+      }`}>
         <div className='flex flex-col h-full'>
           {/* Logo */}
           <div className='flex items-center h-16 px-4 border-b border-gray-200 dark:border-gray-700'>
@@ -156,9 +180,20 @@ function Layout({
             ))}
           </nav>
 
-          {/* Database Connection Info */}
+          {/* Environment & Database Info */}
           <div className='p-4 border-t border-gray-200 dark:border-gray-700'>
             <div className='space-y-3'>
+              {/* Environment Switcher */}
+              <div>
+                <span className='text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
+                  Environment
+                </span>
+                <div className='mt-1'>
+                  <EnvironmentSwitcher />
+                </div>
+              </div>
+
+              {/* Database */}
               <div>
                 <span className='text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
                   Database
@@ -237,20 +272,14 @@ function Layout({
         <header className='bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700'>
           <div className='px-6 py-4'>
             {isFlowPage ? (
-              /* Flow Page Header - Show Summary */
               <FlowHeader />
             ) : (
-              /* Other Pages Header - Show Search and Time Range */
               <div className='flex items-center justify-between'>
-                {/* Search */}
                 <div className='flex-1 max-w-2xl'>
                   <CorrelationSearch value={correlationSearch} onChange={setCorrelationSearch} />
                 </div>
-
-                {/* Time Range & Sync Indicator */}
                 <div className='flex items-center space-x-4 ml-6'>
                   <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
-
                   <div className='flex items-center'>
                     <ArrowPathIcon
                       className={`h-5 w-5 ${isPolling ? 'animate-spin text-blue-600' : 'text-gray-400'}`}
@@ -288,7 +317,6 @@ function Layout({
 function App() {
   const [correlationSearch, setCorrelationSearch] = useState('');
 
-  // Load time range from localStorage or default to '24h'
   const [timeRange, setTimeRange] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('hasura-event-detector-timeRange');
@@ -297,7 +325,6 @@ function App() {
     return '24h';
   });
 
-  // Save time range to localStorage whenever it changes
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('hasura-event-detector-timeRange', timeRange);
@@ -320,6 +347,8 @@ function App() {
               path='*'
               element={
                 <ProtectedRoute>
+                  <EnvironmentProvider>
+                  <EnvironmentSync />
                   <LogProviderProvider>
                   <Layout
                     correlationSearch={correlationSearch}
@@ -339,6 +368,7 @@ function App() {
                     </Routes>
                   </Layout>
                   </LogProviderProvider>
+                  </EnvironmentProvider>
                 </ProtectedRoute>
               }
             />

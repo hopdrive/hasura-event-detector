@@ -6,7 +6,7 @@ import {
   buildJobQuery,
   buildGrafanaExploreUrl,
 } from '../services/GrafanaService';
-import config, { getSensitiveConfig } from '../config';
+import config, { getSharedConfig } from '../config';
 
 export class GrafanaLokiProvider implements LogProvider {
   readonly name = 'Grafana Loki';
@@ -16,14 +16,14 @@ export class GrafanaLokiProvider implements LogProvider {
   private grafanaUrl: string;
   private lokiDatasourceUid: string;
 
-  constructor() {
-    const { grafana, environment } = config.logging;
-    const sensitive = getSensitiveConfig();
-    const serviceAccountToken = sensitive?.grafanaServiceAccountToken || '';
-    const userId = sensitive?.grafanaUserId || '';
-    const secret = sensitive?.grafanaSecret || '';
+  constructor(environmentOverride?: string) {
+    const { grafana } = config.logging;
+    const shared = getSharedConfig();
+    const serviceAccountToken = shared?.grafanaServiceAccountToken || '';
+    const userId = shared?.grafanaUserId || '';
+    const secret = shared?.grafanaSecret || '';
 
-    this.environment = environment;
+    this.environment = environmentOverride || config.logging.environment;
     this.grafanaUrl = grafana.url;
     this.lokiDatasourceUid = grafana.lokiDatasourceUid;
 
@@ -34,7 +34,7 @@ export class GrafanaLokiProvider implements LogProvider {
         secret,
         serviceAccountToken,
         lokiDatasourceUid: grafana.lokiDatasourceUid,
-        environment,
+        environment: this.environment,
       });
     } else if (grafana.host && userId && secret) {
       let host = grafana.host;
@@ -47,7 +47,7 @@ export class GrafanaLokiProvider implements LogProvider {
         host,
         userId,
         secret,
-        environment,
+        environment: this.environment,
       });
     } else {
       this.service = null;

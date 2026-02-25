@@ -10,33 +10,37 @@ export default async (req: Request) => {
   }
 
   const authHeader = req.headers.get('authorization') || '';
-  console.log('[config] auth header present:', !!authHeader, 'value:', authHeader.substring(0, 40) + '...');
   const token = authHeader.replace(/^Bearer\s+/i, '');
-  console.log('[config] token after strip:', token.substring(0, 30) + '...');
 
   if (!token) {
-    console.log('[config] FAIL: no token');
     return Response.json({ error: 'Token required' }, { status: 401 });
   }
 
   const secret = process.env.AUTH_TOKEN_SECRET || process.env.CONSOLE_PASSWORD;
   if (!secret) {
-    console.log('[config] FAIL: no secret env var');
     return Response.json({ error: 'Server misconfigured' }, { status: 500 });
   }
-  console.log('[config] secret length:', secret.length);
 
-  const valid = verifyToken(token, secret);
-  console.log('[config] verifyToken result:', valid);
-  if (!valid) {
+  if (!verifyToken(token, secret)) {
     return Response.json({ error: 'Invalid or expired token' }, { status: 401 });
   }
 
   return Response.json({
-    hasuraAdminSecret: process.env.HASURA_ADMIN_SECRET || '',
-    grafanaSecret: process.env.GRAFANA_SECRET || '',
-    grafanaServiceAccountToken: process.env.GRAFANA_SERVICE || '',
-    grafanaUserId: process.env.GRAFANA_ID || '',
+    environments: {
+      test: {
+        hasuraAdminSecret: process.env.TEST_HASURA_ADMIN_SECRET || '',
+        graphqlEndpoint: process.env.TEST_GRAPHQL_ENDPOINT || 'https://gql-test.hopdrive.io/v1/graphql',
+      },
+      prod: {
+        hasuraAdminSecret: process.env.PROD_HASURA_ADMIN_SECRET || '',
+        graphqlEndpoint: process.env.PROD_GRAPHQL_ENDPOINT || 'https://gql.hopdrive.io/v1/graphql',
+      },
+    },
+    shared: {
+      grafanaSecret: process.env.GRAFANA_SECRET || '',
+      grafanaServiceAccountToken: process.env.GRAFANA_SERVICE || '',
+      grafanaUserId: process.env.GRAFANA_ID || '',
+    },
   });
 };
 

@@ -1,26 +1,15 @@
 /// <reference types="vite/client" />
 
+export type AppEnvironment = 'test' | 'prod';
+
 const env = import.meta.env.VITE_ENV || 'test';
-
-const config_test = {
-  graphql: {
-    endpoint: 'https://gql-test.hopdrive.io/v1/graphql',
-  },
-};
-
-const config_prod = {
-  graphql: {
-    endpoint: 'https://gql.hopdrive.io/v1/graphql',
-  },
-};
 
 const config = {
   appEnv: env,
 
   graphql: {
+    // Fallback for local dev; overridden at runtime by sensitive config
     endpoint: import.meta.env.VITE_GRAPHQL_ENDPOINT || 'http://localhost:8080/v1/graphql',
-    ...(env === 'test' ? config_test.graphql : null),
-    ...(env === 'production' ? config_prod.graphql : null),
   },
 
   auth: {
@@ -39,28 +28,57 @@ const config = {
 
 export default config;
 
+// --- Module-level ref for the active environment, read by Apollo outside React ---
+
+export const activeEnvironmentRef: { current: AppEnvironment } = { current: 'test' };
+
 // --- Sensitive config loaded at runtime after auth ---
 
-export interface SensitiveConfig {
+export interface EnvironmentConfig {
   hasuraAdminSecret: string;
-  grafanaSecret: string;
-  grafanaServiceAccountToken: string;
-  grafanaUserId: string;
+  graphqlEndpoint: string;
 }
 
-// In local mode (auth disabled), read sensitive values directly from VITE_ env vars
-// so everything works without Netlify functions running.
+export interface SensitiveConfig {
+  environments: Record<AppEnvironment, EnvironmentConfig>;
+  shared: {
+    grafanaSecret: string;
+    grafanaServiceAccountToken: string;
+    grafanaUserId: string;
+  };
+}
+
+// In local mode (auth disabled), populate from VITE_ env vars
 let _sensitiveConfig: SensitiveConfig | null = !config.auth.enabled
   ? {
-      hasuraAdminSecret: import.meta.env.VITE_HASURA_ADMIN_SECRET || '',
-      grafanaSecret: import.meta.env.VITE_GRAFANA_SECRET || '',
-      grafanaServiceAccountToken: import.meta.env.VITE_GRAFANA_SERVICE || '',
-      grafanaUserId: import.meta.env.VITE_GRAFANA_USER || import.meta.env.VITE_GRAFANA_ID || '',
+      environments: {
+        test: {
+          hasuraAdminSecret: import.meta.env.VITE_HASURA_ADMIN_SECRET || '',
+          graphqlEndpoint: import.meta.env.VITE_GRAPHQL_ENDPOINT || 'http://localhost:8080/v1/graphql',
+        },
+        prod: {
+          hasuraAdminSecret: import.meta.env.VITE_HASURA_ADMIN_SECRET || '',
+          graphqlEndpoint: import.meta.env.VITE_GRAPHQL_ENDPOINT || 'http://localhost:8080/v1/graphql',
+        },
+      },
+      shared: {
+        grafanaSecret: import.meta.env.VITE_GRAFANA_SECRET || '',
+        grafanaServiceAccountToken: import.meta.env.VITE_GRAFANA_SERVICE || '',
+        grafanaUserId: import.meta.env.VITE_GRAFANA_USER || import.meta.env.VITE_GRAFANA_ID || '',
+      },
     }
   : null;
 
 export function getSensitiveConfig(): SensitiveConfig | null {
   return _sensitiveConfig;
+}
+
+export function getEnvConfig(environment: AppEnvironment): EnvironmentConfig | null {
+  return _sensitiveConfig?.environments[environment] ?? null;
+}
+
+export function getSharedConfig() {
+  return _sensitiveConfig?.shared ?? null;
 }
 
 export async function loadSensitiveConfig(token: string): Promise<SensitiveConfig> {
