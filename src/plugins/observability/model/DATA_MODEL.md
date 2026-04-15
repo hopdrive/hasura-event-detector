@@ -151,7 +151,7 @@ event_name            TEXT           -- e.g., 'move.pickup.successful'
 detected              BOOLEAN        -- Was event triggered?
 detection_duration_ms INTEGER        -- Time for detector function
 detection_error       TEXT           -- Error during detection
-status               TEXT           -- 'detecting', 'not_detected', 'handling', 'completed', 'failed'
+status               TEXT           -- 'detecting', 'not_detected', 'handling', 'completed', 'failed', 'detection_failed', 'handler_failed'
 
 -- Handler phase (if detected)
 handler_duration_ms   INTEGER        -- Time for handler function
