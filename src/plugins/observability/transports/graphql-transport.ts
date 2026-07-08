@@ -1,4 +1,38 @@
 import { logError, log } from '../../../helpers/log';
+
+const MAX_ERROR_SUMMARY_CHARS = 2000;
+
+/**
+ * Reduce a caught transport error to a compact Error safe to hand to logError.
+ *
+ * graphql-request's ClientError.message embeds JSON.stringify({response, request})
+ * including the full mutation variables — for wide rows (e.g. a moves event's
+ * source_event_payload) that's a multi-hundred-KB string. Log shippers reject
+ * such lines (Loki: 'line_too_long' over 256KB) while still billing the bytes.
+ * Keep only the actual GraphQL/network error messages.
+ */
+function summarizeGraphQLError(error: any): Error {
+  const gqlErrors = error?.response?.errors;
+  let message: string;
+  if (Array.isArray(gqlErrors) && gqlErrors.length > 0) {
+    message = gqlErrors.map((e: any) => e?.message ?? String(e)).join('; ');
+  } else {
+    message = String(error?.message ?? error ?? 'Unknown error');
+  }
+  if (message.length > MAX_ERROR_SUMMARY_CHARS) {
+    message = `${message.slice(0, MAX_ERROR_SUMMARY_CHARS)}…[truncated ${message.length - MAX_ERROR_SUMMARY_CHARS} chars]`;
+  }
+
+  const summary = new Error(message);
+  summary.name = error?.name ?? 'Error';
+  if (typeof error?.stack === 'string') {
+    summary.stack = error.stack.length > MAX_ERROR_SUMMARY_CHARS
+      ? `${error.stack.slice(0, MAX_ERROR_SUMMARY_CHARS)}…[truncated]`
+      : error.stack;
+  }
+  if (error?.code) (summary as any).code = error.code;
+  return summary;
+}
 import { BaseTransport } from './base';
 import type { ObservabilityTransport, BufferData, BufferedInvocation, BufferedEventExecution, BufferedJobExecution } from './types';
 import type { ObservabilityConfig } from '../plugin';
@@ -159,7 +193,7 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
         logError('GraphQLTransport', `Failed to update invocation ${invocationId} - record may not exist`, new Error('Update returned null'));
       }
     } catch (error) {
-      logError('GraphQLTransport', `Failed to update invocation completion for ${invocationId}`, error as Error);
+      logError('GraphQLTransport', `Failed to update invocation completion for ${invocationId}`, summarizeGraphQLError(error));
       throw error;
     }
   }
@@ -199,7 +233,7 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
         logError('GraphQLTransport', `Failed to update event execution ${eventExecutionId} - record may not exist`, new Error('Update returned null'));
       }
     } catch (error) {
-      logError('GraphQLTransport', `Failed to update event execution completion for ${eventExecutionId}`, error as Error);
+      logError('GraphQLTransport', `Failed to update event execution completion for ${eventExecutionId}`, summarizeGraphQLError(error));
       throw error;
     }
   }
@@ -239,7 +273,7 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
         logError('GraphQLTransport', `Failed to update job execution ${jobExecutionId} - record may not exist`, new Error('Update returned null'));
       }
     } catch (error) {
-      logError('GraphQLTransport', `Failed to update job execution completion for ${jobExecutionId}`, error as Error);
+      logError('GraphQLTransport', `Failed to update job execution completion for ${jobExecutionId}`, summarizeGraphQLError(error));
       throw error;
     }
   }
@@ -411,7 +445,7 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
       logError(
         'GraphQLTransport',
         `Operation failed, retrying in ${delay}ms (${retries} retries left)`,
-        error as Error
+        summarizeGraphQLError(error)
       );
 
       await new Promise(resolve => setTimeout(resolve, delay));
@@ -423,7 +457,11 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
    * Handle GraphQL errors with detailed logging
    */
   private handleGraphQLError(error: any, tableName: string, objects: any[]): void {
-    logError('GraphQLTransport', `GraphQL mutation failed for ${tableName}`, error);
+    logError(
+      'GraphQLTransport',
+      `GraphQL mutation failed for ${tableName} (${objects.length} record(s))`,
+      summarizeGraphQLError(error)
+    );
 
     // Log sample data for debugging
     console.log(`Failed ${tableName} sample:`, objects.slice(0, 1));
