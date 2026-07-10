@@ -10,7 +10,7 @@ export default defineConfig({
     allowedHosts: ['.ngrok-free.app'],
     proxy: {
       '/api/grafana': {
-        target: process.env.VITE_GRAFANA_HOST || 'https://logs-prod-036.grafana.net',
+        target: 'https://hopdrive.grafana.net',
         changeOrigin: true,
         rewrite: path => path.replace(/^\/api\/grafana/, ''),
       },

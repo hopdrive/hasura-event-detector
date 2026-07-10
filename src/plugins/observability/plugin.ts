@@ -604,7 +604,9 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
       hasuraEventId: hasuraEvent?.id || null,
       hasuraEventPayload: hasuraEvent,
       hasuraEventTime: new Date(hasuraEvent?.created_at || Date.now()),
-      hasuraUserEmail: hasuraEvent?.event?.session_variables?.['x-hasura-user-email'] || null,
+      hasuraUserEmail: hasuraEvent?.event?.session_variables?.['x-hasura-user-email']
+        || hasuraEvent?.event?.session_variables?.['x-hasura-user-id']
+        || null,
       hasuraUserRole: hasuraEvent?.event?.session_variables?.['x-hasura-role'] || null,
       autoLoadModules: options?.autoLoadEventModules !== false,
       eventModulesDirectory: options?.eventModulesDirectory || './events',

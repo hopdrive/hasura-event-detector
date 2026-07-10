@@ -17,43 +17,43 @@ interface PositioningConfig {
 interface JobExecution {
   id: string;
   job_name: string;
-  job_function_name?: string;
-  correlation_id?: string;
+  job_function_name?: string | null;
+  correlation_id?: string | null;
   status: string;
-  duration_ms?: number;
+  duration_ms?: number | null;
   result?: any;
-  error_message?: string;
+  error_message?: string | null;
   created_at: string;
-  updated_at?: string;
+  updated_at?: string | null;
   triggered_invocations?: Array<{
     id: string;
     correlation_id: string;
-  }>;
+  }> | null;
 }
 
 interface EventExecution {
   id: string;
   event_name: string;
-  correlation_id?: string;
+  correlation_id?: string | null;
   detected: boolean;
   status: string;
-  detection_duration_ms?: number;
-  handler_duration_ms?: number;
+  detection_duration_ms?: number | null;
+  handler_duration_ms?: number | null;
   created_at: string;
-  updated_at?: string;
-  job_executions?: JobExecution[];
+  updated_at?: string | null;
+  job_executions?: JobExecution[] | null;
 }
 
 interface Invocation {
   id: string;
   source_function: string;
-  correlation_id: string;
+  correlation_id?: string | null;
   status: string;
-  total_duration_ms: number;
+  total_duration_ms?: number | null;
   created_at: string;
-  updated_at?: string;
+  updated_at?: string | null;
   event_executions?: EventExecution[];
-  source_job_id?: string;
+  source_job_id?: string | null;
   source_job_execution?: JobExecution;
   correlated_invocations?: Invocation[];
 }
@@ -253,6 +253,7 @@ export const useFlowPositioning = (invocations: Invocation[], config: Positionin
             position: { x: eventX, y: eventY },
             data: {
               eventName: event.event_name,
+              invocationId: invocation.id,
               correlationId: event.correlation_id,
               detected: event.detected,
               status: event.status,
@@ -262,6 +263,18 @@ export const useFlowPositioning = (invocations: Invocation[], config: Positionin
               hasFailedJobs: (event.job_executions || []).some((job: JobExecution) => job.status === 'failed'),
               createdAt: event.created_at,
               updatedAt: event.updated_at,
+              jobs: (event.job_executions || []).map((job: JobExecution) => ({
+                id: job.id,
+                name: job.job_name,
+                status: job.status,
+                duration: job.duration_ms || 0,
+                function: job.job_function_name,
+                result: job.result,
+                error: job.error_message,
+                correlationId: job.correlation_id,
+                createdAt: job.created_at,
+                triggersInvocation: job.triggered_invocations && job.triggered_invocations.length > 0,
+              })),
             },
           };
           nodes.push(eventNode);

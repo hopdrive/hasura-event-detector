@@ -27,7 +27,7 @@ const TabButton = ({ active, onClick, children }: any) => (
 
 const UndetectedEventsDetailDrawer: React.FC<UndetectedEventsDetailDrawerProps> = ({
   node,
-  isOpen,
+  isOpen: _isOpen,
   onClose
 }) => {
   const [activeTab, setActiveTab] = useState('summary');
@@ -110,7 +110,7 @@ const UndetectedEventsDetailDrawer: React.FC<UndetectedEventsDetailDrawerProps> 
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
-                    {formatDuration(Math.round((undetectedEvents.reduce((sum, event) => sum + (event.duration || 0), 0) / undetectedEvents.length) || 0))}
+                    {formatDuration(Math.round((undetectedEvents.reduce((sum: number, event: any) => sum + (event.duration || 0), 0) / undetectedEvents.length) || 0))}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-500">
                     Avg Detection Time
@@ -118,7 +118,7 @@ const UndetectedEventsDetailDrawer: React.FC<UndetectedEventsDetailDrawerProps> 
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
-                    {new Set(undetectedEvents.map(e => e.name)).size}
+                    {new Set(undetectedEvents.map((e: any) => e.name)).size}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-500">
                     Unique Event Types
@@ -150,16 +150,16 @@ const UndetectedEventsDetailDrawer: React.FC<UndetectedEventsDetailDrawerProps> 
               <h4 className="text-lg font-medium text-gray-900 dark:text-white">
                 Event Types
               </h4>
-              {Array.from(new Set(undetectedEvents.map(e => e.name))).map(eventName => {
-                const eventsOfType = undetectedEvents.filter(e => e.name === eventName);
-                const avgDuration = eventsOfType.reduce((sum, e) => sum + (e.duration || 0), 0) / eventsOfType.length;
+              {Array.from(new Set(undetectedEvents.map((e: any) => e.name))).map((eventName: any) => {
+                const eventsOfType = undetectedEvents.filter((e: any) => e.name === eventName);
+                const avgDuration = eventsOfType.reduce((sum: number, e: any) => sum + (e.duration || 0), 0) / eventsOfType.length;
 
                 return (
-                  <div key={eventName} className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div key={eventName as string} className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
                     <div className="flex justify-between items-center">
                       <div>
                         <h5 className="font-medium text-gray-900 dark:text-white">
-                          {eventName}
+                          {eventName as string}
                         </h5>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
                           {eventsOfType.length} occurrence{eventsOfType.length !== 1 ? 's' : ''} •
@@ -190,7 +190,7 @@ const UndetectedEventsDetailDrawer: React.FC<UndetectedEventsDetailDrawerProps> 
 
             {/* Event List */}
             <div className="space-y-3">
-              {undetectedEvents.map((event, index) => (
+              {undetectedEvents.map((event: any, index: number) => (
                 <div key={index} className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -254,7 +254,7 @@ const UndetectedEventsDetailDrawer: React.FC<UndetectedEventsDetailDrawerProps> 
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded text-center">
                     <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                      {formatDuration(undetectedEvents.reduce((sum, e) => sum + (e.duration || 0), 0))}
+                      {formatDuration(undetectedEvents.reduce((sum: number, e: any) => sum + (e.duration || 0), 0))}
                     </div>
                     <div className="text-sm text-blue-700 dark:text-blue-400">
                       Total Detection Time
@@ -262,7 +262,7 @@ const UndetectedEventsDetailDrawer: React.FC<UndetectedEventsDetailDrawerProps> 
                   </div>
                   <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded text-center">
                     <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                      {formatDuration(Math.round((undetectedEvents.reduce((sum, e) => sum + (e.duration || 0), 0) / undetectedEvents.length) || 0))}
+                      {formatDuration(Math.round((undetectedEvents.reduce((sum: number, e: any) => sum + (e.duration || 0), 0) / undetectedEvents.length) || 0))}
                     </div>
                     <div className="text-sm text-blue-700 dark:text-blue-400">
                       Average per Event
@@ -274,14 +274,14 @@ const UndetectedEventsDetailDrawer: React.FC<UndetectedEventsDetailDrawerProps> 
                   <div className="flex justify-between">
                     <span className="text-blue-600 dark:text-blue-400">Detection Efficiency:</span>
                     <span className="font-medium text-blue-700 dark:text-blue-400">
-                      {undetectedEvents.every(e => (e.duration || 0) < 50) ? 'Excellent' :
-                       undetectedEvents.every(e => (e.duration || 0) < 100) ? 'Good' : 'Needs Review'}
+                      {undetectedEvents.every((e: any) => (e.duration || 0) < 50) ? 'Excellent' :
+                       undetectedEvents.every((e: any) => (e.duration || 0) < 100) ? 'Good' : 'Needs Review'}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-blue-600 dark:text-blue-400">Event Types:</span>
                     <span className="font-medium text-blue-700 dark:text-blue-400">
-                      {new Set(undetectedEvents.map(e => e.name)).size} unique
+                      {new Set(undetectedEvents.map((e: any) => e.name)).size} unique
                     </span>
                   </div>
                 </div>

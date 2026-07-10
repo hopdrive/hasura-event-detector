@@ -3,6 +3,24 @@ import { SQLTransport } from '../transports/sql-transport';
 import { GraphQLTransport } from '../transports/graphql-transport';
 import type { BufferData } from '../transports/types';
 
+// Mock GraphQL client instance used by the loader mock
+const mockGraphQLClientInstance = {
+  request: jest.fn().mockResolvedValue({
+    insert_invocations: { affected_rows: 1 },
+    insert_event_executions: { affected_rows: 1 },
+    insert_job_executions: { affected_rows: 1 },
+    invocations: [{ id: 'test' }],
+  }),
+};
+
+// Mock the graphql-loader module which is what the business code actually uses
+// (the business code uses dynamic import via graphql-loader, not a direct require of graphql-request)
+jest.mock('../transports/graphql-loader', () => ({
+  loadGraphQLClient: jest.fn().mockResolvedValue(
+    jest.fn().mockImplementation(() => mockGraphQLClientInstance)
+  ),
+}));
+
 // Mock dependencies
 jest.mock('pg', () => ({
   Pool: jest.fn().mockImplementation(() => ({
@@ -11,17 +29,6 @@ jest.mock('pg', () => ({
       release: jest.fn(),
     }),
     end: jest.fn().mockResolvedValue(undefined),
-  })),
-}));
-
-jest.mock('graphql-request', () => ({
-  GraphQLClient: jest.fn().mockImplementation(() => ({
-    request: jest.fn().mockResolvedValue({
-      insert_invocations: { affected_rows: 1 },
-      insert_event_executions: { affected_rows: 1 },
-      insert_job_executions: { affected_rows: 1 },
-      invocations: [{ id: 'test' }],
-    }),
   })),
 }));
 
@@ -70,10 +77,20 @@ describe('ObservabilityPlugin Transport Modes', () => {
     });
 
     it('should throw error if SQL transport is selected but no database config provided', async () => {
+      // Pass enabled: false to prevent auto-initialization in constructor,
+      // then manually enable and initialize to test the validation path
       const plugin = new ObservabilityPlugin({
         transport: 'sql',
+        enabled: false,
         // No database config
       });
+
+      // Re-enable so initialize() proceeds past the enabled guard
+      // @ts-ignore - accessing private property for testing
+      plugin.config.enabled = true;
+      // Override the default database config that the constructor merges in
+      // @ts-ignore - accessing private property for testing
+      plugin.config.database = undefined;
 
       await expect(plugin.initialize()).rejects.toThrow(
         'Database connection configuration is required for SQL transport'
@@ -81,10 +98,20 @@ describe('ObservabilityPlugin Transport Modes', () => {
     });
 
     it('should throw error if GraphQL transport is selected but no endpoint provided', async () => {
+      // Pass enabled: false to prevent auto-initialization in constructor,
+      // then manually enable and initialize to test the validation path
       const plugin = new ObservabilityPlugin({
         transport: 'graphql',
+        enabled: false,
         // No graphql config
       });
+
+      // Re-enable so initialize() proceeds past the enabled guard
+      // @ts-ignore - accessing private property for testing
+      plugin.config.enabled = true;
+      // Ensure no graphql config exists
+      // @ts-ignore - accessing private property for testing
+      plugin.config.graphql = undefined;
 
       await expect(plugin.initialize()).rejects.toThrow(
         'GraphQL endpoint is required when using GraphQL transport'

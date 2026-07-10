@@ -30,7 +30,7 @@ expect.extend({
     const pass = typeof received === 'object' && 
                   received !== null &&
                   'name' in received &&
-                  'duration' in received &&
+                  'durationMs' in received &&
                   'completed' in received &&
                   'result' in received;
     

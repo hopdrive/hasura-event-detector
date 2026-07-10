@@ -202,10 +202,10 @@ const CorrelationSearch: React.FC<CorrelationSearchProps> = ({ value, onChange }
                             </div>
                           )}
 
-                          {suggestion.source_event_payload?.event?.data?.new?.id && suggestion.source_table && (
+                          {(suggestion.source_event_payload as any)?.event?.data?.new?.id && suggestion.source_table && (
                             <div className="flex items-center space-x-1">
                               <span className="font-mono text-xs">
-                                {suggestion.source_table.split('.')[1]}:{suggestion.source_event_payload.event.data.new.id}
+                                {suggestion.source_table.split('.')[1]}:{(suggestion.source_event_payload as any).event.data.new.id}
                               </span>
                             </div>
                           )}

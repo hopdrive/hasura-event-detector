@@ -117,6 +117,7 @@ const safeJobWrapper = async <T = any>(
       eventName: event,
       jobName: jobName,
       correlationId: enhancedOptions.correlationId || ('' as CorrelationId),
+      logType: 'job',
     },
     jobName as string // Use job name as automatic prefix
   );

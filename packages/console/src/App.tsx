@@ -1,44 +1,69 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useLocation, useSearchParams } from 'react-router-dom';
-import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink } from '@apollo/client';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink, useApolloClient } from '@apollo/client';
+import { setContext } from '@apollo/client/link/context';
 import {
   HomeIcon,
   TableCellsIcon,
   ChartBarIcon,
   Cog6ToothIcon,
-  MagnifyingGlassIcon,
   ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
 import OverviewDashboard from './components/OverviewDashboard';
 import InvocationsTable from './components/InvocationsTable';
-import FlowDiagram, { calculateFlowSummary } from './components/FlowDiagram';
+import FlowDiagram from './components/FlowDiagram';
 import Analytics from './components/Analytics';
 import Settings from './components/Settings';
 import CorrelationSearch from './components/CorrelationSearch';
 import FlowHeader from './components/FlowHeader';
-import { PollingProvider, usePolling } from './contexts/PollingContext';
+import TimeRangeSelector from './components/TimeRangeSelector';
+import LoginPage from './components/LoginPage';
+import ProtectedRoute from './components/ProtectedRoute';
+import EnvironmentSwitcher from './components/EnvironmentSwitcher';
+import { PollingProvider, usePolling, POLLING_INTERVALS, type PollingInterval } from './contexts/PollingContext';
+import { LogProviderProvider } from './contexts/LogProviderContext';
+import { AuthProviderWrapper } from './contexts/AuthContext';
+import { EnvironmentProvider, useEnvironment } from './contexts/EnvironmentContext';
+import { NoopAuthProvider, PasswordAuthProvider } from './providers';
 import { useSystemStatus } from './hooks/useSystemStatus';
+import config, { getEnvConfig, activeEnvironmentRef } from './config';
 import './styles/globals.css';
 
-// Apollo Client configuration
+const authProvider = config.auth.enabled
+  ? new PasswordAuthProvider()
+  : new NoopAuthProvider();
+
+// Apollo Client — custom fetch reads the active env's endpoint at request time
 const httpLink = createHttpLink({
-  uri: import.meta.env.VITE_GRAPHQL_ENDPOINT || 'http://localhost:8080/v1/graphql',
-  headers: {
-    ...(import.meta.env.VITE_HASURA_ADMIN_SECRET && {
-      'x-hasura-admin-secret': import.meta.env.VITE_HASURA_ADMIN_SECRET,
-    }),
+  uri: config.graphql.endpoint,
+  fetch: (_uri, options) => {
+    const envConfig = getEnvConfig(activeEnvironmentRef.current);
+    const actualUri = envConfig?.graphqlEndpoint || config.graphql.endpoint;
+    return fetch(actualUri, options);
   },
 });
 
+const authLink = setContext((_, { headers }) => {
+  const envConfig = getEnvConfig(activeEnvironmentRef.current);
+  return {
+    headers: {
+      ...headers,
+      ...(envConfig?.hasuraAdminSecret && {
+        'x-hasura-admin-secret': envConfig.hasuraAdminSecret,
+      }),
+    },
+  };
+});
+
 const client = new ApolloClient({
-  link: httpLink,
+  link: authLink.concat(httpLink),
   cache: new InMemoryCache({
     typePolicies: {
       Query: {
         fields: {
           invocations: {
-            merge(existing = [], incoming) {
+            merge(_existing = [], incoming) {
               return incoming;
             },
           },
@@ -57,6 +82,23 @@ const client = new ApolloClient({
     },
   },
 });
+
+// Syncs environment changes → clears Apollo cache so queries re-fetch from new endpoint
+function EnvironmentSync() {
+  const { environment } = useEnvironment();
+  const apolloClient = useApolloClient();
+  const isFirstRender = React.useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    apolloClient.resetStore();
+  }, [environment, apolloClient]);
+
+  return null;
+}
 
 const navigation = [
   { name: 'Overview', href: '/', icon: HomeIcon },
@@ -112,14 +154,20 @@ function Layout({
   setTimeRange: (value: string) => void;
 }) {
   const location = useLocation();
-  const { isPolling } = usePolling();
+  const { isPolling, enabled, setEnabled, interval, setInterval } = usePolling();
+  const [pollingMenuOpen, setPollingMenuOpen] = useState(false);
   const systemStatus = useSystemStatus();
   const isFlowPage = location.pathname === '/flow';
+  const { environment } = useEnvironment();
 
   return (
     <div className='h-screen flex bg-gray-50 dark:bg-gray-900'>
       {/* Sidebar */}
-      <div className='w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700'>
+      <div className={`w-64 bg-white dark:bg-gray-800 border-r ${
+        environment === 'prod'
+          ? 'border-red-300 dark:border-red-800'
+          : 'border-gray-200 dark:border-gray-700'
+      }`}>
         <div className='flex flex-col h-full'>
           {/* Logo */}
           <div className='flex items-center h-16 px-4 border-b border-gray-200 dark:border-gray-700'>
@@ -138,9 +186,20 @@ function Layout({
             ))}
           </nav>
 
-          {/* Database Connection Info */}
+          {/* Environment & Database Info */}
           <div className='p-4 border-t border-gray-200 dark:border-gray-700'>
             <div className='space-y-3'>
+              {/* Environment Switcher */}
+              <div>
+                <span className='text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
+                  Environment
+                </span>
+                <div className='mt-1'>
+                  <EnvironmentSwitcher />
+                </div>
+              </div>
+
+              {/* Database */}
               <div>
                 <span className='text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
                   Database
@@ -219,36 +278,63 @@ function Layout({
         <header className='bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700'>
           <div className='px-6 py-4'>
             {isFlowPage ? (
-              /* Flow Page Header - Show Summary */
               <FlowHeader />
             ) : (
-              /* Other Pages Header - Show Search and Time Range */
               <div className='flex items-center justify-between'>
-                {/* Search */}
                 <div className='flex-1 max-w-2xl'>
                   <CorrelationSearch value={correlationSearch} onChange={setCorrelationSearch} />
                 </div>
-
-                {/* Time Range & Sync Indicator */}
                 <div className='flex items-center space-x-4 ml-6'>
-                  <select
-                    value={timeRange}
-                    onChange={e => setTimeRange(e.target.value)}
-                    className='px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100'
-                  >
-                    <option value='1h'>Last 1 hour</option>
-                    <option value='6h'>Last 6 hours</option>
-                    <option value='24h'>Last 24 hours</option>
-                    <option value='7d'>Last 7 days</option>
-                  </select>
-
-                  <div className='flex items-center'>
-                    <ArrowPathIcon
-                      className={`h-5 w-5 ${isPolling ? 'animate-spin text-blue-600' : 'text-gray-400'}`}
-                    />
-                    <span className='ml-2 text-sm text-gray-600 dark:text-gray-400'>
-                      {isPolling ? 'Syncing...' : 'Auto-refresh'}
-                    </span>
+                  <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+                  <div className='relative'>
+                    <button
+                      onClick={() => setPollingMenuOpen(!pollingMenuOpen)}
+                      className='flex items-center px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors'
+                    >
+                      <ArrowPathIcon
+                        className={`h-4 w-4 ${isPolling ? 'animate-spin text-blue-600' : enabled ? 'text-gray-500' : 'text-gray-300'}`}
+                      />
+                      <span className='ml-2 text-sm text-gray-600 dark:text-gray-400'>
+                        {!enabled ? 'Paused' : isPolling ? 'Syncing...' : `Auto-refresh (${POLLING_INTERVALS.find(p => p.value === interval)?.label})`}
+                      </span>
+                    </button>
+                    {pollingMenuOpen && (
+                      <>
+                        <div className='fixed inset-0 z-30' onClick={() => setPollingMenuOpen(false)} />
+                        <div className='absolute right-0 top-full mt-2 z-40 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3 space-y-3'>
+                          <div className='flex items-center justify-between'>
+                            <span className='text-sm font-medium text-gray-700 dark:text-gray-300'>Auto-refresh</span>
+                            <button
+                              onClick={() => setEnabled(!enabled)}
+                              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${enabled ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'}`}
+                            >
+                              <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${enabled ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
+                            </button>
+                          </div>
+                          <div>
+                            <span className='text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>Interval</span>
+                            <div className='mt-1.5 flex gap-1.5'>
+                              {POLLING_INTERVALS.map(opt => (
+                                <button
+                                  key={opt.value}
+                                  onClick={() => setInterval(opt.value as PollingInterval)}
+                                  disabled={!enabled}
+                                  className={`flex-1 px-2 py-1 text-xs font-medium rounded transition-colors ${
+                                    interval === opt.value && enabled
+                                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400'
+                                      : enabled
+                                      ? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                      : 'bg-gray-50 text-gray-300 dark:bg-gray-700/50 dark:text-gray-600 cursor-not-allowed'
+                                  }`}
+                                >
+                                  {opt.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -279,7 +365,6 @@ function Layout({
 function App() {
   const [correlationSearch, setCorrelationSearch] = useState('');
 
-  // Load time range from localStorage or default to '24h'
   const [timeRange, setTimeRange] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('hasura-event-detector-timeRange');
@@ -288,7 +373,6 @@ function App() {
     return '24h';
   });
 
-  // Save time range to localStorage whenever it changes
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('hasura-event-detector-timeRange', timeRange);
@@ -297,6 +381,7 @@ function App() {
 
   return (
     <ApolloProvider client={client}>
+      <AuthProviderWrapper provider={authProvider}>
       <PollingProvider>
         <Router
           future={{
@@ -304,25 +389,41 @@ function App() {
             v7_relativeSplatPath: true,
           }}
         >
-          <Layout
-            correlationSearch={correlationSearch}
-            setCorrelationSearch={setCorrelationSearch}
-            timeRange={timeRange}
-            setTimeRange={setTimeRange}
-          >
-            <Routes>
-              <Route
-                path='/'
-                element={<OverviewDashboard correlationSearch={correlationSearch} timeRange={timeRange} />}
-              />
-              <Route path='/invocations' element={<InvocationsTable correlationSearch={correlationSearch} />} />
-              <Route path='/flow' element={<FlowDiagram />} />
-              <Route path='/analytics' element={<Analytics />} />
-              <Route path='/settings' element={<Settings />} />
-            </Routes>
-          </Layout>
+          <Routes>
+            <Route path='/login' element={<LoginPage />} />
+            <Route
+              path='*'
+              element={
+                <ProtectedRoute>
+                  <EnvironmentProvider>
+                  <EnvironmentSync />
+                  <LogProviderProvider>
+                  <Layout
+                    correlationSearch={correlationSearch}
+                    setCorrelationSearch={setCorrelationSearch}
+                    timeRange={timeRange}
+                    setTimeRange={setTimeRange}
+                  >
+                    <Routes>
+                      <Route
+                        path='/'
+                        element={<OverviewDashboard correlationSearch={correlationSearch} timeRange={timeRange} />}
+                      />
+                      <Route path='/invocations' element={<InvocationsTable correlationSearch={correlationSearch} timeRange={timeRange} />} />
+                      <Route path='/flow' element={<FlowDiagram />} />
+                      <Route path='/analytics' element={<Analytics timeRange={timeRange} />} />
+                      <Route path='/settings' element={<Settings />} />
+                    </Routes>
+                  </Layout>
+                  </LogProviderProvider>
+                  </EnvironmentProvider>
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
         </Router>
       </PollingProvider>
+      </AuthProviderWrapper>
     </ApolloProvider>
   );
 }

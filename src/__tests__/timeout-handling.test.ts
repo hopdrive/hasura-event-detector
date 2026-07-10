@@ -71,7 +71,9 @@ describe('Timeout Handling', () => {
     });
 
     it('should trigger timeout handler when approaching limit', async () => {
-      let remainingTime = 3000;
+      // Start with remaining time already within the safety margin so the
+      // very first monitoring check (at ~500ms) detects the approaching timeout.
+      let remainingTime = 1500;
       let timeoutHandlerCalled = false;
 
       const manager = new TimeoutManager({
@@ -81,11 +83,9 @@ describe('Timeout Handling', () => {
       });
 
       const testFunction = async () => {
-        // Simulate work that takes time
-        await new Promise(resolve => setTimeout(resolve, 100));
-        // Simulate timeout approaching during execution
-        remainingTime = 1500;
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Simulate work that takes longer than the monitoring check interval
+        // (default 500ms) so the monitor fires while this function is still running.
+        await new Promise(resolve => setTimeout(resolve, 800));
         return 'should not reach';
       };
 

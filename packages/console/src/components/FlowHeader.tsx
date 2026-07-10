@@ -1,7 +1,6 @@
 import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useInvocationTreeFlowQuery } from '../types/generated';
-import { calculateFlowSummary } from './FlowDiagram';
 import { useFlowPositioning } from '../hooks/useFlowPositioning';
 import FlowSummary from './FlowSummary';
 
@@ -23,7 +22,7 @@ export const FlowHeader: React.FC = () => {
     : [];
 
   // Always call the positioning hook, even with empty data
-  const { nodes } = useFlowPositioning(invocations);
+  const { nodes } = useFlowPositioning(invocations as any);
 
   // Handle loading/error states after hooks are called
   if (!invocationId || loading || error || !data?.invocations_by_pk) {

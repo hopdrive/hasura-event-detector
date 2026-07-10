@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { XMarkIcon, CheckCircleIcon, ExclamationCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, CheckCircleIcon, ExclamationCircleIcon, ClockIcon, PlayIcon } from '@heroicons/react/24/outline';
 import { Node } from 'reactflow';
 import { formatDuration } from '../utils/formatDuration';
 import LogsViewer from './LogsViewer';
-import { createGrafanaService } from '../services/GrafanaService';
+import DrawerBreadcrumb from './DrawerBreadcrumb';
+import { useLogProvider } from '../contexts/LogProviderContext';
 
 interface EventDetailDrawerProps {
   node: Node | null;
   isOpen: boolean;
   onClose: () => void;
+  onSelectNode?: (node: Node) => void;
 }
 
 const TabButton = ({ active, onClick, children }: any) => (
@@ -27,16 +29,97 @@ const TabButton = ({ active, onClick, children }: any) => (
   </button>
 );
 
+const EventLogsTab: React.FC<{ eventData: any }> = ({ eventData }) => {
+  const logProvider = useLogProvider();
+
+  if (!logProvider.isConfigured()) {
+    return (
+      <div className="space-y-4">
+        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+          <p>{logProvider.name} is not configured.</p>
+          <p className="text-sm mt-1">
+            {logProvider.getConfigurationHint?.() || 'Configure your log provider.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const { queryFn, queryDisplay, exploreUrl, exploreLinkLabel } = logProvider.getLogQuery({
+    type: 'event',
+    invocationId: eventData.invocationId,
+    eventName: eventData.eventName,
+    createdAt: eventData.createdAt,
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800 mb-4">
+        <h5 className="font-medium text-blue-700 dark:text-blue-400 mb-2">
+          Event Execution Logs
+        </h5>
+        <p className="text-sm text-blue-600 dark:text-blue-400">
+          Viewing logs from {logProvider.name} for this event execution and all associated jobs.
+          Logs are filtered by invocationId.
+        </p>
+      </div>
+
+      <LogsViewer
+        queryFn={queryFn}
+        queryDisplay={queryDisplay}
+        exploreUrl={exploreUrl}
+        exploreLinkLabel={exploreLinkLabel}
+        queryLanguageLabel={logProvider.queryLanguageLabel}
+        autoRefresh={false}
+        isJobRunning={false}
+        refreshInterval={5000}
+      />
+    </div>
+  );
+};
+
 const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
   node,
-  isOpen,
-  onClose
+  isOpen: _isOpen,
+  onClose,
+  onSelectNode,
 }) => {
   const [activeTab, setActiveTab] = useState('summary');
 
   if (!node || node.type !== 'event') return null;
 
   const eventData = node.data;
+
+  const navigateToJob = (job: any) => {
+    if (!onSelectNode) return;
+
+    // Build ancestor for this event node (carries its own ancestors forward)
+    const currentEventAncestor: Node = {
+      id: node.id,
+      type: 'event',
+      position: { x: 0, y: 0 },
+      data: { ...eventData, ancestors: eventData.ancestors || [] },
+    };
+
+    const ancestors = [...(eventData.ancestors || []), currentEventAncestor];
+
+    onSelectNode({
+      id: `job-${job.id}`,
+      type: 'job',
+      position: { x: 0, y: 0 },
+      data: {
+        jobName: job.name,
+        functionName: job.function,
+        correlationId: job.correlationId || eventData.correlationId,
+        status: job.status,
+        duration: job.duration,
+        result: job.result,
+        error: job.error,
+        createdAt: job.createdAt || eventData.createdAt,
+        ancestors,
+      },
+    });
+  };
 
   return (
     <motion.div
@@ -63,6 +146,11 @@ const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
             <p className="text-sm text-gray-600 dark:text-gray-400 font-mono mt-1">
               {eventData.eventName}
             </p>
+            {eventData.createdAt && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {new Date(eventData.createdAt).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })}
+              </p>
+            )}
           </div>
           <button
             onClick={onClose}
@@ -92,6 +180,14 @@ const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
           >
             Performance
           </TabButton>
+          {eventData.jobs && eventData.jobs.length > 0 && (
+            <TabButton
+              active={activeTab === 'jobs'}
+              onClick={() => setActiveTab('jobs')}
+            >
+              Jobs
+            </TabButton>
+          )}
           <TabButton
             active={activeTab === 'logs'}
             onClick={() => setActiveTab('logs')}
@@ -100,6 +196,11 @@ const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
           </TabButton>
         </div>
       </div>
+
+      {/* Breadcrumb */}
+      {onSelectNode && node && (
+        <DrawerBreadcrumb node={node} onSelectNode={onSelectNode} />
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-6">
@@ -205,9 +306,18 @@ const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
                     <h4 className="font-medium text-purple-700 dark:text-purple-400">
                       Jobs Executed
                     </h4>
-                    <p className="text-sm text-purple-600 dark:text-purple-400 mt-1">
-                      {eventData.jobsCount} job{eventData.jobsCount > 1 ? 's' : ''} triggered by this event
-                    </p>
+                    {eventData.jobs && eventData.jobs.length > 0 ? (
+                      <button
+                        onClick={() => setActiveTab('jobs')}
+                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline mt-1"
+                      >
+                        {eventData.jobsCount} job{eventData.jobsCount > 1 ? 's' : ''} triggered &mdash; View Jobs &rarr;
+                      </button>
+                    ) : (
+                      <p className="text-sm text-purple-600 dark:text-purple-400 mt-1">
+                        {eventData.jobsCount} job{eventData.jobsCount > 1 ? 's' : ''} triggered by this event
+                      </p>
+                    )}
                   </div>
                   <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                     {eventData.jobsCount}
@@ -403,45 +513,76 @@ export default async function detect(payload, context) {
           </div>
         )}
 
-        {activeTab === 'logs' && (
-          <div className="space-y-4">
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800 mb-4">
-              <h5 className="font-medium text-blue-700 dark:text-blue-400 mb-2">
-                Event Execution Logs
-              </h5>
-              <p className="text-sm text-blue-600 dark:text-blue-400">
-                Viewing logs from Grafana Loki for this event execution and all associated jobs.
-                Logs are filtered by correlationId and eventExecutionId.
-              </p>
-            </div>
-
-            {(() => {
-              const grafanaService = createGrafanaService();
-
-              if (!grafanaService) {
-                return (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                    <p>Grafana is not configured.</p>
-                    <p className="text-sm mt-1">
-                      Set VITE_GRAFANA_HOST, VITE_GRAFANA_ID, and VITE_GRAFANA_SECRET environment variables.
-                    </p>
+        {activeTab === 'jobs' && eventData.jobs && (
+          <div className="space-y-3">
+            {eventData.jobs.map((job: any, index: number) => (
+              <div
+                key={job.id || index}
+                className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border-l-4 border-l-purple-400"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2">
+                      <PlayIcon className="h-4 w-4 text-purple-500" />
+                      {onSelectNode ? (
+                        <button
+                          className="font-medium text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                          onClick={() => navigateToJob(job)}
+                        >
+                          {job.name}
+                        </button>
+                      ) : (
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {job.name}
+                        </p>
+                      )}
+                    </div>
+                    <div className="ml-6 mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                      <div className="flex items-center space-x-4">
+                        <span>Duration: {formatDuration(job.duration)}</span>
+                        {job.function && <span>Function: {job.function}</span>}
+                      </div>
+                      {job.error && (
+                        <p className="text-red-600 dark:text-red-400 mt-2">
+                          Error: {job.error}
+                        </p>
+                      )}
+                      {job.result && (
+                        <details className="mt-2">
+                          <summary className="cursor-pointer text-blue-600 dark:text-blue-400 hover:underline">
+                            View Result
+                          </summary>
+                          <pre className="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs overflow-auto">
+                            {JSON.stringify(job.result, null, 2)}
+                          </pre>
+                        </details>
+                      )}
+                      {job.triggersInvocation && (
+                        <div className="mt-2 p-2 bg-purple-50 dark:bg-purple-900/20 rounded border border-purple-200 dark:border-purple-800">
+                          <span className="text-xs text-purple-700 dark:text-purple-400">Recursive Chain Trigger</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                );
-              }
-
-              const correlationId = eventData.correlationId;
-              const eventExecutionId = node.id.replace('event-', '');
-
-              return (
-                <LogsViewer
-                  queryFn={() => grafanaService.queryEventLogs(correlationId, eventExecutionId, 15)}
-                  autoRefresh={false}
-                  isJobRunning={false}
-                  refreshInterval={5000}
-                />
-              );
-            })()}
+                  <span className={`
+                    ml-4 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium flex-shrink-0
+                    ${job.status === 'completed'
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                      : job.status === 'failed'
+                      ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                      : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                    }
+                  `}>
+                    {job.status}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
+        )}
+
+        {activeTab === 'logs' && (
+          <EventLogsTab eventData={eventData} />
         )}
       </div>
     </motion.div>

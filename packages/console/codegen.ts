@@ -6,7 +6,7 @@ dotenv.config();
 
 // CODEGEN Setup will generate config against the specified GraphQL endpoint
 const graphqlUrl = process.env.VITE_GRAPHQL_ENDPOINT || 'http://localhost:8080/v1/graphql';
-const graphqlSecret = process.env.VITE_HASURA_ADMIN_SECRET || '';
+const graphqlSecret = process.env.TEST_HASURA_ADMIN_SECRET || process.env.VITE_HASURA_ADMIN_SECRET || '';
 
 console.log('[codegen] setup', { graphqlUrl, hasSecret: !!graphqlSecret });
 
