@@ -1,4 +1,4 @@
-import { logError, log } from '../../../helpers/log';
+import { logError, logWarn, log } from '../../../helpers/log';
 import { BaseTransport } from './base';
 import type { ObservabilityTransport, BufferData, BufferedInvocation, BufferedEventExecution, BufferedJobExecution } from './types';
 import type { ObservabilityConfig } from '../plugin';
@@ -12,6 +12,41 @@ import {
   HEALTH_CHECK_QUERY,
 } from '../graphql/mutations';
 import { loadGraphQLClient } from './graphql-loader';
+
+const MAX_ERROR_SUMMARY_CHARS = 2000;
+
+/**
+ * Reduce a caught transport error to a compact Error safe to hand to logError.
+ *
+ * graphql-request's ClientError.message embeds JSON.stringify({response, request})
+ * including the full mutation variables — for wide rows (e.g. a moves event's
+ * source_event_payload) that's a multi-hundred-KB string. Log shippers reject
+ * such lines (Loki: 'line_too_long' over 256KB) while still billing the bytes.
+ * Keep only the actual GraphQL/network error messages.
+ */
+function summarizeGraphQLError(error: any): Error {
+  const gqlErrors = error?.response?.errors;
+  let message: string;
+  if (Array.isArray(gqlErrors) && gqlErrors.length > 0) {
+    message = gqlErrors.map((e: any) => e?.message ?? String(e)).join('; ');
+  } else {
+    message = String(error?.message ?? error ?? 'Unknown error');
+  }
+  if (message.length > MAX_ERROR_SUMMARY_CHARS) {
+    message = `${message.slice(0, MAX_ERROR_SUMMARY_CHARS)}…[truncated ${message.length - MAX_ERROR_SUMMARY_CHARS} chars]`;
+  }
+
+  const summary = new Error(message);
+  summary.name = error?.name ?? 'Error';
+  // Only adopt the original stack when it's small. A ClientError's stack BEGINS
+  // with its multi-hundred-KB message, so truncating it would keep zero actual
+  // frames — the fresh Error's own (small) stack is more useful than that.
+  if (typeof error?.stack === 'string' && error.stack.length <= MAX_ERROR_SUMMARY_CHARS) {
+    summary.stack = error.stack;
+  }
+  if (error?.code) (summary as any).code = error.code;
+  return summary;
+}
 
 // GraphQLClient type (will be loaded dynamically)
 type GraphQLClientType = any;
@@ -159,7 +194,7 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
         logError('GraphQLTransport', `Failed to update invocation ${invocationId} - record may not exist`, new Error('Update returned null'));
       }
     } catch (error) {
-      logError('GraphQLTransport', `Failed to update invocation completion for ${invocationId}`, error as Error);
+      logError('GraphQLTransport', `Failed to update invocation completion for ${invocationId}`, summarizeGraphQLError(error));
       throw error;
     }
   }
@@ -199,7 +234,7 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
         logError('GraphQLTransport', `Failed to update event execution ${eventExecutionId} - record may not exist`, new Error('Update returned null'));
       }
     } catch (error) {
-      logError('GraphQLTransport', `Failed to update event execution completion for ${eventExecutionId}`, error as Error);
+      logError('GraphQLTransport', `Failed to update event execution completion for ${eventExecutionId}`, summarizeGraphQLError(error));
       throw error;
     }
   }
@@ -239,7 +274,7 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
         logError('GraphQLTransport', `Failed to update job execution ${jobExecutionId} - record may not exist`, new Error('Update returned null'));
       }
     } catch (error) {
-      logError('GraphQLTransport', `Failed to update job execution completion for ${jobExecutionId}`, error as Error);
+      logError('GraphQLTransport', `Failed to update job execution completion for ${jobExecutionId}`, summarizeGraphQLError(error));
       throw error;
     }
   }
@@ -251,24 +286,74 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
     if (!this.client) throw new Error('Client not initialized');
     if (records.size === 0) return;
 
-    const objects = Array.from(records.values()).map(record =>
-      this.transformForGraphQL(record)
-    );
+    // Snapshot entries and delete only those keys on success. Flushes run
+    // concurrently (each onJobStart awaits one, jobs run via Promise.allSettled),
+    // so records buffered after this snapshot must survive for the next flush —
+    // a blanket clear() would silently drop them unsent.
+    const entries = Array.from(records.entries());
+    const objects = entries.map(([, record]) => this.transformForGraphQL(record));
 
     try {
-      const result = await this.retryWithBackoff(async () => {
-        return await this.client!.request(
-          BULK_UPSERT_INVOCATIONS,
-          { objects }
-        );
-      });
+      const result = await this.retryWithBackoff(
+        async () => {
+          return await this.client!.request(
+            BULK_UPSERT_INVOCATIONS,
+            { objects }
+          );
+        },
+        undefined,
+        undefined,
+        // A constraint violation is deterministic — retrying burns ~7s of
+        // backoff (blocking a job start) before the unlink fallback below
+        // can fire. Fail fast to the fallback instead.
+        error => !this.isSourceJobFkViolation(error)
+      );
 
       log('GraphQLTransport', `Upserted ${result.insert_invocations.affected_rows} invocations`);
-      records.clear();
+      for (const [key] of entries) records.delete(key);
     } catch (error) {
+      // fk_invocations_source_job_id points at the SOURCE function's
+      // job_executions row, which that function may not have flushed yet
+      // (cross-function race — closed at the source by persistJobsAtStart,
+      // but any window that remains would otherwise poison this buffer and
+      // re-fail on every flush cycle). Land the records without the parent
+      // link rather than dropping them or looping.
+      if (this.isSourceJobFkViolation(error)) {
+        // Hasura's constraint error doesn't say WHICH object violated, so the
+        // whole batch is unlinked (in practice the buffer holds one invocation
+        // per flush). warn, not info: if this fires systematically, lineage is
+        // silently degrading and someone should look at why parent job rows
+        // aren't landing first.
+        const unlinked = objects.map(obj => ({ ...obj, source_job_id: null }));
+        try {
+          const result = await this.client!.request(BULK_UPSERT_INVOCATIONS, { objects: unlinked });
+          logWarn(
+            'GraphQLTransport',
+            `Upserted ${result.insert_invocations.affected_rows} invocations without source_job_id (parent job row not yet written)`
+          );
+          for (const [key] of entries) records.delete(key);
+          return;
+        } catch (fallbackError) {
+          this.handleGraphQLError(fallbackError, 'invocations', unlinked);
+          throw fallbackError;
+        }
+      }
+
       this.handleGraphQLError(error, 'invocations', objects);
       throw error;
     }
+  }
+
+  /** True when a GraphQL error is the source_job_id FK constraint violation */
+  private isSourceJobFkViolation(error: any): boolean {
+    const gqlErrors = error?.response?.errors;
+    if (!Array.isArray(gqlErrors)) return false;
+    return gqlErrors.some(
+      (e: any) =>
+        e?.extensions?.code === 'constraint-violation' &&
+        typeof e?.message === 'string' &&
+        e.message.includes('fk_invocations_source_job_id')
+    );
   }
 
   /**
@@ -277,9 +362,9 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
   private async flushEventExecutions(records: Map<string, BufferedEventExecution>): Promise<void> {
     if (!this.client) throw new Error('Client not initialized');
 
-    const objects = Array.from(records.values()).map(record =>
-      this.transformForGraphQL(record)
-    );
+    // Snapshot-key deletion — see flushInvocations for why clear() is unsafe
+    const entries = Array.from(records.entries());
+    const objects = entries.map(([, record]) => this.transformForGraphQL(record));
 
     try {
       const result = await this.retryWithBackoff(async () => {
@@ -290,7 +375,7 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
       });
 
       log('GraphQLTransport', `Inserted ${result.insert_event_executions.affected_rows} event executions`);
-      records.clear();
+      for (const [key] of entries) records.delete(key);
     } catch (error) {
       this.handleGraphQLError(error, 'event_executions', objects);
       throw error;
@@ -303,9 +388,9 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
   private async flushJobExecutions(records: Map<string, BufferedJobExecution>): Promise<void> {
     if (!this.client) throw new Error('Client not initialized');
 
-    const objects = Array.from(records.values()).map(record =>
-      this.transformForGraphQL(record)
-    );
+    // Snapshot-key deletion — see flushInvocations for why clear() is unsafe
+    const entries = Array.from(records.entries());
+    const objects = entries.map(([, record]) => this.transformForGraphQL(record));
 
     try {
       const result = await this.retryWithBackoff(async () => {
@@ -316,7 +401,7 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
       });
 
       log('GraphQLTransport', `Inserted ${result.insert_job_executions.affected_rows} job executions`);
-      records.clear();
+      for (const [key] of entries) records.delete(key);
     } catch (error) {
       this.handleGraphQLError(error, 'job_executions', objects);
       throw error;
@@ -399,23 +484,24 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
   private async retryWithBackoff<T>(
     operation: () => Promise<T>,
     retries: number = this.config.graphql?.maxRetries || 3,
-    delay: number = this.config.graphql?.retryDelay || 1000
+    delay: number = this.config.graphql?.retryDelay || 1000,
+    shouldRetry: (error: unknown) => boolean = () => true
   ): Promise<T> {
     try {
       return await operation();
     } catch (error) {
-      if (retries <= 0) {
+      if (retries <= 0 || !shouldRetry(error)) {
         throw error;
       }
 
       logError(
         'GraphQLTransport',
         `Operation failed, retrying in ${delay}ms (${retries} retries left)`,
-        error as Error
+        summarizeGraphQLError(error)
       );
 
       await new Promise(resolve => setTimeout(resolve, delay));
-      return this.retryWithBackoff(operation, retries - 1, delay * 2);
+      return this.retryWithBackoff(operation, retries - 1, delay * 2, shouldRetry);
     }
   }
 
@@ -423,7 +509,11 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
    * Handle GraphQL errors with detailed logging
    */
   private handleGraphQLError(error: any, tableName: string, objects: any[]): void {
-    logError('GraphQLTransport', `GraphQL mutation failed for ${tableName}`, error);
+    logError(
+      'GraphQLTransport',
+      `GraphQL mutation failed for ${tableName} (${objects.length} record(s))`,
+      summarizeGraphQLError(error)
+    );
 
     // Log sample data for debugging
     console.log(`Failed ${tableName} sample:`, objects.slice(0, 1));
