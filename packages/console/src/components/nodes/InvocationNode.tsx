@@ -25,12 +25,6 @@ export const InvocationNode: React.FC<NodeProps<InvocationNodeData>> = ({ data, 
     completedDurationMs: data.duration
   });
 
-  const statusColors = {
-    completed: 'border-green-500 bg-green-50 dark:bg-green-900/20',
-    failed: 'border-red-500 bg-red-50 dark:bg-red-900/20',
-    running: 'border-blue-500 bg-blue-50 dark:bg-blue-900/20',
-  };
-
   const statusDots = {
     completed: 'bg-green-500',
     failed: 'bg-red-500',

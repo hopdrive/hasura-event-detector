@@ -129,11 +129,15 @@ describe('Event Detector', () => {
 
       await listenTo(hasuraEvent, config);
 
-      expect(hasuraEvent.__correlationId).toBeValidCorrelationId();
+      // Correlation IDs are now plain UUIDs (not source.uuid format)
+      expect(hasuraEvent.__correlationId).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      );
     });
 
     it('should preserve existing correlation ID in UPDATE operations', async () => {
-      const existingCorrelationId = 'existing.correlation.id';
+      // Must be a valid UUID since CorrelationIdUtils.isCorrelationId validates UUID format
+      const existingCorrelationId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
       const hasuraEvent = createMockHasuraEvent({
         operation: 'UPDATE',
         old: { id: 1, updated_by: 'user' },
@@ -220,7 +224,13 @@ describe('Event Detector', () => {
 
       const result = await listenTo(hasuraEvent, config);
 
-      expect(result.events).toHaveLength(0);
+      // Malformed modules still appear in results but with detected: false and no jobs
+      expect(result.events).toHaveLength(1);
+      expect(result.events[0]).toMatchObject({
+        name: 'invalid-module',
+        detected: false,
+        jobs: [],
+      });
       expect(mockConsole.mockError).toHaveBeenCalled();
     });
   });
@@ -242,8 +252,7 @@ describe('Event Detector', () => {
 
         expect(result.events).toHaveLength(0);
         expect(mockConsole.mockError).toHaveBeenCalledWith(
-          'listenTo',
-          'Invalid Hasura event payload structure'
+          '[listenTo] Invalid Hasura event payload structure'
         );
 
         // Reset mock for next iteration

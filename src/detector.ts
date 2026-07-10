@@ -1,4 +1,4 @@
-import { log, logError, logWarn, setPluginManager, setConsoleLogging } from '@/helpers/log';
+import { log, logError, logWarn, setPluginManager, setConsoleLogging, getEventLogger } from '@/helpers/log';
 import { getObjectSafely } from '@/helpers/object';
 import { parseHasuraEvent } from '@/helpers/hasura';
 import { resolveFromCaller } from '@/helpers/caller-path';
@@ -551,18 +551,20 @@ const detect = async (
   if (!handler) return null;
   if (typeof handler !== 'function') return null;
 
+  const detectorLogger = getEventLogger(eventName, hasuraEvent);
+
   try {
     const detected = await detector(eventName, hasuraEvent);
     if (!detected) {
-      log(eventName, `No event detected`);
+      detectorLogger.log(`No event detected`);
       return null;
     }
   } catch (error) {
-    log(eventName, `Error detecting event`, (error as Error).message);
+    detectorLogger.log(`Error detecting event`, (error as Error).message);
     return null;
   }
 
-  log(eventName, 'Event detected');
+  detectorLogger.log('Event detected');
   return handler;
 };
 

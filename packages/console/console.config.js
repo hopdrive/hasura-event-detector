@@ -6,14 +6,6 @@
  */
 
 module.exports = {
-  // Database configuration
-  database: {
-    url:
-      process.env.DATABASE_URL ||
-      'postgresql://observability_app:CHANGE_THIS_PASSWORD_IN_PRODUCTION@test-hopdrive-admin-graphql.comzqgkf8brl.us-east-1.rds.amazonaws.com:5432/event_detector_observability',
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  },
-
   // Hasura configuration
   hasura: {
     endpoint: process.env.HASURA_ENDPOINT || 'https://gql-test.hopdrive.io/v1/graphql',

@@ -1,5 +1,6 @@
 import React, { useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import {
   ArrowUpIcon,
   ArrowDownIcon,
@@ -9,10 +10,6 @@ import {
   ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -23,18 +20,8 @@ import {
 } from 'recharts';
 import { useOverviewDashboardQuery } from '../types/generated';
 import { formatDuration } from '../utils/formatDuration';
-import {
-  sub,
-  addHours,
-  addMinutes,
-  format,
-  startOfHour,
-  eachHourOfInterval,
-  eachDayOfInterval,
-  startOfDay,
-  startOfMinute,
-  eachMinuteOfInterval,
-} from 'date-fns';
+import { resolveTimeRange } from '../utils/resolveTimeRange';
+import { format } from 'date-fns';
 import { NetworkStatus } from '@apollo/client';
 import DatabaseConnectionStatus from './DatabaseConnectionStatus';
 import { usePolling } from '../contexts/PollingContext';
@@ -81,43 +68,25 @@ interface OverviewDashboardProps {
 }
 
 const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
-  correlationSearch = '',
+  correlationSearch: _correlationSearch = '',
   timeRange: timeRangeOption = '24h',
 }) => {
-  const { setIsPolling } = usePolling();
+  const navigate = useNavigate();
+  const { setIsPolling, getEffectivePollInterval } = usePolling();
   const systemStatus = useSystemStatus();
 
-  // Calculate the actual time range based on the selected option
-  const timeRange = useMemo(() => {
-    const now = new Date();
-    let startDate: Date;
-
-    switch (timeRangeOption) {
-      case '1h':
-        startDate = sub(now, { hours: 1 });
-        break;
-      case '6h':
-        startDate = sub(now, { hours: 6 });
-        break;
-      case '24h':
-        startDate = sub(now, { hours: 24 });
-        break;
-      case '7d':
-        startDate = sub(now, { days: 7 });
-        break;
-      default:
-        startDate = sub(now, { hours: 24 });
-    }
-
-    return startDate.toISOString();
-  }, [timeRangeOption]);
+  // Resolve time range using shared utility
+  const resolved = useMemo(() => resolveTimeRange(timeRangeOption), [timeRangeOption]);
 
   const { data, loading, error, networkStatus } = useOverviewDashboardQuery({
-    variables: { timeRange },
-    fetchPolicy: 'cache-and-network', // Use cache first, but fetch in background
+    variables: {
+      timeRange: resolved.start,
+      timeRangeEnd: resolved.end,
+    },
+    fetchPolicy: 'cache-and-network',
     errorPolicy: 'all',
-    notifyOnNetworkStatusChange: true, // Enable to track refetch status
-    pollInterval: 5000, // Poll every 5 seconds
+    notifyOnNetworkStatusChange: true,
+    pollInterval: getEffectivePollInterval(resolved.isCustom),
   });
 
   // Track polling status for the Layout indicator
@@ -134,73 +103,10 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
   const totalJobsFailed = data?.invocations_aggregate?.aggregate?.sum?.total_jobs_failed || 0;
   const successRate = totalJobsRun > 0 ? Math.round((totalJobsSucceeded / totalJobsRun) * 100) : 100;
 
-  // Process hourly metrics for charts from invocations data
-  // Generate all intervals in the selected range, filling in zeros for intervals with no data
+  // Process chart data from pre-aggregated dashboard_stats
   const hourlyMetrics = useMemo(() => {
-    // Use chart-specific data (all records, minimal fields)
-    const invocations = data?.invocations_chart || [];
-    const now = new Date();
-    let startDate: Date;
-    let intervals: Date[];
-    let formatKey: (date: Date) => string;
-    let getIntervalStart: (date: Date) => Date;
-
-    // Determine the start date and interval strategy based on time range
-    switch (timeRangeOption) {
-      case '1h':
-        // For 1 hour, show 12 five-minute intervals
-        startDate = sub(now, { hours: 1 });
-        // Round start to nearest 5-minute boundary
-        const startMinutes = startDate.getMinutes();
-        const roundedStartMinutes = Math.floor(startMinutes / 5) * 5;
-        const roundedStart = new Date(startDate);
-        roundedStart.setMinutes(roundedStartMinutes, 0, 0);
-        // Include the current 5-minute interval by adding 5 minutes to now before rounding down
-        const endTime = addMinutes(now, 5);
-        const endMinutes = endTime.getMinutes();
-        const roundedEndMinutes = Math.floor(endMinutes / 5) * 5;
-        const roundedEnd = new Date(endTime);
-        roundedEnd.setMinutes(roundedEndMinutes, 0, 0);
-        intervals = eachMinuteOfInterval({ start: roundedStart, end: roundedEnd }, { step: 5 });
-        formatKey = date => format(date, 'HH:mm');
-        getIntervalStart = date => {
-          const minutes = date.getMinutes();
-          const roundedMinutes = Math.floor(minutes / 5) * 5;
-          const rounded = new Date(date);
-          rounded.setMinutes(roundedMinutes, 0, 0);
-          return rounded;
-        };
-        break;
-      case '6h':
-        // For 6 hours, show hourly intervals
-        startDate = sub(now, { hours: 6 });
-        // Include the current hour by adding 1 hour to now before rounding down
-        intervals = eachHourOfInterval({ start: startOfHour(startDate), end: startOfHour(addHours(now, 1)) });
-        formatKey = date => format(date, 'HH:mm');
-        getIntervalStart = startOfHour;
-        break;
-      case '24h':
-        // For 24 hours, show hourly intervals
-        startDate = sub(now, { hours: 24 });
-        // Include the current hour by adding 1 hour to now before rounding down
-        intervals = eachHourOfInterval({ start: startOfHour(startDate), end: startOfHour(addHours(now, 1)) });
-        formatKey = date => format(date, 'HH:mm');
-        getIntervalStart = startOfHour;
-        break;
-      case '7d':
-        // For 7 days, show daily intervals
-        startDate = sub(now, { days: 7 });
-        intervals = eachDayOfInterval({ start: startOfDay(startDate), end: startOfDay(now) });
-        formatKey = date => format(date, 'MMM d');
-        getIntervalStart = startOfDay;
-        break;
-      default:
-        // Default to 24 hours
-        startDate = sub(now, { hours: 24 });
-        intervals = eachHourOfInterval({ start: startOfHour(startDate), end: startOfHour(now) });
-        formatKey = date => format(date, 'HH:mm');
-        getIntervalStart = startOfHour;
-    }
+    const stats = data?.dashboard_stats || [];
+    const { intervals, formatKey, getIntervalStart, bucketStrategy } = resolved;
 
     // Initialize all intervals with zero values
     const intervalMap = new Map<string, { hour: string; total: number; successful: number; failed: number }>();
@@ -209,30 +115,29 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
       intervalMap.set(intervalKey, { hour: intervalKey, total: 0, successful: 0, failed: 0 });
     });
 
-    // Fill in actual data
-    invocations.forEach(inv => {
-      const invDate = new Date(inv.created_at);
-      const intervalStart = getIntervalStart(invDate);
+    // Aggregate pre-computed stats into display intervals
+    stats.forEach(stat => {
+      if (!stat.hour_bucket) return;
+      const statDate = new Date(stat.hour_bucket);
+      const intervalStart = getIntervalStart(statDate);
       const intervalKey = formatKey(intervalStart);
       if (intervalMap.has(intervalKey)) {
         const entry = intervalMap.get(intervalKey)!;
-        entry.total += 1;
-        if (inv.status === 'completed') entry.successful += 1;
-        if (inv.status === 'failed') entry.failed += 1;
+        entry.total += stat.total_invocations ?? 0;
+        entry.successful += stat.successful_invocations ?? 0;
+        entry.failed += stat.failed_invocations ?? 0;
       }
     });
 
     return Array.from(intervalMap.values()).sort((a, b) => {
-      // For date strings like "MMM d", we need to parse them, but for "HH:mm" we can compare directly
-      if (timeRangeOption === '7d') {
-        // Parse dates for proper sorting
+      if (bucketStrategy === 'daily') {
         const dateA = new Date(a.hour);
         const dateB = new Date(b.hour);
         return dateA.getTime() - dateB.getTime();
       }
       return a.hour.localeCompare(b.hour);
     });
-  }, [data?.invocations_chart, timeRangeOption]);
+  }, [data?.dashboard_stats, resolved]);
 
   // Get recent invocations for table (limited to 10 records)
   const recentInvocations = data?.invocations_table || [];
@@ -437,7 +342,11 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
             </thead>
             <tbody className='divide-y divide-gray-200 dark:divide-gray-700'>
               {recentInvocations.map(invocation => (
-                <tr key={invocation.id} className='hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer'>
+                <tr
+                  key={invocation.id}
+                  className='hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer'
+                  onClick={() => navigate(`/flow?invocationId=${invocation.id}&autoFocus=true`)}
+                >
                   <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100'>
                     {invocation.source_function}
                   </td>
@@ -445,7 +354,7 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
                     {invocation.correlation_id || 'N/A'}
                   </td>
                   <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400'>
-                    {invocation.source_user_email || 'N/A'}
+                    {invocation.source_user_email || 'system'}
                   </td>
                   <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400'>
                     {invocation.total_duration_ms || 0}ms

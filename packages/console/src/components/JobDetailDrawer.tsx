@@ -5,12 +5,14 @@ import { JSONTree } from 'react-json-tree';
 import { Node } from 'reactflow';
 import { formatDuration } from '../utils/formatDuration';
 import LogsViewer from './LogsViewer';
-import { createGrafanaService } from '../services/GrafanaService';
+import DrawerBreadcrumb from './DrawerBreadcrumb';
+import { useLogProvider } from '../contexts/LogProviderContext';
 
 interface JobDetailDrawerProps {
   node: Node | null;
   isOpen: boolean;
   onClose: () => void;
+  onSelectNode?: (node: Node) => void;
 }
 
 const TabButton = ({ active, onClick, children }: any) => (
@@ -28,10 +30,60 @@ const TabButton = ({ active, onClick, children }: any) => (
   </button>
 );
 
+const JobLogsTab: React.FC<{ nodeId: string; jobData: any }> = ({ nodeId, jobData }) => {
+  const logProvider = useLogProvider();
+
+  if (!logProvider.isConfigured()) {
+    return (
+      <div className="space-y-4">
+        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+          <p>{logProvider.name} is not configured.</p>
+          <p className="text-sm mt-1">
+            {logProvider.getConfigurationHint?.() || 'Configure your log provider.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const scopeId = nodeId.replace('job-', '');
+  const { queryFn, queryDisplay, exploreUrl, exploreLinkLabel } = logProvider.getLogQuery({
+    type: 'job',
+    scopeId,
+    createdAt: jobData.createdAt,
+    isRunning: jobData.status === 'running',
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800 mb-4">
+        <h5 className="font-medium text-blue-700 dark:text-blue-400 mb-2">
+          Job Execution Logs
+        </h5>
+        <p className="text-sm text-blue-600 dark:text-blue-400">
+          Viewing logs from {logProvider.name} for this specific job execution. Logs are filtered by scopeId.
+        </p>
+      </div>
+
+      <LogsViewer
+        queryFn={queryFn}
+        queryDisplay={queryDisplay}
+        exploreUrl={exploreUrl}
+        exploreLinkLabel={exploreLinkLabel}
+        queryLanguageLabel={logProvider.queryLanguageLabel}
+        autoRefresh={jobData.status === 'running'}
+        isJobRunning={jobData.status === 'running'}
+        refreshInterval={5000}
+      />
+    </div>
+  );
+};
+
 const JobDetailDrawer: React.FC<JobDetailDrawerProps> = ({
   node,
-  isOpen,
-  onClose
+  isOpen: _isOpen,
+  onClose,
+  onSelectNode,
 }) => {
   const [activeTab, setActiveTab] = useState('summary');
 
@@ -80,6 +132,11 @@ const JobDetailDrawer: React.FC<JobDetailDrawerProps> = ({
             <p className="text-sm text-gray-600 dark:text-gray-400 font-mono mt-1">
               {jobData.jobName}
             </p>
+            {jobData.createdAt && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {new Date(jobData.createdAt).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })}
+              </p>
+            )}
           </div>
           <button
             onClick={onClose}
@@ -117,6 +174,11 @@ const JobDetailDrawer: React.FC<JobDetailDrawerProps> = ({
           </TabButton>
         </div>
       </div>
+
+      {/* Breadcrumb */}
+      {onSelectNode && node && (
+        <DrawerBreadcrumb node={node} onSelectNode={onSelectNode} />
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-6">
@@ -268,7 +330,6 @@ const JobDetailDrawer: React.FC<JobDetailDrawerProps> = ({
                       theme={jsonTreeTheme}
                       invertTheme={false}
                       hideRoot
-                      shouldExpandNode={(keyName, data, level) => level < 3}
                       sortObjectKeys
                     />
                   ) : (
@@ -357,44 +418,7 @@ const JobDetailDrawer: React.FC<JobDetailDrawerProps> = ({
         )}
 
         {activeTab === 'logs' && (
-          <div className="space-y-4">
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800 mb-4">
-              <h5 className="font-medium text-blue-700 dark:text-blue-400 mb-2">
-                Job Execution Logs
-              </h5>
-              <p className="text-sm text-blue-600 dark:text-blue-400">
-                Viewing logs from Grafana Loki for this specific job execution. Logs are filtered by scopeId and job execution ID.
-              </p>
-            </div>
-
-            {(() => {
-              const grafanaService = createGrafanaService();
-
-              if (!grafanaService) {
-                return (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                    <p>Grafana is not configured.</p>
-                    <p className="text-sm mt-1">
-                      Set VITE_GRAFANA_HOST, VITE_GRAFANA_ID, and VITE_GRAFANA_SECRET environment variables.
-                    </p>
-                  </div>
-                );
-              }
-
-              // Get scopeId from jobData or generate from correlation ID + job name
-              const scopeId = jobData.scopeId || `${jobData.correlationId}-${jobData.jobName}`;
-              const jobExecutionId = node.id.replace('job-', '');
-
-              return (
-                <LogsViewer
-                  queryFn={() => grafanaService.queryJobLogs(scopeId, jobExecutionId, 15)}
-                  autoRefresh={jobData.status === 'running'}
-                  isJobRunning={jobData.status === 'running'}
-                  refreshInterval={5000}
-                />
-              );
-            })()}
-          </div>
+          <JobLogsTab nodeId={node.id} jobData={jobData} />
         )}
       </div>
     </motion.div>

@@ -1,0 +1,16 @@
+[build]
+  base= "packages/console"
+  publish = "dist"
+  command = "npm install && npm run build"
+  functions = "netlify/functions"
+
+[dev]
+  targetPort = 3000
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

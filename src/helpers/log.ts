@@ -18,6 +18,7 @@ interface LogContext {
   eventName?: EventName;
   jobName: JobName;
   correlationId: CorrelationId;
+  logType?: string;
 }
 
 /**
@@ -59,6 +60,7 @@ const logWithContext = (prefix: string, message: string, context: LogContext, ..
           prefix,
           originalArgs: args,
           ...(context.eventName && { eventName: context.eventName }),
+          ...(context.logType && { logType: context.logType }),
         },
         context.jobName,
         context.correlationId
@@ -77,7 +79,7 @@ const logWithContext = (prefix: string, message: string, context: LogContext, ..
  * Internal log function that uses plugin system when available
  */
 export const log = (prefix: string, message: string, ...args: any[]): void => {
-  logWithContext(prefix, message, { jobName: 'system' as JobName, correlationId: '' as CorrelationId }, ...args);
+  logWithContext(prefix, message, { jobName: 'system' as JobName, correlationId: '' as CorrelationId, logType: 'system' }, ...args);
 };
 
 /**
@@ -121,6 +123,7 @@ const logErrorWithContext = (
             : null,
           originalArgs: args,
           ...(context.eventName && { eventName: context.eventName }),
+          ...(context.logType && { logType: context.logType }),
         },
         context.jobName,
         context.correlationId
@@ -139,7 +142,7 @@ const logErrorWithContext = (
  * Internal error logging function
  */
 export const logError = (prefix: string, message: string, error: Error | null = null, ...args: any[]): void => {
-  logErrorWithContext(prefix, message, error, { jobName: 'system' as JobName, correlationId: '' as CorrelationId }, ...args);
+  logErrorWithContext(prefix, message, error, { jobName: 'system' as JobName, correlationId: '' as CorrelationId, logType: 'system' }, ...args);
 };
 
 /**
@@ -166,6 +169,7 @@ const logWarnWithContext = (prefix: string, message: string, context: LogContext
           prefix,
           originalArgs: args,
           ...(context.eventName && { eventName: context.eventName }),
+          ...(context.logType && { logType: context.logType }),
         },
         context.jobName,
         context.correlationId
@@ -184,7 +188,7 @@ const logWarnWithContext = (prefix: string, message: string, context: LogContext
  * Internal warning logging function
  */
 export const logWarn = (prefix: string, message: string, ...args: any[]): void => {
-  logWarnWithContext(prefix, message, { jobName: 'system' as JobName, correlationId: '' as CorrelationId }, ...args);
+  logWarnWithContext(prefix, message, { jobName: 'system' as JobName, correlationId: '' as CorrelationId, logType: 'system' }, ...args);
 };
 
 /**
@@ -237,6 +241,7 @@ export const getEventLogger = (eventName: EventName, hasuraEvent: HasuraEventPay
       eventName: eventName,
       jobName: 'system' as JobName,
       correlationId,
+      logType: 'detector',
     },
     eventName as string // Use event name as automatic prefix
   );
@@ -274,6 +279,7 @@ export const getJobLogger = (hasuraEvent: HasuraEventPayload, options: JobOption
     {
       jobName,
       correlationId,
+      logType: 'job',
     },
     jobName as string // Use job name as automatic prefix
   );

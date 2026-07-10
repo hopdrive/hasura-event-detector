@@ -2,17 +2,19 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { XMarkIcon, ChevronRightIcon, ChevronDownIcon, PlayIcon } from '@heroicons/react/24/outline';
 import { JSONTree } from 'react-json-tree';
-import { create, formatters } from 'jsondiffpatch';
+import { create } from 'jsondiffpatch';
 import { Node } from 'reactflow';
 import { formatDuration } from '../utils/formatDuration';
 import { useInvocationDetailQuery } from '../types/generated';
 import LogsViewer from './LogsViewer';
-import { createGrafanaService } from '../services/GrafanaService';
+import DrawerBreadcrumb from './DrawerBreadcrumb';
+import { useLogProvider } from '../contexts/LogProviderContext';
 
 interface InvocationDetailDrawerProps {
   node: Node | null;
   isOpen: boolean;
   onClose: () => void;
+  onSelectNode?: (node: Node) => void;
 }
 
 // JSON Diff Viewer Component
@@ -115,7 +117,7 @@ const TabButton = ({ active, onClick, children }: any) => (
 );
 
 // Expandable Event Tree Component
-const EventTreeNode = ({ event, eventIndex, expandedEvents, toggleEvent }: any) => {
+const EventTreeNode = ({ event, eventIndex, expandedEvents, toggleEvent, onJobClick, onEventClick }: any) => {
   const isExpanded = expandedEvents[eventIndex];
   const hasJobs = event.jobs && event.jobs.length > 0;
 
@@ -145,9 +147,18 @@ const EventTreeNode = ({ event, eventIndex, expandedEvents, toggleEvent }: any) 
               </div>
             )}
             <div>
-              <p className="font-medium text-gray-900 dark:text-white">
-                {event.name}
-              </p>
+              {onEventClick ? (
+                <button
+                  className="font-medium text-blue-600 dark:text-blue-400 hover:underline cursor-pointer text-left"
+                  onClick={(e) => { e.stopPropagation(); onEventClick(event); }}
+                >
+                  {event.name}
+                </button>
+              ) : (
+                <p className="font-medium text-gray-900 dark:text-white">
+                  {event.name}
+                </p>
+              )}
               <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400 mt-1">
                 <span className="whitespace-nowrap">Detection time: {formatDuration(event.duration)}</span>
                 {hasJobs && <span className="whitespace-nowrap">{event.jobs.length} jobs</span>}
@@ -190,9 +201,18 @@ const EventTreeNode = ({ event, eventIndex, expandedEvents, toggleEvent }: any) 
                   <div className="flex-1">
                     <div className="flex items-center space-x-2">
                       <PlayIcon className="h-4 w-4 text-purple-500" />
-                      <p className="font-medium text-gray-900 dark:text-white">
-                        {job.name}
-                      </p>
+                      {onJobClick ? (
+                        <button
+                          className="font-medium text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                          onClick={(e) => { e.stopPropagation(); onJobClick(job); }}
+                        >
+                          {job.name}
+                        </button>
+                      ) : (
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {job.name}
+                        </p>
+                      )}
                     </div>
                     <div className="ml-6 mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-400">
                       <div className="flex items-center space-x-4">
@@ -247,13 +267,53 @@ const EventTreeNode = ({ event, eventIndex, expandedEvents, toggleEvent }: any) 
   );
 };
 
+const InvocationLogsTab: React.FC<{ invocationId: string; createdAt?: string }> = ({ invocationId, createdAt }) => {
+  const logProvider = useLogProvider();
+
+  if (!logProvider.isConfigured()) {
+    return (
+      <div className="space-y-4">
+        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+          <p>{logProvider.name} is not configured.</p>
+          <p className="text-sm mt-1">
+            {logProvider.getConfigurationHint?.() || 'Configure your log provider.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const { queryFn, queryDisplay, exploreUrl, exploreLinkLabel } = logProvider.getLogQuery({
+    type: 'invocation',
+    invocationId,
+    createdAt,
+  });
+
+  return (
+    <div className="space-y-4">
+      <LogsViewer
+        queryFn={queryFn}
+        queryDisplay={queryDisplay}
+        exploreUrl={exploreUrl}
+        exploreLinkLabel={exploreLinkLabel}
+        queryLanguageLabel={logProvider.queryLanguageLabel}
+        autoRefresh={false}
+        isJobRunning={false}
+        refreshInterval={5000}
+      />
+    </div>
+  );
+};
+
 const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
   node,
-  isOpen,
-  onClose
+  isOpen: _isOpen,
+  onClose,
+  onSelectNode,
 }) => {
   const [activeTab, setActiveTab] = useState('summary');
   const [expandedEvents, setExpandedEvents] = useState<Record<number, boolean>>({});
+  const [showDiff, setShowDiff] = useState(false);
 
   // Fetch real invocation data using GraphQL
   const { data: invocationData, loading, error } = useInvocationDetailQuery({
@@ -320,7 +380,6 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
   const jsondiff = create({
     objectHash: (obj: any) => obj.id || obj._id || JSON.stringify(obj),
     arrays: { detectMove: true },
-    textDiff: { minLength: 60 }
   });
 
   // Extract old and new payloads from source_event_payload
@@ -350,8 +409,7 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
                            invocation.source_user_role ||
                            'system';
 
-  // Try to get delivery info if available
-  const deliveryInfo = hasuraEvent?.delivery_info || {};
+  // Delivery info available via hasuraEvent?.delivery_info if needed
   const triggerId = hasuraEvent?.id || invocation.source_event_id;
   const triggerName = hasuraEvent?.trigger?.name || '';
 
@@ -373,28 +431,129 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
     newPayload,
 
     events: invocation.event_executions.map(event => ({
+      id: event.id,
       name: event.event_name,
       detected: event.detected,
       duration: event.detection_duration_ms ?? 0,  // Use nullish coalescing to preserve 0 values
       jobs: event.job_executions.map(job => ({
+        id: job.id,
         name: job.job_name,
         status: job.status,
         duration: job.duration_ms || 0,
         function: job.job_function_name,
         result: job.result,
         error: job.error_message,
+        correlationId: job.correlation_id,
+        createdAt: job.created_at,
         triggersInvocation: false // TODO: implement detection for recursive invocations
       }))
     })),
 
     jobs: invocation.event_executions.flatMap(event =>
       event.job_executions.map(job => ({
+        id: job.id,
         name: job.job_name,
         status: job.status,
         duration: job.duration_ms || 0,
-        error: job.error_message
+        function: job.job_function_name,
+        result: job.result,
+        error: job.error_message,
+        correlationId: job.correlation_id,
+        createdAt: job.created_at,
+        triggersInvocation: false,
       }))
     )
+  };
+
+  // Build an ancestor node representing the current invocation
+  const buildInvocationAncestor = (): Node => ({
+    id: node.id,
+    type: 'invocation',
+    position: { x: 0, y: 0 },
+    data: {
+      sourceFunction: invocationDisplayData.sourceFunction,
+      correlationId: invocationDisplayData.correlationId,
+      status: invocationDisplayData.status,
+      duration: invocationDisplayData.duration,
+      ancestors: node.data?.ancestors || [],
+    },
+  });
+
+  const navigateToJob = (job: { id: string; name: string; function?: string; correlationId?: string; status: string; duration: number; result?: any; error?: string; createdAt?: string }) => {
+    if (!onSelectNode) return;
+
+    const invocationAncestor = buildInvocationAncestor();
+
+    // Find the parent event for this job
+    const parentEvent = invocationDisplayData.events.find((e: any) =>
+      e.jobs.some((j: any) => j.id === job.id)
+    );
+
+    const eventAncestor: Node | null = parentEvent ? {
+      id: `event-${parentEvent.id || parentEvent.name}`,
+      type: 'event',
+      position: { x: 0, y: 0 },
+      data: {
+        eventName: parentEvent.name,
+        invocationId: invocation.id,
+        correlationId: invocationDisplayData.correlationId,
+        detected: parentEvent.detected,
+        status: parentEvent.detected ? 'completed' : 'not_detected',
+        detectionDuration: parentEvent.duration,
+        jobsCount: parentEvent.jobs?.length || 0,
+        hasFailedJobs: parentEvent.jobs?.some((j: any) => j.status === 'failed') || false,
+        createdAt: invocationDisplayData.createdAt,
+        jobs: parentEvent.jobs,
+        ancestors: [invocationAncestor],
+      },
+    } : null;
+
+    const ancestors = eventAncestor
+      ? [invocationAncestor, eventAncestor]
+      : [invocationAncestor];
+
+    const jobNode: Node = {
+      id: `job-${job.id}`,
+      type: 'job',
+      position: { x: 0, y: 0 },
+      data: {
+        jobName: job.name,
+        functionName: job.function,
+        correlationId: job.correlationId || invocationDisplayData.correlationId,
+        status: job.status,
+        duration: job.duration,
+        result: job.result,
+        error: job.error,
+        createdAt: job.createdAt || invocationDisplayData.createdAt,
+        ancestors,
+      },
+    };
+    onSelectNode(jobNode);
+  };
+
+  const navigateToEvent = (event: any) => {
+    if (!onSelectNode) return;
+
+    const invocationAncestor = buildInvocationAncestor();
+
+    onSelectNode({
+      id: `event-${event.id || event.name}`,
+      type: 'event',
+      position: { x: 0, y: 0 },
+      data: {
+        eventName: event.name,
+        invocationId: invocation.id,
+        correlationId: invocationDisplayData.correlationId,
+        detected: event.detected,
+        status: event.detected ? 'completed' : 'not_detected',
+        detectionDuration: event.duration,
+        jobsCount: event.jobs?.length || 0,
+        hasFailedJobs: event.jobs?.some((j: any) => j.status === 'failed') || false,
+        createdAt: invocationDisplayData.createdAt,
+        jobs: event.jobs,
+        ancestors: [invocationAncestor],
+      },
+    });
   };
 
   const jsonTreeTheme = {
@@ -433,8 +592,13 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
               {node.type === 'invocation' ? 'Invocation' : node.type === 'event' ? 'Event' : 'Job'} Details
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 font-mono mt-1">
-              {invocationDisplayData.correlationId}
+              {invocation.id}
             </p>
+            {invocationDisplayData.createdAt && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {new Date(invocationDisplayData.createdAt).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })}
+              </p>
+            )}
           </div>
           <button
             onClick={onClose}
@@ -452,17 +616,11 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
           >
             Summary
           </TabButton>
-          <TabButton 
-            active={activeTab === 'json'} 
+          <TabButton
+            active={activeTab === 'json'}
             onClick={() => setActiveTab('json')}
           >
-            Raw JSON
-          </TabButton>
-          <TabButton 
-            active={activeTab === 'diff'} 
-            onClick={() => setActiveTab('diff')}
-          >
-            Diff
+            Payload
           </TabButton>
           <TabButton 
             active={activeTab === 'events'} 
@@ -484,6 +642,11 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
           </TabButton>
         </div>
       </div>
+
+      {/* Breadcrumb */}
+      {onSelectNode && node && (
+        <DrawerBreadcrumb node={node} onSelectNode={onSelectNode} />
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-6">
@@ -625,93 +788,114 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
 
         {activeTab === 'json' && (
           <div className="space-y-4">
-            {/* Show old/new if they exist */}
-            {Object.keys(invocationDisplayData.oldPayload).length > 0 || Object.keys(invocationDisplayData.newPayload).length > 0 ? (
-              <>
+            {/* JSON / Diff toggle */}
+            <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1 w-fit">
+              <button
+                onClick={() => setShowDiff(false)}
+                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                  !showDiff
+                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow'
+                    : 'text-gray-600 dark:text-gray-400'
+                }`}
+              >
+                JSON
+              </button>
+              <button
+                onClick={() => setShowDiff(true)}
+                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                  showDiff
+                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow'
+                    : 'text-gray-600 dark:text-gray-400'
+                }`}
+              >
+                Diff
+              </button>
+            </div>
+
+            {!showDiff ? (
+              /* JSON view */
+              Object.keys(invocationDisplayData.oldPayload).length > 0 || Object.keys(invocationDisplayData.newPayload).length > 0 ? (
+                <>
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Old Payload
+                      </h4>
+                      <span className="text-xs text-gray-500">
+                        {Object.keys(invocationDisplayData.oldPayload).length} fields
+                      </span>
+                    </div>
+                    <div className="bg-gray-900 rounded-lg p-4 overflow-auto max-h-64">
+                      <JSONTree
+                        data={invocationDisplayData.oldPayload}
+                        theme={jsonTreeTheme}
+                        invertTheme={false}
+                        hideRoot
+
+                        sortObjectKeys
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        New Payload
+                      </h4>
+                      <span className="text-xs text-gray-500">
+                        {Object.keys(invocationDisplayData.newPayload).length} fields
+                      </span>
+                    </div>
+                    <div className="bg-gray-900 rounded-lg p-4 overflow-auto max-h-64">
+                      <JSONTree
+                        data={invocationDisplayData.newPayload}
+                        theme={jsonTreeTheme}
+                        invertTheme={false}
+                        hideRoot
+
+                        sortObjectKeys
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Old Payload
+                      Source Event Payload
                     </h4>
                     <span className="text-xs text-gray-500">
-                      {Object.keys(invocationDisplayData.oldPayload).length} fields
+                      Full event data
                     </span>
                   </div>
-                  <div className="bg-gray-900 rounded-lg p-4 overflow-auto max-h-64">
+                  <div className="bg-gray-900 rounded-lg p-4 overflow-auto max-h-96">
                     <JSONTree
-                      data={invocationDisplayData.oldPayload}
+                      data={sourceEventPayload}
                       theme={jsonTreeTheme}
                       invertTheme={false}
                       hideRoot
-                      shouldExpandNode={(keyName, data, level) => level < 2}
                       sortObjectKeys
                     />
                   </div>
                 </div>
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      New Payload
-                    </h4>
-                    <span className="text-xs text-gray-500">
-                      {Object.keys(invocationDisplayData.newPayload).length} fields
-                    </span>
-                  </div>
-                  <div className="bg-gray-900 rounded-lg p-4 overflow-auto max-h-64">
-                    <JSONTree
-                      data={invocationDisplayData.newPayload}
-                      theme={jsonTreeTheme}
-                      invertTheme={false}
-                      hideRoot
-                      shouldExpandNode={(keyName, data, level) => level < 2}
-                      sortObjectKeys
-                    />
-                  </div>
-                </div>
-              </>
+              )
             ) : (
-              /* Show full source event payload if no old/new structure */
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Source Event Payload
-                  </h4>
-                  <span className="text-xs text-gray-500">
-                    Full event data
-                  </span>
-                </div>
-                <div className="bg-gray-900 rounded-lg p-4 overflow-auto max-h-96">
-                  <JSONTree
-                    data={sourceEventPayload}
-                    theme={jsonTreeTheme}
-                    invertTheme={false}
-                    hideRoot
-                    shouldExpandNode={(keyName, data, level) => level < 2}
-                    sortObjectKeys
+              /* Diff view */
+              <div className="bg-gray-900 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-gray-300 mb-3">Payload Changes</h4>
+                {Object.keys(invocationDisplayData.oldPayload).length > 0 || Object.keys(invocationDisplayData.newPayload).length > 0 ? (
+                  <JsonDiffViewer
+                    oldData={invocationDisplayData.oldPayload}
+                    newData={invocationDisplayData.newPayload}
+                    jsondiff={jsondiff}
                   />
-                </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-400">
+                    <p>No old/new data comparison available for this event type</p>
+                    <p className="text-sm mt-2">Switch to JSON view to see the full event payload</p>
+                  </div>
+                )}
               </div>
             )}
-          </div>
-        )}
-
-        {activeTab === 'diff' && (
-          <div className="space-y-4">
-            <div className="bg-gray-900 rounded-lg p-4">
-              <h4 className="text-sm font-medium text-gray-300 mb-3">Payload Changes</h4>
-              {Object.keys(invocationDisplayData.oldPayload).length > 0 || Object.keys(invocationDisplayData.newPayload).length > 0 ? (
-                <JsonDiffViewer
-                  oldData={invocationDisplayData.oldPayload}
-                  newData={invocationDisplayData.newPayload}
-                  jsondiff={jsondiff}
-                />
-              ) : (
-                <div className="text-center py-8 text-gray-400">
-                  <p>No old/new data comparison available for this event type</p>
-                  <p className="text-sm mt-2">View the Raw JSON tab to see the full event payload</p>
-                </div>
-              )}
-            </div>
           </div>
         )}
 
@@ -752,6 +936,8 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
                   eventIndex={index}
                   expandedEvents={expandedEvents}
                   toggleEvent={toggleEvent}
+                  onJobClick={navigateToJob}
+                  onEventClick={onSelectNode ? navigateToEvent : undefined}
                 />
               ))}
             </div>
@@ -760,27 +946,62 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
 
         {activeTab === 'jobs' && (
           <div className="space-y-3">
-            {invocationDisplayData.jobs.map((job, index) => (
+            {invocationDisplayData.jobs.map((job: any, index: number) => (
               <div
                 key={index}
-                className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700"
+                className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border-l-4 border-l-purple-400"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900 dark:text-white">
-                      {job.name}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      Duration: {formatDuration(job.duration)}
-                    </p>
-                    {job.error && (
-                      <p className="text-sm text-red-600 dark:text-red-400 mt-2">
-                        Error: {job.error}
-                      </p>
-                    )}
+                    <div className="flex items-center space-x-2">
+                      <PlayIcon className="h-4 w-4 text-purple-500" />
+                      {onSelectNode ? (
+                        <button
+                          className="font-medium text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                          onClick={() => navigateToJob(job)}
+                        >
+                          {job.name}
+                        </button>
+                      ) : (
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {job.name}
+                        </p>
+                      )}
+                    </div>
+                    <div className="ml-6 mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                      <div className="flex items-center space-x-4">
+                        <span>Duration: {formatDuration(job.duration)}</span>
+                        {job.function && <span>Function: {job.function}</span>}
+                      </div>
+                      {job.error && (
+                        <p className="text-red-600 dark:text-red-400 mt-2">
+                          ❌ Error: {job.error}
+                        </p>
+                      )}
+                      {job.result && (
+                        <details className="mt-2">
+                          <summary className="cursor-pointer text-blue-600 dark:text-blue-400 hover:underline">
+                            View Result
+                          </summary>
+                          <pre className="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs overflow-auto">
+                            {JSON.stringify(job.result, null, 2)}
+                          </pre>
+                        </details>
+                      )}
+                      {job.triggersInvocation && (
+                        <div className="mt-2 p-2 bg-purple-50 dark:bg-purple-900/20 rounded border border-purple-200 dark:border-purple-800">
+                          <div className="flex items-center space-x-2 text-purple-700 dark:text-purple-400">
+                            <span className="text-xs">🔄 Recursive Chain</span>
+                            <button className="text-xs underline hover:no-underline">
+                              → View triggered invocation
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <span className={`
-                    inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                    ml-4 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium flex-shrink-0
                     ${job.status === 'completed'
                       ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                       : job.status === 'failed'
@@ -797,43 +1018,7 @@ const InvocationDetailDrawer: React.FC<InvocationDetailDrawerProps> = ({
         )}
 
         {activeTab === 'logs' && (
-          <div className="space-y-4">
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800 mb-4">
-              <h5 className="font-medium text-blue-700 dark:text-blue-400 mb-2">
-                Invocation Logs
-              </h5>
-              <p className="text-sm text-blue-600 dark:text-blue-400">
-                Viewing all logs from Grafana Loki for this entire invocation, including all events and jobs.
-                Logs are filtered by invocationId.
-              </p>
-            </div>
-
-            {(() => {
-              const grafanaService = createGrafanaService();
-
-              if (!grafanaService) {
-                return (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                    <p>Grafana is not configured.</p>
-                    <p className="text-sm mt-1">
-                      Set VITE_GRAFANA_HOST, VITE_GRAFANA_ID, and VITE_GRAFANA_SECRET environment variables.
-                    </p>
-                  </div>
-                );
-              }
-
-              const invocationId = node.id;
-
-              return (
-                <LogsViewer
-                  queryFn={() => grafanaService.queryInvocationLogs(invocationId, 15)}
-                  autoRefresh={false}
-                  isJobRunning={false}
-                  refreshInterval={5000}
-                />
-              );
-            })()}
-          </div>
+          <InvocationLogsTab invocationId={invocation.id} createdAt={invocationDisplayData.createdAt} />
         )}
       </div>
     </motion.div>
