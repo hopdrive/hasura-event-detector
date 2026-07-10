@@ -64,14 +64,16 @@ describe('GraphQLTransport source_job_id FK fallback', () => {
     },
   };
 
-  function buildTransport(requestMock: jest.Mock): GraphQLTransport {
+  function buildTransport(requestMock: jest.Mock, { stubRetry = true } = {}): GraphQLTransport {
     const transport = new GraphQLTransport({
       graphql: { endpoint: 'http://hasura.test/v1/graphql', retryDelay: 1 },
     } as any);
     (transport as any).client = { request: requestMock };
-    // Single attempt per call — the FK fallback is what's under test here,
-    // not the backoff loop (whose maxRetries falls back to 3 on falsy values)
-    jest.spyOn(transport as any, 'retryWithBackoff').mockImplementation((op: any) => op());
+    if (stubRetry) {
+      // Single attempt per call — the FK fallback is what's under test here,
+      // not the backoff loop (whose maxRetries falls back to 3 on falsy values)
+      jest.spyOn(transport as any, 'retryWithBackoff').mockImplementation((op: any) => op());
+    }
     return transport;
   }
 
@@ -118,5 +120,73 @@ describe('GraphQLTransport source_job_id FK fallback', () => {
 
     await expect((transport as any).flushInvocations(records)).rejects.toBeDefined();
     expect(records.size).toBe(1);
+  });
+
+  it('skips the retry backoff for FK violations — fallback fires immediately', async () => {
+    // Real retryWithBackoff: a deterministic constraint violation must not
+    // burn ~7s of exponential backoff (blocking a job start) before the
+    // unlink fallback runs
+    const request = jest
+      .fn()
+      .mockRejectedValueOnce(fkViolation)
+      .mockResolvedValueOnce({ insert_invocations: { affected_rows: 1 } });
+    const transport = buildTransport(request, { stubRetry: false });
+    const records = invocationRecords();
+
+    await (transport as any).flushInvocations(records);
+
+    // exactly 2 calls: the failed original + the unlinked re-send; zero retries
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(records.size).toBe(0);
+  });
+
+  it('still retries transient (non-FK) errors', async () => {
+    const request = jest
+      .fn()
+      .mockRejectedValueOnce(new Error('fetch failed'))
+      .mockResolvedValueOnce({ insert_invocations: { affected_rows: 1 } });
+    const transport = buildTransport(request, { stubRetry: false });
+    const records = invocationRecords();
+
+    await (transport as any).flushInvocations(records);
+
+    expect(request).toHaveBeenCalledTimes(2); // failed once, retried, succeeded
+    expect(records.size).toBe(0);
+  });
+});
+
+describe('GraphQLTransport concurrent flush safety', () => {
+  it('does not drop records buffered while another flush is in flight', async () => {
+    // The losing interleaving from the review: flush A snapshots, awaits the
+    // network; job B buffers its row; flush A completes. With clear() the row
+    // buffered mid-flight would be silently deleted unsent.
+    let resolveRequest!: (value: unknown) => void;
+    const request = jest.fn().mockImplementation(() => new Promise(resolve => { resolveRequest = resolve; }));
+    const transport = new GraphQLTransport({
+      graphql: { endpoint: 'http://hasura.test/v1/graphql', retryDelay: 1 },
+    } as any);
+    (transport as any).client = { request };
+    jest.spyOn(transport as any, 'retryWithBackoff').mockImplementation((op: any) => op());
+
+    const records = new Map([['job-a', { id: 'job-a', job_name: 'a' } as any]]);
+    const inFlight = (transport as any).flushJobExecutions(records);
+
+    // buffered AFTER the snapshot, while the network call is pending
+    records.set('job-b', { id: 'job-b', job_name: 'b' } as any);
+
+    resolveRequest({ insert_job_executions: { affected_rows: 1 } });
+    await inFlight;
+
+    expect(records.has('job-b')).toBe(true); // survives for the next flush
+    expect(records.has('job-a')).toBe(false); // snapshotted key removed
+
+    // and the next flush actually sends it
+    resolveRequest = () => {};
+    const second = (transport as any).flushJobExecutions(records);
+    resolveRequest({ insert_job_executions: { affected_rows: 1 } });
+    await second;
+    expect(records.size).toBe(0);
+    const secondCallObjects = request.mock.calls[1][1].objects;
+    expect(secondCallObjects.map((o: any) => o.id)).toEqual(['job-b']);
   });
 });

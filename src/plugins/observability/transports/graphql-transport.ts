@@ -1,4 +1,17 @@
 import { logError, logWarn, log } from '../../../helpers/log';
+import { BaseTransport } from './base';
+import type { ObservabilityTransport, BufferData, BufferedInvocation, BufferedEventExecution, BufferedJobExecution } from './types';
+import type { ObservabilityConfig } from '../plugin';
+import {
+  BULK_UPSERT_INVOCATIONS,
+  BULK_INSERT_EVENT_EXECUTIONS,
+  BULK_INSERT_JOB_EXECUTIONS,
+  UPDATE_INVOCATION_COMPLETION,
+  UPDATE_EVENT_EXECUTION_COMPLETION,
+  UPDATE_JOB_EXECUTION_COMPLETION,
+  HEALTH_CHECK_QUERY,
+} from '../graphql/mutations';
+import { loadGraphQLClient } from './graphql-loader';
 
 const MAX_ERROR_SUMMARY_CHARS = 2000;
 
@@ -25,27 +38,15 @@ function summarizeGraphQLError(error: any): Error {
 
   const summary = new Error(message);
   summary.name = error?.name ?? 'Error';
-  if (typeof error?.stack === 'string') {
-    summary.stack = error.stack.length > MAX_ERROR_SUMMARY_CHARS
-      ? `${error.stack.slice(0, MAX_ERROR_SUMMARY_CHARS)}…[truncated]`
-      : error.stack;
+  // Only adopt the original stack when it's small. A ClientError's stack BEGINS
+  // with its multi-hundred-KB message, so truncating it would keep zero actual
+  // frames — the fresh Error's own (small) stack is more useful than that.
+  if (typeof error?.stack === 'string' && error.stack.length <= MAX_ERROR_SUMMARY_CHARS) {
+    summary.stack = error.stack;
   }
   if (error?.code) (summary as any).code = error.code;
   return summary;
 }
-import { BaseTransport } from './base';
-import type { ObservabilityTransport, BufferData, BufferedInvocation, BufferedEventExecution, BufferedJobExecution } from './types';
-import type { ObservabilityConfig } from '../plugin';
-import {
-  BULK_UPSERT_INVOCATIONS,
-  BULK_INSERT_EVENT_EXECUTIONS,
-  BULK_INSERT_JOB_EXECUTIONS,
-  UPDATE_INVOCATION_COMPLETION,
-  UPDATE_EVENT_EXECUTION_COMPLETION,
-  UPDATE_JOB_EXECUTION_COMPLETION,
-  HEALTH_CHECK_QUERY,
-} from '../graphql/mutations';
-import { loadGraphQLClient } from './graphql-loader';
 
 // GraphQLClient type (will be loaded dynamically)
 type GraphQLClientType = any;
@@ -285,20 +286,31 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
     if (!this.client) throw new Error('Client not initialized');
     if (records.size === 0) return;
 
-    const objects = Array.from(records.values()).map(record =>
-      this.transformForGraphQL(record)
-    );
+    // Snapshot entries and delete only those keys on success. Flushes run
+    // concurrently (each onJobStart awaits one, jobs run via Promise.allSettled),
+    // so records buffered after this snapshot must survive for the next flush —
+    // a blanket clear() would silently drop them unsent.
+    const entries = Array.from(records.entries());
+    const objects = entries.map(([, record]) => this.transformForGraphQL(record));
 
     try {
-      const result = await this.retryWithBackoff(async () => {
-        return await this.client!.request(
-          BULK_UPSERT_INVOCATIONS,
-          { objects }
-        );
-      });
+      const result = await this.retryWithBackoff(
+        async () => {
+          return await this.client!.request(
+            BULK_UPSERT_INVOCATIONS,
+            { objects }
+          );
+        },
+        undefined,
+        undefined,
+        // A constraint violation is deterministic — retrying burns ~7s of
+        // backoff (blocking a job start) before the unlink fallback below
+        // can fire. Fail fast to the fallback instead.
+        error => !this.isSourceJobFkViolation(error)
+      );
 
       log('GraphQLTransport', `Upserted ${result.insert_invocations.affected_rows} invocations`);
-      records.clear();
+      for (const [key] of entries) records.delete(key);
     } catch (error) {
       // fk_invocations_source_job_id points at the SOURCE function's
       // job_executions row, which that function may not have flushed yet
@@ -319,7 +331,7 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
             'GraphQLTransport',
             `Upserted ${result.insert_invocations.affected_rows} invocations without source_job_id (parent job row not yet written)`
           );
-          records.clear();
+          for (const [key] of entries) records.delete(key);
           return;
         } catch (fallbackError) {
           this.handleGraphQLError(fallbackError, 'invocations', unlinked);
@@ -350,9 +362,9 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
   private async flushEventExecutions(records: Map<string, BufferedEventExecution>): Promise<void> {
     if (!this.client) throw new Error('Client not initialized');
 
-    const objects = Array.from(records.values()).map(record =>
-      this.transformForGraphQL(record)
-    );
+    // Snapshot-key deletion — see flushInvocations for why clear() is unsafe
+    const entries = Array.from(records.entries());
+    const objects = entries.map(([, record]) => this.transformForGraphQL(record));
 
     try {
       const result = await this.retryWithBackoff(async () => {
@@ -363,7 +375,7 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
       });
 
       log('GraphQLTransport', `Inserted ${result.insert_event_executions.affected_rows} event executions`);
-      records.clear();
+      for (const [key] of entries) records.delete(key);
     } catch (error) {
       this.handleGraphQLError(error, 'event_executions', objects);
       throw error;
@@ -376,9 +388,9 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
   private async flushJobExecutions(records: Map<string, BufferedJobExecution>): Promise<void> {
     if (!this.client) throw new Error('Client not initialized');
 
-    const objects = Array.from(records.values()).map(record =>
-      this.transformForGraphQL(record)
-    );
+    // Snapshot-key deletion — see flushInvocations for why clear() is unsafe
+    const entries = Array.from(records.entries());
+    const objects = entries.map(([, record]) => this.transformForGraphQL(record));
 
     try {
       const result = await this.retryWithBackoff(async () => {
@@ -389,7 +401,7 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
       });
 
       log('GraphQLTransport', `Inserted ${result.insert_job_executions.affected_rows} job executions`);
-      records.clear();
+      for (const [key] of entries) records.delete(key);
     } catch (error) {
       this.handleGraphQLError(error, 'job_executions', objects);
       throw error;
@@ -472,12 +484,13 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
   private async retryWithBackoff<T>(
     operation: () => Promise<T>,
     retries: number = this.config.graphql?.maxRetries || 3,
-    delay: number = this.config.graphql?.retryDelay || 1000
+    delay: number = this.config.graphql?.retryDelay || 1000,
+    shouldRetry: (error: unknown) => boolean = () => true
   ): Promise<T> {
     try {
       return await operation();
     } catch (error) {
-      if (retries <= 0) {
+      if (retries <= 0 || !shouldRetry(error)) {
         throw error;
       }
 
@@ -488,7 +501,7 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
       );
 
       await new Promise(resolve => setTimeout(resolve, delay));
-      return this.retryWithBackoff(operation, retries - 1, delay * 2);
+      return this.retryWithBackoff(operation, retries - 1, delay * 2, shouldRetry);
     }
   }
 
