@@ -915,6 +915,15 @@ export class ObservabilityPlugin extends BasePlugin<ObservabilityConfig> {
 
       // Inject jobExecutionId into options so job functions can use it
       jobOptions.jobExecutionId = jobExecutionId;
+
+      // Commit the job row (and its invocation/event chain — flush() writes in
+      // FK order) BEFORE the job body runs, so functions triggered by the
+      // job's tracking-token-stamped writes can reference it via
+      // invocations.source_job_id without hitting an FK violation. onJobStart
+      // is awaited by the job wrapper, so this completes before the job
+      // executes. flush() never throws — a failed eager flush degrades to the
+      // old buffered behavior instead of blocking the job.
+      await this.flush();
     }
 
     log('ObservabilityPlugin', `Job started: ${jobName} for event ${eventName}`);

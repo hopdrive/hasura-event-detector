@@ -300,9 +300,43 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
       log('GraphQLTransport', `Upserted ${result.insert_invocations.affected_rows} invocations`);
       records.clear();
     } catch (error) {
+      // fk_invocations_source_job_id points at the SOURCE function's
+      // job_executions row, which that function may not have flushed yet
+      // (cross-function race — closed at the source by persistJobsAtStart,
+      // but any window that remains would otherwise poison this buffer and
+      // re-fail on every flush cycle). Land the records without the parent
+      // link rather than dropping them or looping.
+      if (this.isSourceJobFkViolation(error)) {
+        const unlinked = objects.map(obj => ({ ...obj, source_job_id: null }));
+        try {
+          const result = await this.client!.request(BULK_UPSERT_INVOCATIONS, { objects: unlinked });
+          log(
+            'GraphQLTransport',
+            `Upserted ${result.insert_invocations.affected_rows} invocations without source_job_id (parent job row not yet written)`
+          );
+          records.clear();
+          return;
+        } catch (fallbackError) {
+          this.handleGraphQLError(fallbackError, 'invocations', unlinked);
+          throw fallbackError;
+        }
+      }
+
       this.handleGraphQLError(error, 'invocations', objects);
       throw error;
     }
+  }
+
+  /** True when a GraphQL error is the source_job_id FK constraint violation */
+  private isSourceJobFkViolation(error: any): boolean {
+    const gqlErrors = error?.response?.errors;
+    if (!Array.isArray(gqlErrors)) return false;
+    return gqlErrors.some(
+      (e: any) =>
+        e?.extensions?.code === 'constraint-violation' &&
+        typeof e?.message === 'string' &&
+        e.message.includes('fk_invocations_source_job_id')
+    );
   }
 
   /**
