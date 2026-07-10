@@ -1,4 +1,4 @@
-import { logError, log } from '../../../helpers/log';
+import { logError, logWarn, log } from '../../../helpers/log';
 
 const MAX_ERROR_SUMMARY_CHARS = 2000;
 
@@ -307,10 +307,15 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
       // re-fail on every flush cycle). Land the records without the parent
       // link rather than dropping them or looping.
       if (this.isSourceJobFkViolation(error)) {
+        // Hasura's constraint error doesn't say WHICH object violated, so the
+        // whole batch is unlinked (in practice the buffer holds one invocation
+        // per flush). warn, not info: if this fires systematically, lineage is
+        // silently degrading and someone should look at why parent job rows
+        // aren't landing first.
         const unlinked = objects.map(obj => ({ ...obj, source_job_id: null }));
         try {
           const result = await this.client!.request(BULK_UPSERT_INVOCATIONS, { objects: unlinked });
-          log(
+          logWarn(
             'GraphQLTransport',
             `Upserted ${result.insert_invocations.affected_rows} invocations without source_job_id (parent job row not yet written)`
           );
