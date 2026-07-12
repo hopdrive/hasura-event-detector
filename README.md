@@ -1382,3 +1382,18 @@ This project is licensed under the ISC License - see the [LICENSE](LICENSE) file
 ---
 
 **Built with ❤️ by the HopDrive team**
+
+## Local development
+
+Dev ports are pinned org-wide so any combination of HopDrive sites can run at the same time.
+
+| Layer | Port |
+|---|---|
+| Netlify dev (functions + proxy) | **8851** |
+
+Start the site with `ntl dev`, then open either:
+
+- http://localhost:8851
+- http://monitoring.local.hopdrive.io:8851 — `*.local.hopdrive.io` resolves to `127.0.0.1` via public DNS; works on any machine with no `/etc/hosts` changes.
+
+Always use the 8851 URLs so Netlify functions and redirects behave like production.
