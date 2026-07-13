@@ -6,6 +6,7 @@
 
 [dev]
   targetPort = 3000
+  port = 8851
 
 [build.environment]
   NODE_VERSION = "20"
