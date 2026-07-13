@@ -124,7 +124,7 @@ CREATE TABLE event_executions (
     jobs_failed INTEGER DEFAULT 0,
 
     -- Status tracking
-    status TEXT NOT NULL DEFAULT 'detecting' CHECK (status IN ('detecting', 'not_detected', 'handling', 'completed', 'failed'))
+    status TEXT NOT NULL DEFAULT 'detecting' CHECK (status IN ('detecting', 'not_detected', 'handling', 'completed', 'failed', 'detection_failed', 'handler_failed'))
 );
 
 -- Job execution - each async job run for detected events

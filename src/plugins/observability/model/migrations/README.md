@@ -102,6 +102,10 @@ FROM job_chain
 ORDER BY created_at, depth;
 ```
 
+### 002 - Fix event_executions status check constraint
+- **Up**: `002_fix_event_executions_status_constraint_up.sql` - Adds `detection_failed` and `handler_failed` to the allowed status values in the `event_executions_status_check` constraint
+- **Down**: `002_fix_event_executions_status_constraint_down.sql` - Reverts the constraint to the original set of allowed values (migrates any affected rows to `failed` first)
+
 ### Creating New Migrations
 
 When creating new migration files:
