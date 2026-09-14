@@ -2,10 +2,20 @@ import { isDataError } from '../transports/data-errors';
 import { GraphQLTransport } from '../transports/graphql-transport';
 import { SQLTransport } from '../transports/sql-transport';
 import type { BufferData } from '../transports/types';
+import { logError } from '../../../helpers/log';
+
+const mockedLogError = logError as unknown as jest.Mock;
 
 const mockGraphQLClientInstance = {
   request: jest.fn(),
 };
+
+jest.mock('../../../helpers/log', () => ({
+  ...jest.requireActual('../../../helpers/log'),
+  log: jest.fn(),
+  logError: jest.fn(),
+  logWarn: jest.fn(),
+}));
 
 jest.mock('../transports/graphql-loader', () => ({
   loadGraphQLClient: jest.fn().mockResolvedValue(
@@ -152,21 +162,25 @@ describe('GraphQLTransport data-error handling', () => {
     expect(mockGraphQLClientInstance.request).toHaveBeenCalledTimes(1);
   });
 
-  it('logs the dropped batch once, naming the offending ids', async () => {
-    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+  it('logs the dropped batch exactly once, naming the offending ids, and never again', async () => {
     mockGraphQLClientInstance.request.mockRejectedValue(badUuidError());
+    const buffer = bufferWith('repro-0001');
 
-    await transport.flush(bufferWith('repro-0001'));
+    await transport.flush(buffer);
 
-    const dropLines = consoleError.mock.calls
-      .map(call => call.map(String).join(' '))
-      .filter(line => line.includes('Dropping') && line.includes('repro-0001'));
+    const dropLines = mockedLogError.mock.calls
+      .map(call => String(call[1]))
+      .filter(message => message.includes('Dropping') && message.includes('repro-0001'));
     expect(dropLines).toHaveLength(1);
-    consoleError.mockRestore();
+
+    await transport.flush(buffer);
+    const afterSecondFlush = mockedLogError.mock.calls
+      .map(call => String(call[1]))
+      .filter(message => message.includes('Dropping') && message.includes('repro-0001'));
+    expect(afterSecondFlush).toHaveLength(1);
   });
 
   it('still retries a transient error and keeps the batch buffered', async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
     mockGraphQLClientInstance.request.mockRejectedValue(timeoutError());
     const buffer = bufferWith('11111111-1111-1111-1111-111111111111');
 
@@ -196,7 +210,6 @@ describe('SQLTransport data-error handling', () => {
   });
 
   it('drops a batch rejected with a data error and empties the buffer', async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
     mockQuery = jest.fn().mockImplementation(async (sql: string) => {
       if (typeof sql === 'string' && sql.includes('invocations')) {
         const error: any = new Error('invalid input syntax for type uuid: "repro-0001"');
@@ -212,7 +225,6 @@ describe('SQLTransport data-error handling', () => {
   });
 
   it('keeps a batch buffered and rethrows when the failure is transient', async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
     mockQuery = jest.fn().mockImplementation(async (sql: string) => {
       if (typeof sql === 'string' && sql.includes('invocations')) {
         const error: any = new Error('too many connections');
