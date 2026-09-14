@@ -12,6 +12,7 @@ import {
   HEALTH_CHECK_QUERY,
 } from '../graphql/mutations';
 import { loadGraphQLClient } from './graphql-loader';
+import { isDataError, dropMessage } from './data-errors';
 
 // GraphQLClient type (will be loaded dynamically)
 type GraphQLClientType = any;
@@ -266,6 +267,13 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
       log('GraphQLTransport', `Upserted ${result.insert_invocations.affected_rows} invocations`);
       records.clear();
     } catch (error) {
+      if (isDataError(error)) {
+        // Drop the batch. Keeping it would re-send the same rejected rows on
+        // every flush, forever.
+        logError('GraphQLTransport', dropMessage('invocations', objects, error));
+        records.clear();
+        return;
+      }
       this.handleGraphQLError(error, 'invocations', objects);
       throw error;
     }
@@ -292,6 +300,13 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
       log('GraphQLTransport', `Inserted ${result.insert_event_executions.affected_rows} event executions`);
       records.clear();
     } catch (error) {
+      if (isDataError(error)) {
+        // Drop the batch. Keeping it would re-send the same rejected rows on
+        // every flush, forever.
+        logError('GraphQLTransport', dropMessage('event_executions', objects, error));
+        records.clear();
+        return;
+      }
       this.handleGraphQLError(error, 'event_executions', objects);
       throw error;
     }
@@ -318,6 +333,13 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
       log('GraphQLTransport', `Inserted ${result.insert_job_executions.affected_rows} job executions`);
       records.clear();
     } catch (error) {
+      if (isDataError(error)) {
+        // Drop the batch. Keeping it would re-send the same rejected rows on
+        // every flush, forever.
+        logError('GraphQLTransport', dropMessage('job_executions', objects, error));
+        records.clear();
+        return;
+      }
       this.handleGraphQLError(error, 'job_executions', objects);
       throw error;
     }
@@ -404,7 +426,9 @@ export class GraphQLTransport extends BaseTransport implements ObservabilityTran
     try {
       return await operation();
     } catch (error) {
-      if (retries <= 0) {
+      // A rejected batch is rejected for good. Retrying it burns requests and,
+      // because the buffer only clears on success, feeds the re-flush loop.
+      if (retries <= 0 || isDataError(error)) {
         throw error;
       }
 

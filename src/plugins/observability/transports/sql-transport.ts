@@ -3,6 +3,7 @@ import { logError, log } from '../../../helpers/log';
 import { BaseTransport } from './base';
 import type { ObservabilityTransport, BufferData, BufferedInvocation, BufferedEventExecution, BufferedJobExecution } from './types';
 import type { ObservabilityConfig } from '../plugin';
+import { isDataError, dropMessage } from './data-errors';
 
 /**
  * SQL transport for observability data using PostgreSQL
@@ -74,10 +75,38 @@ export class SQLTransport extends BaseTransport implements ObservabilityTranspor
       await client.query('COMMIT');
     } catch (error) {
       if (client) await client.query('ROLLBACK');
+
+      if (isDataError(error)) {
+        // The transaction rolled back, so nothing landed, and re-sending the
+        // same rows would fail the same way on every flush. Drop the whole
+        // buffered batch and log it once. The three tables go together because
+        // the rollback discarded them together and the children reference the
+        // invocations we are dropping.
+        this.dropBatchAfterDataError(buffer, error);
+        return;
+      }
+
       logError('SQLTransport', 'Flush failed', error as Error);
       throw error;
     } finally {
       if (client) client.release();
+    }
+  }
+
+  /**
+   * Log a rejected batch once, naming the offending ids, then clear it.
+   */
+  private dropBatchAfterDataError(buffer: BufferData, error: unknown): void {
+    const tables: Array<[string, Map<string, any>]> = [
+      ['invocations', buffer.invocations],
+      ['event_executions', buffer.eventExecutions],
+      ['job_executions', buffer.jobExecutions],
+    ];
+
+    for (const [tableName, records] of tables) {
+      if (records.size === 0) continue;
+      logError('SQLTransport', dropMessage(tableName, Array.from(records.values()), error));
+      records.clear();
     }
   }
 
