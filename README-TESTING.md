@@ -16,14 +16,14 @@ node test-with-real-payload.js /path/to/your-payload.json
 
 ### With Database Writes (full integration test)
 ```bash
-# Random payload - writes to TEST database (hopdrive-test.hasura.app)
+# Random payload - writes to TEST database (gql-test.hopdrive.io)
 ./test-with-database.sh
 
 # Specific payload
 ./test-with-database.sh test-payloads/move-active-change.json
 
 # Or manually set environment variables (TEST ONLY):
-export HASURA_GRAPHQL_ENDPOINT=https://hopdrive-test.hasura.app/v1/graphql
+export HASURA_GRAPHQL_ENDPOINT=https://gql-test.hopdrive.io/v1/graphql
 export HASURA_ADMIN_SECRET=your-test-secret-here
 node test-with-real-payload.js test-payloads/move-created.json
 ```
